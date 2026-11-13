@@ -1,1 +1,58 @@
 
+name: Cập nhật kết quả
+
+on:
+  schedule:
+    - cron: '45 9 * * *'    # 16:45 giờ VN: XSMN
+    - cron: '0 15 * * *'    # 22:00 giờ VN: Vietlott
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: 'Loại cần cập nhật'
+        required: true
+        type: choice
+        options: [xsmn, vietlott]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: results
+  cancel-in-progress: false
+
+jobs:
+  xsmn:
+    if: ${{ github.event.schedule == '45 9 * * *' || (github.event_name == 'workflow_dispatch' && inputs.kind == 'xsmn') }}
+    runs-on: ubuntu-latest
+    env:
+      KIND: xsmn
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node scripts/update.mjs "$KIND"
+      - name: Lưu kết quả
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/results.json
+          git diff --cached --quiet || git commit -m "Cập nhật $KIND"
+          git push
+
+  vietlott:
+    if: ${{ github.event.schedule == '0 15 * * *' || (github.event_name == 'workflow_dispatch' && inputs.kind == 'vietlott') }}
+    runs-on: ubuntu-latest
+    env:
+      KIND: vietlott
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node scripts/update.mjs "$KIND"
+      - name: Lưu kết quả
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/results.json
+          git diff --cached --quiet || git commit -m "Cập nhật $KIND"
+          git push
