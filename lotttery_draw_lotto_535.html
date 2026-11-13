@@ -5,465 +5,713 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mô phỏng quay số Lotto 5/35 - Vietlott</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b1120; --panel: #111a2e; --panel-2: #18233d; --line: #26324f;
+    --text: #e6ebf5; --muted: #94a3b8; --red: #ef4444; --red-dark: #b91c1c;
+    --emerald: #10b981; --emerald-dark: #059669; --gold: #fbbf24; --green: #22c55e;
+  }
   body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-    min-height: 100vh;
-    color: #fff;
-    padding: 20px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(900px 500px at 85% -10%, #064e3b 0%, transparent 60%), var(--bg);
+    color: var(--text); min-height: 100vh; line-height: 1.5;
   }
-  .container { max-width: 1200px; margin: 0 auto; }
-  header {
-    text-align: center;
-    padding: 30px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    margin-bottom: 30px;
-  }
-  header h1 { font-size: 2.5rem; color: #fbbf24; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(251,191,36,0.3); }
-  header p { color: #cbd5e1; font-size: 1.1rem; }
-  .badge { display: inline-block; margin-top: 10px; padding: 6px 16px; background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); border-radius: 20px; font-size: 0.9rem; letter-spacing: 1px; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 22px 16px 40px; }
 
-  .draw-times { display: flex; gap: 20px; justify-content: center; margin: 25px 0; flex-wrap: wrap; }
-  .time-slot {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 14px 24px;
-    min-width: 150px;
-    text-align: center;
-    backdrop-filter: blur(6px);
-  }
-  .time-slot .label { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-  .time-slot .value { font-size: 1.6rem; font-weight: bold; color: #fbbf24; margin-top: 4px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--emerald), var(--emerald-dark));
+    display: grid; place-items: center; font-weight: 900; color: #fff; box-shadow: 0 8px 24px rgba(16,185,129,.35); }
+  h1 { font-size: 1.4rem; font-weight: 800; }
+  .brand p { color: var(--muted); font-size: .88rem; }
 
-  .main-grid { display: grid; grid-template-columns: 1fr 420px; gap: 30px; }
-  @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+  .sched { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--emerald); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 14px; font-size: .92rem; }
+  .sched b { color: var(--emerald); }
 
-  /* Left panel - draw machines */
-  .machines-panel { display: flex; flex-direction: column; gap: 20px; }
-  .machine-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 24px;
-    backdrop-filter: blur(8px);
-  }
-  .machine-header {
-    display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
-  }
-  .machine-indicator { width: 12px; height: 12px; border-radius: 50%; }
-  .machine-main .machine-indicator { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
-  .machine-special .machine-indicator { background: #10b981; box-shadow: 0 0 12px #10b981; }
-  .machine-header h3 { font-size: 1.3rem; color: #fff; flex: 1; }
-  .machine-count { font-size: 1.1rem; color: #94a3b8; }
-  .machine-count span { color: #fff; font-weight: bold; margin-left: 4px; }
+  .prizes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 900px) { .prizes { grid-template-columns: repeat(2, 1fr); } }
+  .pz { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; text-align: center; }
+  .pz .k { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .pz .v { font-size: 1rem; font-weight: 800; color: var(--gold); margin-top: 3px; }
+  .pz .s { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .pz.est .v { color: #cbd5e1; }
 
-  .drum { position: relative; width: 100%; height: 340px; border-radius: 12px; background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid rgba(255,255,255,0.08); overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
-  .drum::before {
-    content: ''; position: absolute; inset: 0;
-    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.06), transparent 50%);
-    pointer-events: none;
-  }
-  .ball {
-    position: absolute;
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #f1f5f9, #cbd5e1);
-    border: 2px solid #fff;
-    color: #0f172a;
-    font-weight: 800;
-    font-size: 1.15rem;
-    display: flex; align-items: center; justify-content: center;
-    user-select: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-    cursor: default;
-    z-index: 10;
-    transform-origin: center;
-  }
-  .ball.rolling { animation: roll 0.15s linear infinite; }
-  @keyframes roll { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-  .ball.flying {
-    transition: all 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 100;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  }
-  .ball.picked {
-    border-color: #fbbf24;
-    box-shadow: 0 0 0 4px rgba(251,191,36,0.25), 0 8px 24px rgba(0,0,0,0.5);
-  }
-  .ball.special { color: #047857; }
-  .ball.main { color: #dc2626; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  .panel h2 { font-size: .98rem; color: var(--emerald); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .4px; }
+  .hint { font-size: .84rem; color: var(--muted); margin-bottom: 10px; line-height: 1.55; }
+  .sub { font-size: .8rem; color: var(--muted); margin: 10px 0 6px; text-transform: uppercase; letter-spacing: .4px; }
 
-  .air-bubbles { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
-  .bubble {
-    position: absolute;
-    background: rgba(255,255,255,0.12);
-    border-radius: 50%;
-    animation: bubbleUp linear infinite;
-  }
-  @keyframes bubbleUp {
-    0% { transform: translateY(100vh) scale(1); opacity: 0; }
-    20% { opacity: 0.8; }
-    80% { opacity: 0.8; }
-    100% { transform: translateY(-10vh) scale(1.4); opacity: 0; }
-  }
+  .board { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .board.sp { grid-template-columns: repeat(6, 1fr); }
+  .cell { aspect-ratio: 1; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2);
+    font-weight: 700; font-size: .78rem; display: grid; place-items: center; cursor: pointer; user-select: none; transition: background .12s, border-color .12s; }
+  .cell:hover { border-color: var(--emerald); }
+  .cell.sel { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 0 10px rgba(239,68,68,.35); }
+  .cell.sp.sel { background: var(--emerald-dark); border-color: var(--emerald); box-shadow: 0 0 10px rgba(16,185,129,.35); }
+  .cell.locked { opacity: .5; cursor: not-allowed; }
 
-  /* Results panel */
-  .results-panel { display: flex; flex-direction: column; gap: 20px; }
-  .results-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 24px;
-    backdrop-filter: blur(8px);
-  }
-  .results-card h3 { font-size: 1.25rem; color: #fbbf24; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
-  .winning-numbers { display: flex; gap: 12px; flex-wrap: wrap; }
-  .number-chip {
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; font-weight: 800;
-    border: 2px solid rgba(255,255,255,0.15);
-    color: #fff;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-  }
-  .number-chip.main { background: linear-gradient(135deg, #ef4444, #b91c1c); border-color: #fca5a5; }
-  .number-chip.special { background: linear-gradient(135deg, #10b981, #059669); border-color: #6ee7b7; color: #ecfdf5; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .counter { font-size: .88rem; color: var(--muted); }
+  .counter b { color: var(--gold); }
 
-  .controls { display: flex; gap: 12px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
-  button.btn {
-    padding: 12px 26px; border-radius: 10px; border: none;
-    font-size: 1rem; font-weight: 700; cursor: pointer;
-    color: #fff; transition: all 0.2s;
-  }
-  button.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  button.btn.start { background: linear-gradient(135deg, #10b981, #059669); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 0 20px rgba(16,185,129,0.25); }
-  button.btn.start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 30px rgba(16,185,129,0.4); }
-  button.btn.reset { background: linear-gradient(135deg, #ef4444, #b91c1c); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 0 20px rgba(239,68,68,0.25); }
-  button.btn.reset:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 30px rgba(239,68,68,0.4); }
+  .tickets { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .tickets-head { display: flex; justify-content: space-between; font-size: .85rem; color: var(--muted); margin-bottom: 8px; }
+  .ticket { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .ticket .top { display: flex; justify-content: space-between; align-items: center; font-size: .85rem; }
+  .ticket .top b { color: var(--gold); }
+  .ticket .nums { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .pk { min-width: 30px; height: 30px; padding: 0 6px; border-radius: 8px; background: var(--red-dark); color: #fff;
+    font-size: .8rem; font-weight: 800; display: grid; place-items: center; }
+  .pk.hit { background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,.6); }
+  .pk.sp { background: var(--emerald-dark); }
+  .pk.sp.hit { background: var(--gold); color: #0b1120; box-shadow: 0 0 8px rgba(251,191,36,.6); }
+  .ticket .verdict { margin-top: 8px; font-size: .86rem; font-weight: 700; }
+  .ticket .verdict.win { color: #86efac; }
+  .ticket .verdict.lose { color: var(--muted); }
+  .rm { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 3px 8px; font-size: .72rem; border-radius: 6px; cursor: pointer; }
+  .rm:hover:not(:disabled) { color: var(--text); border-color: var(--red); }
 
-  button.btn.drawing {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    animation: pulse 1.5s infinite;
-  }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.65; } }
+  .drums { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 700px) { .drums { grid-template-columns: 1fr; } }
+  .drum-box { text-align: center; }
+  .drum-box .lab { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+  canvas { width: 100%; height: auto; display: block; }
 
-  /* Info panels */
-  .info-section { margin-top: 40px; }
-  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-  .info-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px;
-    padding: 20px;
-    backdrop-filter: blur(6px);
-  }
-  .info-card h4 { color: #fbbf24; font-size: 1.1rem; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
-  .info-card p { color: #cbd5e1; font-size: 0.95rem; line-height: 1.55; margin-bottom: 8px; }
-  .info-card p:last-child { margin-bottom: 0; }
-  .info-card ul { color: #cbd5e1; font-size: 0.95rem; line-height: 1.7; padding-left: 18px; margin-bottom: 0; }
-  .info-card li { margin-bottom: 6px; }
+  .controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button.btn { border: none; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: .92rem; color: #fff; cursor: pointer; transition: all .15s; }
+  button.btn:disabled { opacity: .45; cursor: not-allowed; }
+  button.btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn-primary { background: linear-gradient(135deg, var(--emerald), var(--emerald-dark)); box-shadow: 0 8px 20px rgba(16,185,129,.25); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn-outline { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+  .btn-outline:hover:not(:disabled) { border-color: var(--emerald); color: var(--text); }
+  .btn-small { padding: 7px 12px; font-size: .82rem; }
 
-  .jackpot-rule {
-    margin-top: 30px;
-    background: linear-gradient(135deg, rgba(251,191,36,0.12), rgba(168,85,247,0.08));
-    border: 1px solid rgba(251,191,36,0.25);
-    border-radius: 14px;
-    padding: 24px;
-    backdrop-filter: blur(8px);
-  }
-  .jackpot-rule h4 { color: #fbbf24; font-size: 1.2rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
-  .jackpot-rule p { color: #cbd5e1; font-size: 0.98rem; line-height: 1.6; margin-bottom: 10px; }
-  .jackpot-rule p:last-child { margin-bottom: 0; }
+  .status { text-align: center; margin-top: 12px; font-size: .92rem; color: var(--muted); min-height: 1.4em; }
+  .status b { color: var(--gold); }
 
-  .status-toast {
-    position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
-    background: rgba(15,23,42,0.95); border: 1px solid rgba(255,255,255,0.15);
-    color: #fff; padding: 12px 24px; border-radius: 10px;
-    font-size: 1rem; font-weight: 600; z-index: 1000;
-    opacity: 0; pointer-events: none; transition: opacity 0.3s;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  }
-  .status-toast.show { opacity: 1; }
-  .status-toast.ok { border-color: #10b981; color: #6ee7b7; }
-  .status-toast.err { border-color: #ef4444; color: #fca5a5; }
+  .chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; min-height: 52px; }
+  .chip { min-width: 52px; height: 52px; padding: 0 10px; border-radius: 26px; background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 2px solid var(--red); color: var(--red); display: grid; place-items: center; font-size: 1.2rem; font-weight: 800;
+    box-shadow: 0 0 16px rgba(239,68,68,.3); animation: pop .4s cubic-bezier(.175,.885,.32,1.275) both; }
+  .chip.sp { border-color: var(--emerald); color: var(--emerald); box-shadow: 0 0 16px rgba(16,185,129,.35); }
+  .chip.hit { border-color: var(--green); color: var(--green); box-shadow: 0 0 16px rgba(34,197,94,.45); }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-  footer { margin-top: 50px; padding: 25px 0; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; color: #64748b; font-size: 0.85rem; }
+  .banner { padding: 14px; border-radius: 10px; text-align: center; font-weight: 800; margin-bottom: 12px; }
+  .banner.win { background: rgba(34,197,94,.14); border: 1px solid var(--green); color: #86efac; }
+  .banner.lose { background: rgba(148,163,184,.1); border: 1px solid #475569; color: #cbd5e1; }
+  .banner.info { background: rgba(16,185,129,.1); border: 1px solid var(--emerald); color: #a7f3d0; }
+  .msg { font-size: .86rem; min-height: 1.3em; margin-top: 8px; }
+  .msg.err { color: #f87171; }
+  .msg.ok { color: var(--green); }
+  .note { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 8px; line-height: 1.6; }
+
+  .hist-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .hist-table th { text-align: left; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .4px; padding: 8px; border-bottom: 1px solid var(--line); }
+  .hist-table td { padding: 8px; border-bottom: 1px solid var(--line); }
+  .mini { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--red-dark); color: #fff; font-size: .68rem; font-weight: 800; margin: 1px; }
+  .mini.sp { background: var(--emerald-dark); }
 </style>
 </head>
 <body>
-
-<div class="container">
+<div class="wrap">
   <header>
-    <h1>Mô phỏng quay số Lotto 5/35</h1>
-    <p>Xổ số tự chọn Lotto 5/35 của Vietlott</p>
-    <span class="badge">Hệ thống 2 lồng cầu thổi khí tự động</span>
+    <div class="brand">
+      <div class="logo">35</div>
+      <div>
+        <h1>Mô phỏng Lotto 5/35</h1>
+        <p>Vietlott · quay nhanh · 2 lồng cầu · 5 số chính (01–35) + 1 số đặc biệt (01–12)</p>
+      </div>
+    </div>
   </header>
 
-  <div class="draw-times">
-    <div class="time-slot">
-      <div class="label">Ca 1</div>
-      <div class="value" id="time1">13:00</div>
-      <div style="font-size:0.8rem;color:#94a3b8;">hàng ngày</div>
-    </div>
-    <div class="time-slot">
-      <div class="label">Ca 2</div>
-      <div class="value" id="time2">21:00</div>
-      <div style="font-size:0.8rem;color:#94a3b8;">hàng ngày</div>
-    </div>
+  <div class="sched" id="sched"></div>
+
+  <div class="prizes">
+    <div class="pz"><div class="k">Độc đắc</div><div class="v">Tối thiểu 6 tỷ</div><div class="s">5 số chính + số đặc biệt · tích lũy</div></div>
+    <div class="pz"><div class="k">Giải Nhất</div><div class="v">10.000.000 đ</div><div class="s">5 số chính</div></div>
+    <div class="pz est"><div class="k">Giải Nhì *</div><div class="v">5.000.000 đ</div><div class="s">4 số chính</div></div>
+    <div class="pz est"><div class="k">Giải Ba *</div><div class="v">500.000 đ</div><div class="s">3 số chính</div></div>
+    <div class="pz est"><div class="k">Khuyến khích *</div><div class="v">10.000 đ</div><div class="s">Trùng số đặc biệt</div></div>
   </div>
 
-  <div class="main-grid">
-    <div class="machines-panel">
-      <div class="machine-card machine-main">
-        <div class="machine-header">
-          <div class="machine-indicator"></div>
-          <h3>Lồng cầu số chính</h3>
-          <div class="machine-count">35 quả bóng (01–35)</div>
-        </div>
-        <div class="drum" id="drumMain">
-          <div class="air-bubbles" id="bubblesMain"></div>
-        </div>
-        <div style="margin-top:10px;text-align:center;color:#94a3b8;font-size:0.85rem;">Thuổi khí tự động <span class="dot" id="airMain"></span></div>
-      </div>
-
-      <div class="machine-card machine-special">
-        <div class="machine-header">
-          <div class="machine-indicator" style="background:#10b981;box-shadow:0 0 12px #10b981;"></div>
-          <h3>Lồng cầu số đặc biệt</h3>
-          <div class="machine-count">12 quả bóng (01–12)</div>
-        </div>
-        <div class="drum" id="drumSpecial">
-          <div class="air-bubbles" id="bubblesSpecial"></div>
-        </div>
-        <div style="margin-top:10px;text-align:center;color:#94a3b8;font-size:0.85rem;">Thuổi khí tự động <span class="dot" id="airSpecial"></span></div>
-      </div>
-    </div>
-
-    <div class="results-panel">
-      <div class="results-card">
-        <h3>🎯 Bộ số trúng thưởng</h3>
-        <div class="winning-numbers" id="winningNumbers"></div>
-        <div class="controls">
-          <button class="btn start" id="btnStart" onclick="startDraw()">Bắt đầu quay số</button>
-          <button class="btn reset" id="btnReset" onclick="resetDraw()">Làm mới</button>
+  <div class="grid">
+    <section class="panel">
+      <h2>🎫 Chọn vé</h2>
+      <div class="hint">Mỗi vé gồm <b>5 số chính</b> (01–35) và <b>1 số đặc biệt</b> (01–12). Chọn xong bấm <b>Thêm vé</b>, có thể thêm nhiều vé.</div>
+      <div class="sub">Số chính (chọn 5)</div>
+      <div class="board" id="boardMain"></div>
+      <div class="sub">Số đặc biệt (chọn 1)</div>
+      <div class="board sp" id="boardSp"></div>
+      <div class="toolbar">
+        <div class="counter">Số chính: <b id="selMain">0</b>/5 · Đặc biệt: <b id="selSp">–</b></div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-small" id="quickPick">Chọn nhanh</button>
+          <button class="btn btn-outline btn-small" id="clearSel">Bỏ chọn</button>
         </div>
       </div>
-
-      <div class="info-section">
-        <div class="info-grid">
-          <div class="info-card">
-            <h4>Thiết bị</h4>
-            <p>Máy quay lồng cầu và bộ bóng sản xuất bởi <b>Smartplay International (Mỹ)</b>, đạt chứng nhận <b>Hiệp hội Xổ số Thế giới (WLA)</b>.</p>
-          </div>
-          <div class="info-card">
-            <h4>Giám sát</h4>
-            <p>Hội đồng Giám sát xổ số trực tiếp kiểm tra niêm phong, cân trọng lượng, kích thước từng quả bóng trước mỗi kỳ quay.</p>
-          </div>
-          <div class="info-card">
-            <h4>Phát sóng</h4>
-            <p>Phát sóng trực tiếp trên YouTube, Fanpage chính thức của Vietlott và ứng dụng Vietlott SMS.</p>
-          </div>
-        </div>
-
-        <div class="jackpot-rule">
-          <h4>💰 Quy tắc "Chia Giải Độc Đắc"</h4>
-          <p><strong>Điều kiện:</strong> Giải Độc Đắc tích lũy vượt 12 tỷ đồng mà vẫn chưa có người trúng thưởng.</p>
-          <p><strong>Thời điểm:</strong> Nếu tiếp tục không có vé trúng giải Độc Đắc, toàn bộ số tiền thưởng này sẽ được chia đều cho các hạng giải từ Giải Nhất đến Giải Năm tại kỳ quay 21h00 ngày hôm sau.</p>
-        </div>
+      <div class="controls" style="margin-top:12px">
+        <button class="btn btn-primary btn-small" id="addTicket">+ Thêm vé</button>
       </div>
-    </div>
+      <div class="msg" id="ticketMsg"></div>
+      <div class="tickets">
+        <div class="tickets-head"><span>Các vé đã chọn</span><span id="ticketCount">0 vé</span></div>
+        <div id="ticketList"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>🎱 Lồng cầu</h2>
+      <div class="drums">
+        <div class="drum-box"><div class="lab">Lồng số chính (35 bóng)</div><canvas id="cMain" width="360" height="400"></canvas></div>
+        <div class="drum-box"><div class="lab">Lồng số đặc biệt (12 bóng)</div><canvas id="cSp" width="360" height="400"></canvas></div>
+      </div>
+      <div class="controls">
+        <button class="btn btn-primary" id="btnStart">Bắt đầu quay</button>
+        <button class="btn btn-outline" id="btnReset">Làm mới</button>
+      </div>
+      <div class="status" id="status">Chọn vé (nếu có) rồi nhấn Bắt đầu quay.</div>
+      <div class="chips" id="chips"></div>
+    </section>
   </div>
 
-  <footer>
-    © Vietlott — Mô phỏng quay số Lotto 5/35. Dành cho mục đích giải trí và minh họa quy trình mở thưởng.
-  </footer>
+  <section class="panel">
+    <h2>📣 Đối chiếu vé</h2>
+    <div id="verdict"><div class="banner info">Chưa có kết quả để đối chiếu.</div></div>
+    <div class="note">* Mức thưởng các hạng Nhì, Ba, Khuyến khích và điều kiện trúng tương ứng được ước tính từ bài báo tham khảo; đối chiếu cơ cấu chính thức tại vietlott.vn.</div>
+  </section>
+
+  <section class="panel">
+    <h2>🗂️ Lịch sử kỳ quay trong phiên này</h2>
+    <div id="history"><div class="hint" style="margin:0">Chưa có kỳ quay nào.</div></div>
+  </section>
+
+  <div class="note">
+    Mô phỏng minh họa, kết quả ngẫu nhiên trên trình duyệt, không liên kết với hệ thống mở thưởng thực tế.
+    Giá trị Độc đắc tích lũy và cơ chế chia giải không được mô phỏng.
+  </div>
 </div>
 
-<div class="status-toast" id="toast"></div>
-
 <script>
-const BALL_MAIN_COUNT = 35;
-const BALL_SPECIAL_COUNT = 12;
-const DRAW_MAIN_COUNT = 5;
-const DRAW_SPECIAL_COUNT = 1;
+(function () {
+  'use strict';
 
-let isDrawing = false;
-let drawnMain = [];
-let drawnSpecial = [];
+  // ---------- Cấu hình ----------
+  const MAIN_N = 35, MAIN_PICK = 5, SP_N = 12;
+  const DRAW_HOURS = [13, 21];
+  const G = 900, MAX_W = 4;
 
-const drumMain = document.getElementById('drumMain');
-const drumSpecial = document.getElementById('drumSpecial');
-const bubblesMain = document.getElementById('bubblesMain');
-const bubblesSpecial = document.getElementById('bubblesSpecial');
-const btnStart = document.getElementById('btnStart');
-const btnReset = document.getElementById('btnReset');
-const winningNumbers = document.getElementById('winningNumbers');
-const toast = document.getElementById('toast');
+  // Điều kiện trùng cho các hạng ngoài Độc đắc là ước tính (xem ghi chú trên giao diện)
+  const TIERS = [
+    { label: 'Giải Độc đắc', value: 'Tối thiểu 6 tỷ (tích lũy)' },
+    { label: 'Giải Nhất', value: '10.000.000 đ' },
+    { label: 'Giải Nhì *', value: '5.000.000 đ' },
+    { label: 'Giải Ba *', value: '500.000 đ' },
+    { label: 'Khuyến khích *', value: '10.000 đ' }
+  ];
 
-function createBubbles(container, count) {
-  container.innerHTML = '';
-  for (let i = 0; i < count; i++) {
-    const b = document.createElement('div');
-    b.className = 'bubble';
-    const size = Math.random() * 14 + 6;
-    b.style.width = size + 'px';
-    b.style.height = size + 'px';
-    b.style.left = Math.random() * 100 + '%';
-    b.style.animationDuration = (Math.random() * 4 + 2) + 's';
-    b.style.animationDelay = (Math.random() * 5) + 's';
-    container.appendChild(b);
+  // ---------- Trạng thái ----------
+  const selMain = new Set();
+  let selSp = null;
+  let tickets = [];
+  let ticketSeq = 1;
+  let busy = false;
+  let mainNums = [];
+  let spNum = null;
+  let history = [];
+
+  // ---------- Tiện ích ----------
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+  const ease = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  function tween(ms, fn) {
+    return new Promise(res => {
+      const t0 = performance.now();
+      (function f(now) {
+        const k = Math.min(1, (now - t0) / ms);
+        fn(k);
+        if (k < 1) requestAnimationFrame(f); else res();
+      })(t0);
+    });
   }
-}
 
-function createBalls(drum, count, prefix) {
-  drum.innerHTML = '';
-  const rect = drum.getBoundingClientRect();
-  const cx = rect.width / 2;
-  const cy = rect.height / 2;
-  const rMin = 40, rMax = 120;
-  const balls = [];
-  for (let i = 1; i <= count; i++) {
-    const ball = document.createElement('div');
-    ball.className = 'ball ' + prefix;
-    ball.textContent = String(i).padStart(2, '0');
-    ball.dataset.num = i;
-    const angle = Math.random() * Math.PI * 2;
-    const r = rMin + Math.random() * (rMax - rMin);
-    const x = cx + Math.cos(angle) * r - 24;
-    const y = cy + Math.sin(angle) * r - 24;
-    ball.style.left = x + 'px';
-    ball.style.top = y + 'px';
-    ball.classList.add('rolling');
-    drum.appendChild(ball);
-    balls.push(ball);
-  }
-  return balls;
-}
-
-function showToast(msg, type) {
-  toast.textContent = msg;
-  toast.className = 'status-toast ' + (type || '') + ' show';
-  setTimeout(() => toast.classList.remove('show'), 2500);
-}
-
-function resetDraw() {
-  if (isDrawing) return;
-  isDrawing = false;
-  drawnMain = [];
-  drawnSpecial = [];
-  winningNumbers.innerHTML = '';
-  btnStart.disabled = false;
-  btnStart.textContent = 'Bắt đầu quay số';
-  btnStart.className = 'btn start';
-  btnReset.disabled = false;
-  createBalls(drumMain, BALL_MAIN_COUNT, 'main');
-  createBalls(drumSpecial, BALL_SPECIAL_COUNT, 'special');
-  createBubbles(bubblesMain, 24);
-  createBubbles(bubblesSpecial, 18);
-  showToast('Đã làm mới. Sẵn sàng quay số.', '');
-}
-
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-async function startDraw() {
-  if (isDrawing) return;
-  isDrawing = true;
-  btnStart.disabled = true;
-  btnReset.disabled = true;
-  btnStart.textContent = 'Đang quay số...';
-  btnStart.className = 'btn start drawing';
-  winningNumbers.innerHTML = '';
-
-  // Main drum
-  const mainBalls = drumMain.querySelectorAll('.ball');
-  mainBalls.forEach(b => b.classList.add('rolling'));
-  showToast('Lồng cầu số chính đang hoạt động...', '');
-  await sleep(2200);
-
-  const mainPool = Array.from({ length: BALL_MAIN_COUNT }, (_, i) => i + 1);
-  const pickedMain = [];
-  for (let i = 0; i < DRAW_MAIN_COUNT; i++) {
-    const idx = Math.floor(Math.random() * mainPool.length);
-    const num = mainPool.splice(idx, 1)[0];
-    pickedMain.push(num);
-
-    const ball = drumMain.querySelector('.ball[data-num="'+num+'"]');
-    if (ball) {
-      ball.classList.remove('rolling');
-      ball.classList.add('flying', 'picked');
-      // fly to center top of drum
-      ball.style.left = '48%';
-      ball.style.top = '18%';
-      ball.style.transform = 'scale(1.2)';
-      ball.style.zIndex = 100 + i;
+  // ---------- Lồng cầu ----------
+  class Drum {
+    constructor(canvas, count, R, BR, slots, palette) {
+      this.c = canvas;
+      this.g = canvas.getContext('2d');
+      this.count = count; this.R = R; this.BR = BR; this.slots = slots; this.palette = palette;
+      this.cx = canvas.width / 2; this.cy = 170;
+      this.hole = { x: this.cx, y: this.cy + R - 2 };
+      this.trayY = 372;
+      this.omega = 0; this.angle = 0;
+      this.balls = [];
+      for (let n = 1; n <= count; n++) this.balls.push({ n, x: this.cx, y: this.cy, vx: 0, vy: 0, state: 'drum' });
+      this.reset();
     }
-    await sleep(900);
+    trayX(i) { return this.slots === 1 ? this.cx : 60 + i * 60; }
+    reset() {
+      this.omega = 0;
+      const placed = [];
+      this.balls.forEach(b => {
+        b.state = 'drum'; b.vx = 0; b.vy = 0;
+        let x, y, ok = false, t = 0;
+        do {
+          const a = Math.random() * Math.PI * 2;
+          const r = Math.sqrt(Math.random()) * (this.R - this.BR - 6);
+          x = this.cx + Math.cos(a) * r; y = this.cy + Math.sin(a) * r;
+          ok = placed.every(o => Math.hypot(o.x - x, o.y - y) > 2 * this.BR + 1);
+          t++;
+        } while (!ok && t < 400);
+        b.x = x; b.y = y;
+        placed.push(b);
+      });
+    }
+    step(h) {
+      const om = this.omega, maxd = this.R - this.BR, cx = this.cx, cy = this.cy;
+      const act = this.balls.filter(b => b.state === 'drum');
+      for (const b of act) {
+        const dx = b.x - cx, dy = b.y - cy;
+        b.vy += G * h;
+        b.vx += om * om * dx * 0.6 * h;
+        b.vy += om * om * dy * 0.6 * h;
+        b.vx *= 0.998; b.vy *= 0.998;
+        b.x += b.vx * h; b.y += b.vy * h;
+      }
+      for (let it = 0; it < 2; it++) {
+        for (let i = 0; i < act.length; i++) for (let j = i + 1; j < act.length; j++) {
+          const a = act[i], c = act[j];
+          const dx = c.x - a.x, dy = c.y - a.y;
+          const d = Math.hypot(dx, dy), minD = 2 * this.BR;
+          if (d < minD && d > 1e-6) {
+            const nx = dx / d, ny = dy / d, over = (minD - d) / 2;
+            a.x -= nx * over; a.y -= ny * over; c.x += nx * over; c.y += ny * over;
+            const vrel = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny;
+            if (vrel < 0) {
+              const imp = -1.2 * vrel / 2;
+              a.vx -= nx * imp; a.vy -= ny * imp; c.vx += nx * imp; c.vy += ny * imp;
+            }
+          }
+        }
+      }
+      for (const b of act) {
+        const dx = b.x - cx, dy = b.y - cy, r = Math.hypot(dx, dy);
+        if (r > maxd) {
+          const nx = dx / r, ny = dy / r;
+          b.x = cx + nx * maxd; b.y = cy + ny * maxd;
+          let vn = b.vx * nx + b.vy * ny;
+          if (vn > 0) vn = -0.45 * vn;
+          const tx = -ny, ty = nx;
+          let vt = b.vx * tx + b.vy * ty;
+          vt += (om * maxd - vt) * 0.2;
+          b.vx = nx * vn + tx * vt;
+          b.vy = ny * vn + ty * vt;
+        }
+      }
+    }
+    update(dt) {
+      let acc = dt;
+      while (acc > 0) { const s = Math.min(1 / 240, acc); this.step(s); acc -= s; }
+      this.angle += this.omega * dt;
+    }
+    pick(slot) {
+      return new Promise(res => {
+        const pool = this.balls.filter(b => b.state === 'drum');
+        const b = pool[Math.floor(Math.random() * pool.length)];
+        b.state = 'pick';
+        const sx = b.x, sy = b.y;
+        const hx = this.hole.x, hy = this.hole.y, tx = this.trayX(slot), ty = this.trayY;
+        tween(450, k => {
+          const e = ease(k);
+          b.x = sx + (hx - sx) * e; b.y = sy + (hy - sy) * e;
+        }).then(() => tween(550, k => {
+          const e = ease(k);
+          b.x = hx + (tx - hx) * e; b.y = hy + (ty - hy) * e;
+        })).then(() => {
+          b.state = 'tray';
+          res(b.n);
+        });
+      });
+    }
+    drawBall(b, BR) {
+      const g = this.g;
+      g.save();
+      if (b.state === 'pick') { g.shadowColor = '#fbbf24'; g.shadowBlur = 14; }
+      const grad = g.createRadialGradient(b.x - 3, b.y - 4, 2, b.x, b.y, BR);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.4, this.palette(b.n));
+      grad.addColorStop(1, '#0b1020');
+      g.beginPath(); g.arc(b.x, b.y, BR, 0, Math.PI * 2);
+      g.fillStyle = grad; g.fill();
+      g.shadowBlur = 0;
+      g.fillStyle = '#0b1020';
+      g.font = 'bold ' + Math.round(BR * 0.85) + 'px "Segoe UI", Arial';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(pad(b.n), b.x, b.y + 0.5);
+      g.restore();
+    }
+    draw() {
+      const g = this.g, W = this.c.width, H = this.c.height;
+      g.clearRect(0, 0, W, H);
+
+      // Khay kết quả
+      g.fillStyle = '#060a14';
+      g.fillRect(20, this.trayY - 26, W - 40, 52);
+      g.strokeStyle = '#26324f'; g.lineWidth = 2;
+      g.strokeRect(20, this.trayY - 26, W - 40, 52);
+
+      // Lỗ xả
+      g.fillStyle = '#020617';
+      g.beginPath(); g.ellipse(this.hole.x, this.hole.y, 14, 6, 0, 0, Math.PI * 2); g.fill();
+
+      // Thân lồng
+      g.beginPath(); g.arc(this.cx, this.cy, this.R, 0, Math.PI * 2);
+      g.fillStyle = 'rgba(16,185,129,0.05)'; g.fill();
+
+      // Nan lồng xoay
+      g.save();
+      g.beginPath(); g.arc(this.cx, this.cy, this.R - 2, 0, Math.PI * 2); g.clip();
+      g.strokeStyle = 'rgba(148,163,184,0.18)'; g.lineWidth = 3;
+      for (let k = 0; k < 6; k++) {
+        const a = this.angle + k * Math.PI / 3;
+        g.beginPath();
+        g.moveTo(this.cx + Math.cos(a) * this.R, this.cy + Math.sin(a) * this.R);
+        g.lineTo(this.cx - Math.cos(a) * this.R, this.cy - Math.sin(a) * this.R);
+        g.stroke();
+      }
+      g.restore();
+
+      g.beginPath(); g.arc(this.cx, this.cy, this.R, 0, Math.PI * 2);
+      g.lineWidth = 5; g.strokeStyle = '#475569'; g.stroke();
+
+      // Ô khay trống
+      for (let i = 0; i < this.slots; i++) {
+        g.beginPath(); g.arc(this.trayX(i), this.trayY, 16, 0, Math.PI * 2);
+        g.setLineDash([4, 4]); g.strokeStyle = '#334155'; g.lineWidth = 1.5; g.stroke();
+        g.setLineDash([]);
+      }
+
+      const BR = this.BR;
+      this.balls.filter(b => b.state === 'drum').forEach(b => this.drawBall(b, BR));
+      this.balls.filter(b => b.state === 'pick').forEach(b => this.drawBall(b, BR));
+      this.balls.filter(b => b.state === 'tray').forEach(b => this.drawBall(b, BR));
+    }
   }
-  drawnMain = pickedMain.slice();
-  renderNumbers(pickedMain, 'main');
-  showToast('Đã rút xong 5 số chính.', '');
-  await sleep(700);
 
-  // Special drum
-  const specialBalls = drumSpecial.querySelectorAll('.ball');
-  specialBalls.forEach(b => b.classList.add('rolling'));
-  showToast('Lồng cầu số đặc biệt đang hoạt động...', '');
-  await sleep(1800);
+  const drumMain = new Drum($('cMain'), MAIN_N, 150, 13, MAIN_PICK,
+    n => `hsl(${(n * 10) % 360}, 70%, 55%)`);
+  const drumSp = new Drum($('cSp'), SP_N, 120, 14, 1,
+    n => `hsl(${150 + n * 14}, 70%, 50%)`);
+  const drums = [drumMain, drumSp];
 
-  const specialPool = Array.from({ length: BALL_SPECIAL_COUNT }, (_, i) => i + 1);
-  const sIdx = Math.floor(Math.random() * specialPool.length);
-  const specialNum = specialPool[sIdx];
-  drawnSpecial = [specialNum];
-
-  const sBall = drumSpecial.querySelector('.ball[data-num="'+specialNum+'"]');
-  if (sBall) {
-    sBall.classList.remove('rolling');
-    sBall.classList.add('flying', 'picked', 'special');
-    sBall.style.left = '48%';
-    sBall.style.top = '18%';
-    sBall.style.transform = 'scale(1.2)';
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    drums.forEach(d => { d.update(dt); d.draw(); });
+    requestAnimationFrame(frame);
   }
-  await sleep(700);
-  renderNumbers(drawnSpecial, 'special');
 
-  btnStart.textContent = 'Hoàn thành';
-  btnStart.className = 'btn start';
-  btnStart.disabled = false;
-  btnReset.disabled = false;
-  isDrawing = false;
-  showToast('Kết quả quay số đã ra.', 'ok');
-}
+  async function spinCycle(d, upMs, holdMs, downMs) {
+    await tween(upMs, k => { d.omega = MAX_W * ease(k); });
+    await wait(holdMs);
+    await tween(downMs, k => { d.omega = MAX_W * (1 - ease(k)); });
+    d.omega = 0;
+    await wait(300);
+  }
 
-function renderNumbers(nums, type) {
-  nums.forEach((num, i) => {
-    const chip = document.createElement('div');
-    chip.className = 'number-chip ' + type;
-    chip.textContent = String(num).padStart(2, '0');
-    chip.style.opacity = '0';
-    chip.style.transform = 'scale(0.8)';
-    winningNumbers.appendChild(chip);
-    setTimeout(() => {
-      chip.style.transition = 'all 0.5s cubic-bezier(0.34,1.56,0.64,1)';
-      chip.style.opacity = '1';
-      chip.style.transform = 'scale(1)';
-    }, i * 120);
-  });
-}
+  // ---------- Quay ----------
+  function renderChip(n, isSp) {
+    const c = document.createElement('div');
+    c.className = 'chip' + (isSp ? ' sp' : '');
+    c.textContent = pad(n);
+    $('chips').appendChild(c);
+  }
 
-// Live clock for draw times
-function updateClock() {
-  const now = new Date();
-  document.getElementById('time1').textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-}
-setInterval(updateClock, 1000);
-updateClock();
+  function renderFinalChips() {
+    const box = $('chips');
+    box.innerHTML = '';
+    const set = new Set(tickets.flatMap(t => t.main));
+    [...mainNums].sort((a, b) => a - b).forEach(n => {
+      const c = document.createElement('div');
+      c.className = 'chip' + (set.has(n) ? ' hit' : '');
+      c.textContent = pad(n);
+      box.appendChild(c);
+    });
+    const sc = document.createElement('div');
+    sc.className = 'chip sp' + (tickets.some(t => t.sp === spNum) ? ' hit' : '');
+    sc.textContent = pad(spNum);
+    sc.title = 'Số đặc biệt';
+    box.appendChild(sc);
+  }
 
-// Init
-resetDraw();
+  async function runDraw() {
+    if (busy) return;
+    busy = true;
+    lockUI(true);
+    mainNums = [];
+    spNum = null;
+    $('chips').innerHTML = '';
+    $('verdict').innerHTML = '';
+    drums.forEach(d => d.reset());
+
+    $('status').innerHTML = 'Lồng số chính đang trộn bóng...';
+    await spinCycle(drumMain, 700, 1800, 800);
+
+    for (let i = 0; i < MAIN_PICK; i++) {
+      $('status').innerHTML = 'Rút số chính thứ <b>' + (i + 1) + '/5</b>...';
+      const n = await drumMain.pick(i);
+      mainNums.push(n);
+      renderChip(n, false);
+      await wait(200);
+    }
+
+    $('status').innerHTML = 'Lồng số đặc biệt đang trộn bóng...';
+    await spinCycle(drumSp, 600, 1200, 700);
+    $('status').innerHTML = 'Rút số đặc biệt...';
+    spNum = await drumSp.pick(0);
+    renderChip(spNum, true);
+
+    const sorted = [...mainNums].sort((a, b) => a - b);
+    $('status').innerHTML = 'Kết quả: <b>' + sorted.map(pad).join(' - ') + '</b> · Đặc biệt: <b>' + pad(spNum) + '</b>';
+
+    addHistory();
+    renderFinalChips();
+    showVerdict();
+    busy = false;
+    lockUI(false);
+  }
+
+  // ---------- Vé ----------
+  function buildBoards() {
+    const bm = $('boardMain'), bs = $('boardSp');
+    bm.innerHTML = ''; bs.innerHTML = '';
+    for (let n = 1; n <= MAIN_N; n++) {
+      const c = document.createElement('div');
+      c.className = 'cell'; c.dataset.n = n; c.textContent = pad(n);
+      c.addEventListener('click', () => toggleMain(n));
+      bm.appendChild(c);
+    }
+    for (let n = 1; n <= SP_N; n++) {
+      const c = document.createElement('div');
+      c.className = 'cell sp'; c.dataset.s = n; c.textContent = pad(n);
+      c.addEventListener('click', () => toggleSp(n));
+      bs.appendChild(c);
+    }
+    renderBoards();
+  }
+
+  function renderBoards() {
+    document.querySelectorAll('#boardMain .cell').forEach(c => {
+      c.classList.toggle('sel', selMain.has(Number(c.dataset.n)));
+      c.classList.toggle('locked', busy);
+    });
+    document.querySelectorAll('#boardSp .cell').forEach(c => {
+      c.classList.toggle('sel', selSp === Number(c.dataset.s));
+      c.classList.toggle('locked', busy);
+    });
+    $('selMain').textContent = selMain.size;
+    $('selSp').textContent = selSp === null ? '–' : pad(selSp);
+  }
+
+  function flash(msg, ok) {
+    const m = $('ticketMsg');
+    m.className = 'msg ' + (ok ? 'ok' : 'err');
+    m.textContent = msg;
+  }
+
+  function toggleMain(n) {
+    if (busy) return;
+    if (selMain.has(n)) selMain.delete(n);
+    else {
+      if (selMain.size >= MAIN_PICK) { flash('Số chính chỉ chọn đúng 5 số.', false); return; }
+      selMain.add(n);
+    }
+    flash('', true);
+    renderBoards();
+  }
+
+  function toggleSp(n) {
+    if (busy) return;
+    selSp = (selSp === n) ? null : n;
+    flash('', true);
+    renderBoards();
+  }
+
+  function quickPick() {
+    if (busy) return;
+    selMain.clear();
+    const pool = Array.from({ length: MAIN_N }, (_, i) => i + 1);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    pool.slice(0, MAIN_PICK).forEach(n => selMain.add(n));
+    selSp = 1 + Math.floor(Math.random() * SP_N);
+    flash('', true);
+    renderBoards();
+  }
+
+  function addTicket() {
+    if (busy) return;
+    if (selMain.size !== MAIN_PICK) { flash('Cần chọn đúng 5 số chính (hiện có ' + selMain.size + ').', false); return; }
+    if (selSp === null) { flash('Cần chọn 1 số đặc biệt.', false); return; }
+    tickets.push({ id: ticketSeq++, main: [...selMain].sort((a, b) => a - b), sp: selSp });
+    selMain.clear(); selSp = null;
+    flash('Đã thêm vé.', true);
+    renderBoards();
+    renderTickets();
+  }
+
+  function removeTicket(id) {
+    if (busy) return;
+    tickets = tickets.filter(t => t.id !== id);
+    renderTickets();
+  }
+
+  function renderTickets() {
+    $('ticketCount').textContent = tickets.length + ' vé';
+    const list = $('ticketList');
+    list.innerHTML = '';
+    if (!tickets.length) {
+      list.innerHTML = '<div class="hint" style="margin:0">Chưa có vé nào.</div>';
+      return;
+    }
+    const drawnMain = new Set(mainNums);
+    tickets.forEach(t => {
+      const div = document.createElement('div');
+      div.className = 'ticket';
+      const pks = t.main.map(n => '<span class="pk' + (drawnMain.has(n) ? ' hit' : '') + '">' + pad(n) + '</span>').join('') +
+        '<span class="pk sp' + (spNum === t.sp ? ' hit' : '') + '">ĐB ' + pad(t.sp) + '</span>';
+      div.innerHTML = '<div class="top"><span>Vé <b>#' + t.id + '</b></span>' +
+        '<button class="rm" data-id="' + t.id + '">Xóa</button></div>' +
+        '<div class="nums">' + pks + '</div>';
+      div.querySelector('.rm').addEventListener('click', () => removeTicket(t.id));
+      list.appendChild(div);
+    });
+  }
+
+  // ---------- Dò vé ----------
+  function evaluate(t) {
+    const m = t.main.filter(n => mainNums.includes(n)).length;
+    const s = t.sp === spNum;
+    let tier = null;
+    if (m === 5 && s) tier = TIERS[0];
+    else if (m === 5) tier = TIERS[1];
+    else if (m === 4) tier = TIERS[2];
+    else if (m === 3) tier = TIERS[3];
+    else if (s) tier = TIERS[4];
+    return { m, s, tier };
+  }
+
+  function showVerdict() {
+    const box = $('verdict');
+    if (!tickets.length) {
+      box.innerHTML = '<div class="banner info">Bạn chưa có vé nào để đối chiếu.</div>';
+      renderTickets();
+      return;
+    }
+    let wins = 0;
+    const rows = tickets.map(t => {
+      const r = evaluate(t);
+      if (r.tier) wins++;
+      const pks = t.main.map(n => '<span class="pk' + (mainNums.includes(n) ? ' hit' : '') + '">' + pad(n) + '</span>').join('') +
+        '<span class="pk sp' + (r.s ? ' hit' : '') + '">ĐB ' + pad(t.sp) + '</span>';
+      const verdict = r.tier
+        ? '🎉 TRÚNG ' + r.tier.label + ' · ' + r.tier.value + ' (trùng ' + r.m + '/5 số chính' + (r.s ? ' + số đặc biệt' : '') + ')'
+        : 'Không trúng giải (trùng ' + r.m + '/5 số chính' + (r.s ? ', có số đặc biệt' : '') + ')';
+      return '<div class="ticket"><div class="top"><span>Vé <b>#' + t.id + '</b></span></div>' +
+        '<div class="nums">' + pks + '</div>' +
+        '<div class="verdict ' + (r.tier ? 'win' : 'lose') + '">' + verdict + '</div></div>';
+    }).join('');
+    const banner = wins > 0
+      ? '<div class="banner win">🎉 Chúc mừng! ' + wins + ' / ' + tickets.length + ' vé trúng thưởng.</div>'
+      : '<div class="banner lose">Rất tiếc, không vé nào trúng thưởng trong kỳ quay này.</div>';
+    box.innerHTML = banner + rows;
+    renderTickets();
+  }
+
+  // ---------- Lịch sử ----------
+  function addHistory() {
+    history.unshift({
+      time: new Date().toLocaleString('vi-VN'),
+      main: [...mainNums].sort((a, b) => a - b),
+      sp: spNum
+    });
+    if (history.length > 10) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const box = $('history');
+    if (!history.length) {
+      box.innerHTML = '<div class="hint" style="margin:0">Chưa có kỳ quay nào.</div>';
+      return;
+    }
+    const rows = history.map(h =>
+      '<tr><td>' + h.time + '</td><td>' +
+      h.main.map(n => '<span class="mini">' + pad(n) + '</span>').join('') +
+      '</td><td><span class="mini sp">' + pad(h.sp) + '</span></td></tr>'
+    ).join('');
+    box.innerHTML = '<table class="hist-table"><thead><tr><th>Thời gian</th><th>5 số chính</th><th>Đặc biệt</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  // ---------- Điều khiển ----------
+  function lockUI(v) {
+    $('btnStart').disabled = v;
+    $('btnReset').disabled = v;
+    $('addTicket').disabled = v;
+    $('quickPick').disabled = v;
+    $('clearSel').disabled = v;
+    renderBoards();
+  }
+
+  function resetAll() {
+    if (busy) return;
+    mainNums = [];
+    spNum = null;
+    $('chips').innerHTML = '';
+    $('verdict').innerHTML = '<div class="banner info">Chưa có kết quả để đối chiếu.</div>';
+    $('status').textContent = 'Chọn vé (nếu có) rồi nhấn Bắt đầu quay.';
+    drums.forEach(d => d.reset());
+    renderTickets();
+  }
+
+  function nextDraw(now) {
+    for (let d = 0; d < 3; d++) {
+      for (const h of DRAW_HOURS) {
+        const t = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d, h, 0, 0);
+        if (t > now) return t;
+      }
+    }
+    return null;
+  }
+
+  function updateSchedule() {
+    const t = nextDraw(new Date());
+    $('sched').innerHTML = '<b>Lịch quay:</b> 13:00 và 21:00 hàng ngày (Thứ 2 đến Chủ Nhật). ' +
+      'Lần quay tiếp theo: <b>' + t.toLocaleString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</b>.';
+  }
+
+  $('addTicket').addEventListener('click', addTicket);
+  $('quickPick').addEventListener('click', quickPick);
+  $('clearSel').addEventListener('click', () => { if (!busy) { selMain.clear(); selSp = null; flash('', true); renderBoards(); } });
+  $('btnStart').addEventListener('click', runDraw);
+  $('btnReset').addEventListener('click', resetAll);
+
+  // ---------- Khởi tạo ----------
+  buildBoards();
+  renderTickets();
+  renderHistory();
+  updateSchedule();
+  setInterval(updateSchedule, 60000);
+  requestAnimationFrame(t => { last = t; frame(t); });
+})();
 </script>
-
 </body>
 </html>
