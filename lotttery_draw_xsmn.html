@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng quay số Xổ số Kiến thiết miền Nam (XSMN) - Lồng cầu 3D</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 30px; }
+  h1 { font-size: 2.5rem; margin-bottom: 8px; letter-spacing: 2px; text-transform: uppercase; }
+  h1 .accent { color: #fbbf24; }
+  .subtitle { color: #94a3b8; font-size: 1.1rem; }
+
+  .card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+    margin-bottom: 24px;
+  }
+  .grid { display: grid; gap: 24px; }
+  @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
+
+  .panel-title {
+    font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px; color: #fbbf24;
+  }
+
+  .schedule-grid { display: grid; gap: 8px; font-size: 0.9rem; color: #94a3b8; }
+  .schedule-grid b { color: #e2e8f0; }
+  .check-box { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .check-result { margin-top: 10px; font-size: 0.9rem; line-height: 1.6; min-height: 3em; }
+
+  .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .step {
+    padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15,23,42,0.4); text-align: center; font-size: 0.85rem;
+    color: #94a3b8; transition: all 0.3s;
+  }
+  .step .name { font-weight: 700; display: block; margin-bottom: 4px; color: #e2e8f0; font-size: 0.9rem; }
+  .step .digits { font-size: 1.4rem; font-weight: 800; margin-top: 4px; }
+  .step.current { border-color: #fbbf24; background: rgba(251,191,36,0.15); color: #fde68a; }
+  .step.current .name { color: #fbbf24; }
+  .step.done { border-color: #22c55e; color: #86efac; }
+  .step.done .name { color: #22c55e; }
+  .step.pending { opacity: 0.6; }
+
+  /* Stage 3D */
+  .stage {
+    width: 100%; height: 460px; border-radius: 12px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 30%, #1e293b 0%, #0b1120 100%);
+    cursor: grab; touch-action: none; position: relative;
+  }
+  .stage:active { cursor: grabbing; }
+  .stage canvas { display: block; width: 100%; height: 100%; }
+  .stage-hint {
+    position: absolute; left: 12px; bottom: 10px; font-size: 0.75rem; color: #64748b; pointer-events: none;
+  }
+
+  .numbers { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+  .num-chip {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 2px solid #fbbf24; color: #fbbf24;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; font-weight: 800; box-shadow: 0 0 18px rgba(251,191,36,0.35);
+  }
+
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+  button {
+    padding: 11px 22px; border: none; border-radius: 8px;
+    font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-draw { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; min-width: 150px; }
+  .btn-draw:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px -4px rgba(37,99,235,0.4); }
+  .btn-draw:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-step { background: linear-gradient(135deg, #fbbf24, #d97706); color: #0f172a; min-width: 160px; }
+  .btn-step:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px -4px rgba(251,191,36,0.35); }
+  .btn-step:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-reset { background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.2); min-width: 110px; }
+  .btn-reset:hover { border-color: #fbbf24; color: #fbbf24; }
+  .btn-check { background: rgba(56,189,248,0.1); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); min-width: 180px; }
+  .btn-check:not(:disabled):hover { background: rgba(56,189,248,0.2); border-color: #38bdf8; }
+  .btn-check:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .result-card { text-align: center; }
+  .draw-info { margin-top: 16px; font-size: 0.95rem; color: #94a3b8; line-height: 1.6; }
+  .draw-info b { color: #cbd5e1; }
+  .draw-info .prize-name { color: #fbbf24; font-weight: 800; }
+
+  .history { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .history-item { padding: 12px; border-radius: 10px; background: rgba(15,23,42,0.4); border: 1px solid rgba(255,255,255,0.06); text-align: center; }
+  .history-item .name { font-size: 0.8rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .history-item .digits { font-size: 1.6rem; font-weight: 800; color: #fbbf24; letter-spacing: 2px; }
+
+  .status { margin-bottom: 10px; font-size: 0.95rem; color: #94a3b8; text-align: center; min-height: 3.2em; }
+  .status.ready { color: #22c55e; }
+  .status.drawing { color: #fbbf24; }
+  .status.done { color: #38bdf8; }
+
+  .footer { text-align: center; margin-top: 30px; font-size: 0.85rem; color: #64748b; }
+</style>
+<script src="three.min.js"></script>
+<script>
+  if (typeof THREE === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"><\/script>');
+  }
+</script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>XSMN <span class="accent">Miền Nam</span></h1>
+    <div class="subtitle">Mô phỏng quay số mở thưởng 3D - Xổ số Kiến thiết miền Nam</div>
+  </header>
+
+  <section class="card">
+    <div class="panel-title">📅 Lịch quay & quy chuẩn</div>
+    <div class="schedule-grid">
+      <div><b>Thời gian quay:</b> không giới hạn, có thể quay bất kỳ lúc nào.</div>
+      <div><b>Thứ Bảy:</b> 4 đài tỉnh/TP miền Nam mở thưởng song song.</div>
+      <div><b>Các ngày khác trong tuần:</b> 3 đài tỉnh/TP miền Nam.</div>
+      <div><b>Thiết bị:</b> 6 lồng cầu 3D, mỗi lồng 10 quả bóng số 0-9. Bóng chịu trọng lực, lực ly tâm và va chạm như thật.</div>
+      <div><b>Tổng cộng:</b> 18 lượt quay, từ giải thấp nhất (Giải Tám) lên Giải Đặc Biệt.</div>
+      <div><b>Cấu tạo lồng:</b> từ phải sang trái lần lượt là hàng Đơn vị, Chục, Trăm, Nghìn, Chục nghìn, Trăm nghìn.</div>
+    </div>
+    <div class="check-box">
+      <button class="btn-check" id="btnCheck">Kiểm tra thiết bị (tùy chọn)</button>
+      <div class="check-result" id="checkResult">Có thể kiểm tra niêm phong, cân đo và chọn bộ bóng trước khi quay (tùy chọn).</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="panel-title">🔢 Chu trình 18 lượt quay mở thưởng</div>
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <section class="card">
+    <div class="panel-title">🎱 6 lồng cầu 3D</div>
+    <div class="stage" id="stage">
+      <div class="stage-hint">Kéo chuột / chạm để xoay góc nhìn</div>
+    </div>
+    <div class="status" id="status">Sẵn sàng quay</div>
+    <div class="controls">
+      <button class="btn-draw" id="btnDraw">Bắt đầu 18 lượt quay</button>
+      <button class="btn-step" id="btnStep" disabled>Lượt quay tiếp theo</button>
+      <button class="btn-reset" id="btnReset">Làm mới</button>
+    </div>
+  </section>
+
+  <section class="card result-card">
+    <div class="panel-title">🏆 Kết quả lượt quay</div>
+    <div class="numbers" id="numbers"></div>
+    <div class="draw-info" id="drawInfo">Chưa có kết quả.</div>
+  </section>
+
+  <section class="card">
+    <div class="panel-title">📋 Lịch sử 18 lượt quay (kỳ hôm nay)</div>
+    <div class="history" id="history"></div>
+  </section>
+
+  <div class="footer">
+    Mô phỏng minh họa quy trình quay số XSMN (6 lồng cầu 3D, 18 lượt) - chỉ dùng để mô phỏng, không liên kết với kết quả thực tế.
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  const PLACES = ['Trăm nghìn','Chục nghìn','Nghìn','Trăm','Chục','Đơn vị'];
+  const PRIZES = [
+    { name: 'Giải Tám', drums: [4,5], repeats: 1 },
+    { name: 'Giải Bảy', drums: [3,4,5], repeats: 1 },
+    { name: 'Giải Sáu', drums: [2,3,4,5], repeats: 3 },
+    { name: 'Giải Năm', drums: [2,3,4,5], repeats: 1 },
+    { name: 'Giải Tư', drums: [1,2,3,4,5], repeats: 7 },
+    { name: 'Giải Ba', drums: [1,2,3,4,5], repeats: 2 },
+    { name: 'Giải Nhì', drums: [1,2,3,4,5], repeats: 1 },
+    { name: 'Giải Nhất', drums: [1,2,3,4,5], repeats: 1 },
+    { name: 'Giải Đặc Biệt', drums: [0,1,2,3,4,5], repeats: 1 },
+  ];
+  const STEPS = [];
+  PRIZES.forEach((p, i) => {
+    for (let r = 0; r < p.repeats; r++) STEPS.push({ prizeIndex: i, name: p.name, drums: p.drums, repeat: r + 1 });
+  });
+
+  // ---------- Hằng số hình học & vật lý ----------
+  const DRUM_R = 1.8, BALL_R = 0.3, DRUM_L = 2.0, G = 9, SPACING = 4, MAX_W = 1.6;
+  const RLIM = DRUM_R - BALL_R, ZLIM = DRUM_L / 2 - BALL_R;
+  const SUB = 1 / 120;
+  const DRUM_Y = 0.6, TRAY_Y = -4.05;
+
+  const $ = id => document.getElementById(id);
+  const stage = $('stage');
+  const statusEl = $('status'), numbersEl = $('numbers'), drawInfoEl = $('drawInfo');
+  const historyEl = $('history'), stepsEl = $('steps');
+  const btnDraw = $('btnDraw'), btnStep = $('btnStep'), btnReset = $('btnReset'), btnCheck = $('btnCheck');
+  const checkResultEl = $('checkResult');
+
+  let busy = false, stepIndex = 0;
+
+  function rot(x, y, a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [x * c - y * s, x * s + y * c];
+  }
+  function ease(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
+  function tween(ms, fn) {
+    return new Promise(res => {
+      const t0 = performance.now();
+      function f(now) {
+        const k = Math.min(1, (now - t0) / ms);
+        fn(k);
+        if (k < 1) requestAnimationFrame(f); else res();
+      }
+      requestAnimationFrame(f);
+    });
+  }
+  function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ---------- Three.js ----------
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  } catch (e) {
+    stage.textContent = 'Trình duyệt không hỗ trợ WebGL.';
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+  stage.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 300);
+  camera.position.set(0, 1.5, 27);
+  camera.lookAt(0, -0.8, 0);
+
+  const rig = new THREE.Group();
+  scene.add(rig);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const key = new THREE.DirectionalLight(0xfff1d6, 0.9);
+  key.position.set(6, 12, 14);
+  scene.add(key);
+  const rim = new THREE.PointLight(0x60a5fa, 0.6, 80);
+  rim.position.set(-12, 4, -6);
+  scene.add(rim);
+  const warm = new THREE.PointLight(0xfbbf24, 0.5, 60);
+  warm.position.set(0, -4, 12);
+  scene.add(warm);
+
+  // Phông nền
+  const backdrop = new THREE.Mesh(
+    new THREE.PlaneGeometry(90, 40),
+    new THREE.MeshStandardMaterial({ color: 0x0b1120, roughness: 1, metalness: 0 })
+  );
+  backdrop.position.set(0, 0, -4);
+  rig.add(backdrop);
+
+  // Vật liệu
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.25 });
+  const glassMat = new THREE.MeshPhongMaterial({
+    color: 0x93c5fd, transparent: true, opacity: 0.16, side: THREE.DoubleSide,
+    depthWrite: false, shininess: 100
+  });
+  const holeMat = new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.9 });
+  const trayMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.5, roughness: 0.4 });
+
+  function makeBallMaterial(n) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(100, 90, 20, 128, 128, 128);
+    grad.addColorStop(0, '#fff7d1');
+    grad.addColorStop(0.5, '#fbbf24');
+    grad.addColorStop(1, '#b45309');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 256);
+    g.fillStyle = '#fffbeb';
+    g.beginPath(); g.arc(128, 128, 72, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#0f172a';
+    g.font = 'bold 96px Arial';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(String(n), 128, 136);
+    const tex = new THREE.CanvasTexture(c);
+    return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.35, metalness: 0.05 });
+  }
+  const ballMats = [];
+  for (let n = 0; n < 10; n++) ballMats.push(makeBallMaterial(n));
+  const ballGeo = new THREE.SphereGeometry(BALL_R, 24, 18);
+
+  // ---------- Dựng 6 lồng ----------
+  const drums = [];
+  for (let i = 0; i < 6; i++) {
+    const x = (i - 2.5) * SPACING;
+    const group = new THREE.Group();
+    group.position.set(x, DRUM_Y, 0);
+    rig.add(group);
+
+    // Thân lồng trong suốt (trục dọc theo z)
+    const glass = new THREE.Mesh(new THREE.CylinderGeometry(DRUM_R, DRUM_R, DRUM_L, 48, 1, true), glassMat);
+    glass.rotation.x = Math.PI / 2;
+    group.add(glass);
+
+    // Vành hai đầu
+    [-DRUM_L / 2, DRUM_L / 2].forEach(z => {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(DRUM_R, 0.07, 10, 64), frameMat);
+      ring.position.z = z;
+      group.add(ring);
+    });
+    // Nan dọc
+    for (let k = 0; k < 6; k++) {
+      const a = k * Math.PI / 3;
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, DRUM_L), frameMat);
+      rib.position.set(Math.cos(a) * DRUM_R, Math.sin(a) * DRUM_R, 0);
+      group.add(rib);
+    }
+    // Trục
+    const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, DRUM_L + 0.6, 16), frameMat);
+    axle.rotation.x = Math.PI / 2;
+    group.add(axle);
+
+    // Lỗ xả cố định phía dưới
+    const hole = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.12, DRUM_L * 0.7), holeMat);
+    hole.position.set(x, DRUM_Y - DRUM_R - 0.08, 0);
+    rig.add(hole);
+
+    // Khay kết quả
+    const tray = new THREE.Mesh(new THREE.BoxGeometry(SPACING * 0.8, 0.2, 2.2), trayMat);
+    tray.position.set(x, TRAY_Y - 0.4, 0);
+    rig.add(tray);
+
+    const drum = { i, x, group, angle: 0, omega: 0, balls: [] };
+    for (let n = 0; n < 10; n++) {
+      const mesh = new THREE.Mesh(ballGeo, ballMats[n]);
+      rig.add(mesh);
+      drum.balls.push({
+        num: n, mesh,
+        p: new THREE.Vector3(), v: new THREE.Vector3(),
+        alive: true, locked: false
+      });
+    }
+    drums.push(drum);
+  }
+
+  // ---------- Vật lý ----------
+  function randomizeBalls(d) {
+    d.balls.forEach((b, n) => {
+      let x = 0, y = 0, z = 0, ok = false, tries = 0;
+      while (!ok && tries < 400) {
+        const r = RLIM * 0.9 * Math.sqrt(Math.random());
+        const a = Math.random() * Math.PI * 2;
+        x = r * Math.cos(a); y = r * Math.sin(a);
+        z = (Math.random() * 2 - 1) * ZLIM;
+        ok = true;
+        for (let m = 0; m < n; m++) {
+          const o = d.balls[m].p;
+          const dx = x - o.x, dy = y - o.y, dz = z - o.z;
+          const md = 2.05 * BALL_R;
+          if (dx * dx + dy * dy + dz * dz < md * md) { ok = false; break; }
+        }
+        tries++;
+      }
+      b.p.set(x, y, z);
+      b.v.set(0, 0, 0);
+      b.alive = true;
+      b.locked = false;
+      b.mesh.visible = true;
+    });
+  }
+
+  function stepDrum(d, dt) {
+    const th = d.angle, w = d.omega;
+    const gx = -G * Math.sin(th), gy = -G * Math.cos(th);   // trọng lực trong hệ lồng
+    const w2 = w * w;
+    const k = Math.min(1, 10 * dt);
+
+    for (const b of d.balls) {
+      if (!b.alive || b.locked) continue;
+      const p = b.p, v = b.v;
+      // Trọng lực + ly tâm + Coriolis
+      v.x += (gx + w2 * p.x + 2 * w * v.y) * dt;
+      v.y += (gy + w2 * p.y - 2 * w * v.x) * dt;
+      v.multiplyScalar(1 - 0.08 * dt);
+      p.x += v.x * dt; p.y += v.y * dt; p.z += v.z * dt;
+
+      // Va chạm thành lồng
+      const r = Math.sqrt(p.x * p.x + p.y * p.y);
+      if (r > RLIM) {
+        const nx = p.x / r, ny = p.y / r;
+        p.x = nx * RLIM; p.y = ny * RLIM;
+        const vn = v.x * nx + v.y * ny;
+        if (vn > 0) { v.x -= 1.3 * vn * nx; v.y -= 1.3 * vn * ny; }
+        const tx = -ny, ty = nx;
+        const vt = v.x * tx + v.y * ty;
+        v.x -= vt * tx * k; v.y -= vt * ty * k;
+      }
+      // Hai đầu lồng
+      if (p.z > ZLIM) { p.z = ZLIM; if (v.z > 0) v.z *= -0.4; }
+      else if (p.z < -ZLIM) { p.z = -ZLIM; if (v.z < 0) v.z *= -0.4; }
+    }
+
+    // Va chạm giữa các bóng
+    const act = d.balls.filter(b => b.alive && !b.locked);
+    for (let it = 0; it < 2; it++) {
+      for (let i = 0; i < act.length; i++) {
+        for (let j = i + 1; j < act.length; j++) {
+          const a = act[i], b = act[j];
+          const dx = b.p.x - a.p.x, dy = b.p.y - a.p.y, dz = b.p.z - a.p.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          const minD = 2 * BALL_R;
+          if (dist < minD && dist > 1e-6) {
+            const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+            const over = (minD - dist) / 2;
+            a.p.x -= nx * over; a.p.y -= ny * over; a.p.z -= nz * over;
+            b.p.x += nx * over; b.p.y += ny * over; b.p.z += nz * over;
+            const vrel = (b.v.x - a.v.x) * nx + (b.v.y - a.v.y) * ny + (b.v.z - a.v.z) * nz;
+            if (vrel < 0) {
+              const imp = -1.3 * vrel / 2;
+              a.v.x -= nx * imp; a.v.y -= ny * imp; a.v.z -= nz * imp;
+              b.v.x += nx * imp; b.v.y += ny * imp; b.v.z += nz * imp;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function syncDrum(d, frame) {
+    const c = Math.cos(d.angle), s = Math.sin(d.angle);
+    d.group.rotation.z = d.angle;
+    for (const b of d.balls) {
+      if (!b.alive) continue;
+      const p = b.p;
+      b.mesh.position.set(d.x + c * p.x - s * p.y, DRUM_Y + s * p.x + c * p.y, p.z);
+      if (!b.locked) {
+        b.mesh.rotation.x += -b.v.y * frame / BALL_R;
+        b.mesh.rotation.y += b.v.x * frame / BALL_R;
+      }
+    }
+  }
+
+  // ---------- Vòng lặp hiển thị ----------
+  let last = performance.now(), acc = 0;
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    acc += dt;
+    while (acc >= SUB) {
+      drums.forEach(d => { d.angle += d.omega * SUB; stepDrum(d, SUB); });
+      acc -= SUB;
+    }
+    drums.forEach(d => syncDrum(d, dt));
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+
+  function resize() {
+    const w = stage.clientWidth || 600, h = stage.clientHeight || 460;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.position.z = 27 * Math.max(1, 1.5 / camera.aspect);
+    camera.updateProjectionMatrix();
+    renderer.domElement.style.width = w + 'px';
+    renderer.domElement.style.height = h + 'px';
+  }
+  window.addEventListener('resize', resize);
+
+  // Kéo để xoay cụm
+  let dragging = false, lastX = 0, lastY = 0;
+  const cv = renderer.domElement;
+  cv.addEventListener('pointerdown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+  window.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    rig.rotation.y = Math.max(-0.6, Math.min(0.6, rig.rotation.y + (e.clientX - lastX) * 0.005));
+    rig.rotation.x = Math.max(-0.4, Math.min(0.4, rig.rotation.x + (e.clientY - lastY) * 0.003));
+    lastX = e.clientX; lastY = e.clientY;
+  });
+
+  // ---------- Quy trình quay ----------
+  function setOmega(list, w) { list.forEach(d => { d.omega = w; }); }
+
+  function holeLocal(d) {
+    const [tx, ty] = rot(0, -RLIM, -d.angle);
+    return new THREE.Vector3(tx, ty, 0);
+  }
+
+  async function pickFlow(d) {
+    const cands = d.balls.filter(b => b.alive);
+    const ball = cands[Math.floor(Math.random() * cands.length)];
+    ball.locked = true;
+    const p0 = ball.p.clone();
+    const target = holeLocal(d);
+    await tween(700, k => { ball.p.lerpVectors(p0, target, ease(k)); });
+
+    // Bóng rơi qua lỗ xả và bay vào khay
+    ball.locked = false;
+    ball.alive = false;
+    const start = ball.mesh.position.clone();
+    const tray = new THREE.Vector3(d.x, TRAY_Y, 0.2);
+    const c1 = new THREE.Vector3(start.x * 0.8 + d.x * 0.2, start.y - 1.1, 0.8);
+    const c2 = new THREE.Vector3(tray.x, tray.y + 2.4, 0.2);
+    await tween(1300, k => {
+      const t = ease(k), u = 1 - t;
+      ball.mesh.position.copy(start).multiplyScalar(u * u * u)
+        .addScaledVector(c1, 3 * u * u * t)
+        .addScaledVector(c2, 3 * u * t * t)
+        .addScaledVector(tray, t * t * t);
+      ball.mesh.rotation.x += 0.12;
+    });
+    return ball.num;
+  }
+
+  function markStep(idx, cls) {
+    const div = document.getElementById('step-' + idx);
+    if (!div) return;
+    div.className = div.className.replace(/\b(current|done|pending)\b/g, '').trim() + ' ' + cls;
+  }
+  function setStepDigits(idx, digits) {
+    const div = document.getElementById('step-' + idx);
+    if (div) div.querySelector('.digits').textContent = digits.join(' ');
+  }
+  function renderSteps() {
+    stepsEl.innerHTML = '';
+    STEPS.forEach((s, idx) => {
+      const div = document.createElement('div');
+      div.className = 'step ' + (idx < stepIndex ? 'done' : (idx === stepIndex ? 'current' : 'pending'));
+      div.id = 'step-' + idx;
+      div.innerHTML = '<span class="name">' + s.name + (s.repeat > 1 ? ' (lần ' + s.repeat + ')' : '') + '</span>' +
+        '<span style="display:block;font-size:0.75rem;color:#64748b;margin-top:2px">' +
+        s.drums.map(d => PLACES[d]).join(' ← ') + '</span>' +
+        '<span class="digits">-</span>';
+      stepsEl.appendChild(div);
+    });
+  }
+  function addHistory(name, digits) {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = '<div class="name">' + name + '</div><div class="digits">' + digits.join(' ') + '</div>';
+    historyEl.insertBefore(item, historyEl.firstChild);
+  }
+  function showStepResult(step, digits) {
+    numbersEl.innerHTML = '';
+    digits.forEach(num => {
+      const chip = document.createElement('div');
+      chip.className = 'num-chip';
+      chip.textContent = num;
+      numbersEl.appendChild(chip);
+    });
+    drawInfoEl.innerHTML = '<b class="prize-name">' + step.name + (step.repeat > 1 ? ' (lần ' + step.repeat + ')' : '') +
+      '</b>: <span style="font-size:1.5rem;color:#fbbf24;font-weight:800;letter-spacing:2px">' + digits.join(' ') + '</span><br>' +
+      '<span style="color:#94a3b8">Lồng dùng: ' + step.drums.map(d => PLACES[d]).join(' ← ') + '</span>';
+  }
+
+  async function runStep() {
+    if (busy || stepIndex >= STEPS.length) return;
+    busy = true;
+    btnDraw.disabled = true;
+    btnStep.disabled = true;
+
+    const step = STEPS[stepIndex];
+    markStep(stepIndex, 'current');
+    statusEl.className = 'status drawing';
+    statusEl.textContent = 'Lượt ' + (stepIndex + 1) + '/18 - ' + step.name + ': đang trộn ' + step.drums.length + ' lồng cầu...';
+
+    drums.forEach(randomizeBalls);
+    const active = step.drums.map(i => drums[i]);
+
+    // Tăng tốc -> quay đều -> giảm tốc -> dừng
+    await tween(900, k => setOmega(active, MAX_W * ease(k)));
+    await tween(2400, () => {
+      active.forEach(d => d.balls.forEach(b => { if (b.alive) b.v.z += (Math.random() - 0.5) * 0.5; }));
+    });
+    await tween(1600, k => setOmega(active, MAX_W * (1 - k)));
+    setOmega(active, 0);
+    await wait(700);
+
+    statusEl.textContent = 'Lượt ' + (stepIndex + 1) + '/18 - ' + step.name + ': đang nhặt bóng...';
+    const digits = await Promise.all(active.map(pickFlow));
+
+    showStepResult(step, digits);
+    setStepDigits(stepIndex, digits);
+    markStep(stepIndex, 'done');
+    addHistory(step.name, digits);
+    stepIndex++;
+
+    if (stepIndex < STEPS.length) {
+      btnStep.disabled = false;
+      statusEl.className = 'status ready';
+      statusEl.textContent = 'Lượt ' + (stepIndex + 1) + '/18 - ' + STEPS[stepIndex].name + ' - nhấn "Lượt quay tiếp theo"';
+    } else {
+      statusEl.className = 'status done';
+      statusEl.textContent = 'Hoàn thành 18 lượt quay mở thưởng';
+      btnDraw.disabled = false;
+      drawInfoEl.innerHTML += '<br><br><b style="color:#22c55e">Đã hoàn thành chu kỳ 18 lượt mở thưởng.</b>';
+    }
+    busy = false;
+  }
+
+  function resetAll() {
+    stepIndex = 0;
+    numbersEl.innerHTML = '';
+    historyEl.innerHTML = '';
+    drawInfoEl.textContent = 'Chưa có kết quả.';
+    statusEl.className = 'status ready';
+    statusEl.textContent = 'Sẵn sàng quay';
+    btnDraw.disabled = false;
+    btnStep.disabled = true;
+    drums.forEach(d => { d.omega = 0; randomizeBalls(d); });
+    renderSteps();
+  }
+
+  btnCheck.addEventListener('click', () => {
+    btnCheck.disabled = true;
+    const msgs = [
+      'Đang kiểm tra niêm phong lồng cầu...',
+      'Đang cân đo trọng lượng từng quả bóng...',
+      'Đang chọn ngẫu nhiên bộ bóng đưa vào từng lồng...'
+    ];
+    let chain = Promise.resolve();
+    msgs.forEach(m => {
+      chain = chain.then(() => { checkResultEl.textContent = m; return wait(550); });
+    });
+    chain.then(() => {
+      checkResultEl.innerHTML = '<span style="color:#22c55e;font-weight:700">✓ Đã kiểm tra - thiết bị đạt tiêu chuẩn.</span>';
+      btnCheck.disabled = false;
+    });
+  });
+
+  btnDraw.addEventListener('click', () => {
+    if (busy) return;
+    resetAll();
+    runStep();
+  });
+  btnStep.addEventListener('click', runStep);
+  btnReset.addEventListener('click', () => { if (!busy) resetAll(); });
+
+  // Khởi tạo
+  resize();
+  drums.forEach(randomizeBalls);
+  renderSteps();
+  requestAnimationFrame(t => { last = t; loop(t); });
+})();
+</script>
+</body>
+</html>

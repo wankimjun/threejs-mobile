@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng quay số Xổ số nhanh Keno - Vietlott</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0e16;
+    --panel: #141a2b;
+    --panel-2: #1c243d;
+    --text: #e8eaf2;
+    --muted: #94a3b8;
+    --accent: #ffd166;
+    --accent-dim: #e3b34d;
+    --red: #ef4444;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --border: #2d3755;
+    --radius: 12px;
+  }
+  html { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  body { background: radial-gradient(1200px 800px at 20% -10%, #1e1b4b 0%, transparent 60%), radial-gradient(900px 600px at 100% 20%, #0f4c5c 0%, transparent 55%), var(--bg); min-height: 100vh; padding: 24px; }
+
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .logo { width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, #d90429, #ffd166); display: grid; place-items: center; font-weight: 900; color: #000; font-size: 1.1rem; box-shadow: 0 0 20px rgba(217,4,41,0.5); }
+  header h1 { font-size: 1.25rem; letter-spacing: 0.4px; }
+  header h1 span { color: var(--accent); }
+
+  .schedule { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; font-size: 0.92rem; }
+  .sched-item { display: flex; flex-direction: column; gap: 4px; }
+  .sched-item .lab { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sched-item .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .val.ok { color: var(--green); }
+  .val.warn { color: var(--red); }
+  .val.locked { color: var(--accent); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .panel h2 { font-size: 0.95rem; margin-bottom: 12px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+
+  .board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 7px; }
+  .cell { aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 0.82rem; font-weight: 700; display: grid; place-items: center; cursor: pointer; user-select: none; transition: transform .12s, box-shadow .12s, border-color .12s, background .12s; position: relative; overflow: hidden; }
+  .cell:hover { border-color: var(--accent-dim); transform: translateY(-2px); }
+  .cell.picked { background: var(--blue); border-color: var(--blue); box-shadow: 0 0 16px rgba(59,130,246,0.45); }
+  .cell.drawn { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 0 20px rgba(239,68,68,0.6); }
+  .cell.picked.drawn { background: var(--purple); border-color: var(--purple); }
+  .cell .tag { position: absolute; top: 4px; right: 6px; font-size: 0.62rem; padding: 2px 6px; border-radius: 6px; opacity: 0; transition: opacity .2s; }
+  .cell.picked .tag { background: rgba(255,255,255,0.15); color: #fff; opacity: 1; }
+  .cell.drawn .tag { background: rgba(255,255,255,0.2); color: #fff; opacity: 1; }
+  .cell.locked { filter: grayscale(0.5); opacity: 0.65; cursor: not-allowed; border-color: #334155; }
+
+  .controls { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  button { border: none; border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all .15s; color: #fff; }
+  button:active { transform: translateY(1px); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #f59e0b); color: #000; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-danger { background: var(--red); }
+  .btn-danger:hover { filter: brightness(1.12); }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent-dim); }
+  .btn-small { padding: 7px 12px; font-size: 0.82rem; }
+
+  .results { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .num { width: 40px; height: 40px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-weight: 800; font-size: 1.05rem; display: grid; place-items: center; text-align: center; }
+  .num.drawn { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 0 14px rgba(239,68,68,0.5); }
+  .num.drawn.late { animation: popIn .45s cubic-bezier(.175,.885,.32,1.275) both; }
+  @keyframes popIn { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .ticket { margin-top: 14px; }
+  .ticket .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .ticket label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  .ticket .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-weight: 800; font-size: 0.85rem; display: grid; place-items: center; cursor: pointer; }
+  .chip.picked { background: var(--blue); border-color: var(--blue); }
+  .chip.locked { opacity: 0.5; cursor: not-allowed; border-color: #334155; }
+
+  .prize { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-top: 12px; }
+  .prize .row { display: flex; justify-content: space-between; font-size: 0.9rem; margin: 5px 0; }
+  .prize .row .lbl { color: var(--muted); }
+  .prize .row .val { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .prize .match { color: var(--green); }
+  .prize .miss { color: var(--red); }
+
+  .history { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .hist-head { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+  .hist-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding-right: 6px; }
+  .hist-item { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 0.8rem; }
+  .hist-item .cyc { color: var(--accent-dim); font-weight: 800; }
+  .hist-item .nums { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .hist-item .n { width: 20px; height: 20px; border-radius: 5px; background: var(--red); color: #fff; font-size: 0.68rem; font-weight: 800; display: grid; place-items: center; }
+  .hist-item .meta { margin-top: 6px; color: var(--muted); font-size: 0.72rem; }
+
+  .muted-note { color: var(--muted); font-size: 0.8rem; margin-top: 8px; line-height: 1.5; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; }
+  .badge.live { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.35); }
+  .badge.locked { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.35); }
+  .badge.sold { background: rgba(251,191,36,0.15); color: var(--accent-dim); border: 1px solid rgba(251,191,36,0.35); }
+
+  .draw-anim { display: inline-block; margin-left: 8px; vertical-align: middle; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); display: inline-block; margin: 0 2px; animation: bounce 1.4s infinite both; }
+  .dot:nth-child(2){animation-delay:0.2s} .dot:nth-child(3){animation-delay:0.4s}
+  @keyframes bounce { 0%,80%,100%{transform:scale(1);opacity:1} 40%{transform:scale(1.6);opacity:0.6} }
+
+  .footer { margin-top: 16px; color: var(--muted); font-size: 0.78rem; text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">K</div>
+    <div>
+      <h1>Xổ số nhanh Keno <span>· Vietlott</span></h1>
+      <div style="font-size:0.78rem;color:var(--muted)">Mô phỏng quay số RNG · 20 số / kỳ · từ 01 đến 80</div>
+    </div>
+  </header>
+
+  <div class="schedule">
+    <div class="sched-item">
+      <div class="lab">Kỳ hiện tại</div>
+      <div class="val" id="curCycle">--</div>
+    </div>
+    <div class="sched-item">
+      <div class="lab">Kỳ tiếp theo</div>
+      <div class="val" id="nextCycle">--</div>
+    </div>
+    <div class="sched-item">
+      <div class="lab">Còn lại</div>
+      <div class="val warn" id="countdown">--:--</div>
+    </div>
+    <div class="sched-item">
+      <div class="lab">Trạng thái</div>
+      <div class="val ok" id="status">Mở bán vé</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>🎫 Chọn số trên vé (1–10 số)</h2>
+      <div class="board" id="board"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+        <div class="badge" id="pickCount">Đã chọn: <span>0</span>/10</div>
+        <button class="btn-outline btn-small" id="clearTicket">Bỏ chọn tất cả</button>
+      </div>
+      <div class="controls">
+        <button class="btn-primary" id="drawBtn">Quay số ngay</button>
+        <button class="btn-outline btn-small" id="autoToggle">Tự động quay: TẮT</button>
+        <button class="btn-danger btn-small" id="resetBtn">Reset toàn bộ</button>
+      </div>
+      <div class="muted-note">
+        Mỗi kỳ cách nhau 8 phút (06:08 → 21:52, 119 kỳ/ngày). Vài giây trước giờ mở thưởng, hệ thống tự động khóa sổ và không nhận vé mới.
+      </div>
+    </div>
+
+    <div class="panel" style="display:flex;flex-direction:column;">
+      <h2 style="margin-bottom:12px;">🎯 Kết quả quay số</h2>
+      <div class="results" id="results"></div>
+      <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div class="badge locked" id="lockBadge" style="display:none">Sổ đã khóa – chờ quay</div>
+        <div class="draw-anim" id="anim" style="display:none"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Đang quay...</div>
+      </div>
+      <div class="ticket" id="ticketSection" style="display:none;">
+        <h2 style="font-size:0.9rem;margin-bottom:8px;">Dự án đối chiếu</h2>
+        <div class="row">
+          <label>Số bạn chọn:</label>
+          <div class="chips" id="myPicks"></div>
+        </div>
+        <div class="row">
+          <label>20 số xổ được:</label>
+          <div class="chips" id="drawnPicks"></div>
+        </div>
+        <div class="prize" id="prizeBox">
+          <div class="row"><span class="lbl">Số trùng khớp (cơ bản):</span><span class="val match" id="matchCount">0</span> / <span id="pickTotal">0</span></div>
+          <div class="row"><span class="lbl">Hạng giải:</span><span class="val" id="prizeLevel">--</span></div>
+          <div class="row"><span class="lbl">Số chẵn / lẻ trong 20 số:</span><span class="val" id="evenOdd">0 / 0</span></div>
+          <div class="row"><span class="lbl">Nhóm 01–40 / 41–80:</span><span class="val" id="bigSmall">0 / 0</span></div>
+        </div>
+      </div>
+      <div class="history" id="historySection" style="display:none;">
+        <div class="hist-head"><span>Lịch sử các kỳ đã quay</span><span id="histCount">0 kỳ</span></div>
+        <div class="hist-list" id="history"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Chương trình mô phỏng minh họa quy trình RNG của Xổ số nhanh Keno Vietlott (thiết bị Origin Keno, Smartplay International, kiểm định GLI). Dữ liệu được sinh ngẫu nhiên côté trình duyệt, không liên kết với hệ thống mở thưởng thực tế và không dùng để cmarc/cá cược.
+  </div>
+</div>
+
+<script>
+const NUMBERS_COUNT = 80;
+const DRAWN_COUNT = 20;
+const MAX_PICKS = 10;
+const INTERVAL_MIN = 8;
+const FIRST_HOUR = 6, FIRST_MIN = 8;
+const LAST_HOUR = 21, LAST_MIN = 52;
+const LOCK_BEFORE_SEC = 5;
+
+let boardEl = document.getElementById('board');
+let resultsEl = document.getElementById('results');
+let countdownEl = document.getElementById('countdown');
+let statusEl = document.getElementById('status');
+let curCycleEl = document.getElementById('curCycle');
+let nextCycleEl = document.getElementById('nextCycle');
+let drawBtn = document.getElementById('drawBtn');
+let autoToggle = document.getElementById('autoToggle');
+let resetBtn = document.getElementById('resetBtn');
+let clearTicket = document.getElementById('clearTicket');
+let lockBadge = document.getElementById('lockBadge');
+let anim = document.getElementById('anim');
+let ticketSection = document.getElementById('ticketSection');
+let historySection = document.getElementById('historySection');
+let historyList = document.getElementById('history');
+let histCount = document.getElementById('histCount');
+
+let picked = new Set();
+let drawn = [];
+let history = [];
+let autoInterval = null;
+let autoRunning = false;
+let drawIndex = 0;
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function drawTimesFor(date){
+  const times = [];
+  let d = new Date(date);
+  d.setHours(FIRST_HOUR, FIRST_MIN, 0, 0);
+  const end = new Date(date);
+  end.setHours(LAST_HOUR, LAST_MIN, 0, 0);
+  while (d <= end){
+    times.push(new Date(d));
+    d = new Date(d.getTime() + INTERVAL_MIN*60000);
+  }
+  return times;
+}
+
+function findCycle(now){
+  const today = new Date(now);
+  today.setHours(0,0,0,0);
+  const times = drawTimesFor(today);
+  let idx = -1;
+  for(let i=0;i<times.length;i++){
+    if(now >= times[i]) idx = i;
+  }
+  return {idx, times, today};
+}
+
+function cycleLabel(idx){ return `K${String(idx+1).padStart(3,'0')}`; }
+
+function updateClock(){
+  const now = new Date();
+  const {idx, times, today} = findCycle(now);
+  drawIndex = idx;
+  const isDrawingDay = true; // Mon-Sun every day per spec
+
+  let nextIdx = idx + 1;
+  let nextDate = today;
+  if(nextIdx >= times.length){
+    nextDate = new Date(today); nextDate.setDate(nextDate.getDate()+1);
+    const t = drawTimesFor(nextDate);
+    nextIdx = 0;
+  }
+  const nextTime = drawTimesFor(nextDate)[nextIdx];
+
+  curCycleEl.textContent = idx >= 0 ? cycleLabel(idx) : 'Chưa có kỳ hôm nay';
+  nextCycleEl.textContent = cycleLabel(nextIdx) + ' · ' + pad(nextTime.getHours()) + ':' + pad(nextTime.getMinutes());
+
+  const diffSec = Math.max(0, Math.floor((nextTime - now)/1000));
+  const m = Math.floor(diffSec/60), s = diffSec%60;
+  countdownEl.textContent = pad(m)+':'+pad(s);
+
+  const locked = diffSec <= LOCK_BEFORE_SEC && diffSec >= 0;
+  const open = diffSec > LOCK_BEFORE_SEC;
+  if(locked){
+    statusEl.textContent = 'Sổ đã khóa – chờ quay';
+    statusEl.className = 'val locked';
+    statusEl.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span> Sổ đã khóa';
+    lockBadge.style.display = 'inline-block';
+    drawBtn.disabled = true;
+  } else if(open){
+    statusEl.textContent = 'Mở bán vé';
+    statusEl.className = 'val ok';
+    lockBadge.style.display = 'none';
+    drawBtn.disabled = false;
+  } else {
+    statusEl.textContent = 'Ngoài khung giờ';
+    statusEl.className = 'val warn';
+    lockBadge.style.display = 'none';
+    drawBtn.disabled = true;
+  }
+
+  if(autoRunning && open && !anim.style.display || false){}
+}
+
+function renderBoard(){
+  boardEl.innerHTML = '';
+  for(let i=1;i<=NUMBERS_COUNT;i++){
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.textContent = pad(i);
+    c.dataset.num = i;
+    if(picked.has(i)) c.classList.add('picked');
+    if(drawn.includes(i)) c.classList.add('drawn');
+    c.addEventListener('click',()=>{
+      if(drawn.length>0) return;
+      const n = Number(c.dataset.num);
+      if(lockBadge.style.display==='inline-block') return;
+      if(picked.has(n)){ picked.delete(n); c.classList.remove('picked'); }
+      else { if(picked.size>=MAX_PICKS) return; picked.add(n); c.classList.add('picked'); }
+      updatePickUI();
+    });
+    boardEl.appendChild(c);
+  }
+  updatePickUI();
+}
+
+function updatePickUI(){
+  document.getElementById('pickCount').innerHTML = 'Đã chọn: <span>'+picked.size+'</span>/'+MAX_PICKS;
+  const chips = document.getElementById('myPicks');
+  chips.innerHTML='';
+  picked.forEach(n=>{
+    const cp = document.createElement('div'); cp.className='chip'; if(lockBadge.style.display==='inline-block') cp.classList.add('locked'); cp.textContent=pad(n);
+    cp.addEventListener('click',()=>{ picked.delete(n); renderBoard(); });
+    chips.appendChild(cp);
+  });
+}
+
+clearTicket.addEventListener('click',()=>{ picked=new Set(); renderBoard(); });
+
+function shuffleArray(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+function performDraw(){
+  if(drawn.length>0) return;
+  const pool = shuffleArray(Array.from({length:NUMBERS_COUNT},(_,i)=>i+1));
+  drawn = pool.slice(0,DRAWN_COUNT).sort((a,b)=>a-b);
+  renderBoard();
+  renderResults();
+  computePrize();
+  addHistory();
+  ticketSection.style.display='block';
+  historySection.style.display='block';
+  anim.style.display='none';
+  lockBadge.style.display='none';
+  statusEl.textContent='Đã mở thưởng';
+  statusEl.className='val ok';
+}
+
+function renderResults(){
+  resultsEl.innerHTML='';
+  drawn.forEach((n,idx)=>{
+    const el=document.createElement('div'); el.className='num drawn late'; el.textContent=pad(n); el.style.animationDelay=(idx*0.06)+'s'; resultsEl.appendChild(el);
+  });
+}
+
+function addHistory(){
+  const entry={cycle: drawIndex>=0?cycleLabel(drawIndex):'K???', nums:[...drawn], time:new Date().toLocaleString('vi-VN')};
+  history.unshift(entry);
+  if(history.length>30) history.pop();
+  histCount.textContent=history.length+' kỳ';
+  historyList.innerHTML='';
+  history.forEach(h=>{
+    const it=document.createElement('div'); it.className='hist-item';
+    it.innerHTML='<div><span class="cyc">'+h.cycle+'</span> · '+h.time.split(' ')[1]+'</div><div class="nums">'+h.nums.map(n=>'<div class="n">'+pad(n)+'</div>').join('')+'</div><div class="meta">Chẵn: '+h.nums.filter(x=>x%2===0).length+' | Lẻ: '+h.nums.filter(x=>x%2!==0).length+' | 01–40: '+h.nums.filter(x=>x<=40).length+' | 41–80: '+h.nums.filter(x=>x>40).length+'</div>';
+    historyList.appendChild(it);
+  });
+}
+
+function computePrize(){
+  const myPicks = [...picked];
+  const matchCount = myPicks.filter(n=>drawn.includes(n)).length;
+  const even = drawn.filter(x=>x%2===0).length;
+  const odd = DRAWN_COUNT-even;
+  const small = drawn.filter(x=>x<=40).length;
+  const big = DRAWN_COUNT-small;
+
+  document.getElementById('matchCount').textContent=matchCount;
+  document.getElementById('pickTotal').textContent=myPicks.length;
+  document.getElementById('prizeLevel').textContent = myPicks.length===0?'--':('Bậc '+myPicks.length+' · '+matchCount+' số trùng');
+  document.getElementById('evenOdd').textContent=even+' / '+odd;
+  document.getElementById('bigSmall').textContent=small+' / '+big;
+
+  const chips = document.getElementById('drawnPicks');
+  chips.innerHTML='';
+  drawn.forEach(n=>{
+    const cp=document.createElement('div'); cp.className='chip'; cp.textContent=pad(n);
+    if(myPicks.includes(n)){ cp.style.background=varGet('--green'); cp.style.borderColor=varGet('--green'); }
+    chips.appendChild(cp);
+  });
+}
+function varGet(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+drawBtn.addEventListener('click',()=>{
+  if(drawn.length>0){ drawn=[]; picked=new Set(); renderBoard(); resultsEl.innerHTML=''; ticketSection.style.display='none'; historySection.style.display='none'; statusEl.textContent='Mở bán vé'; statusEl.className='val ok'; anim.style.display='none'; return; }
+  anim.style.display='inline-flex';
+  setTimeout(performDraw, 900);
+});
+
+resetBtn.addEventListener('click',()=>{
+  drawn=[]; picked=new Set(); history=[]; renderBoard(); resultsEl.innerHTML='';
+  ticketSection.style.display='none'; historySection.style.display='none';
+  statusEl.textContent='Mở bán vé'; statusEl.className='val ok';
+  anim.style.display='none'; lockBadge.style.display='none';
+});
+
+autoToggle.addEventListener('click',()=>{
+  autoRunning=!autoRunning;
+  autoToggle.textContent='Tự động quay: '+(autoRunning?'BẬT':'TẮT');
+  autoToggle.className = autoRunning?'btn-danger btn-small':'btn-outline btn-small';
+  if(autoRunning) scheduleAuto();
+  else { if(autoInterval) clearInterval(autoInterval); autoInterval=null; }
+});
+
+function scheduleAuto(){
+  if(autoInterval) clearInterval(autoInterval);
+  autoInterval=setInterval(()=>{
+    const now=new Date();
+    const {idx,times,today}=findCycle(now);
+    if(idx>=0 && idx===drawIndex) return;
+    const nextIdx = idx+1>=times.length?0:idx+1;
+    const nextDate = idx+1>=times.length?(new Date(today.getFullYear(),today.getMonth(),today.getDate()+1)):today;
+    const t = drawTimesFor(nextDate)[nextIdx];
+    const diffSec = (t-now)/1000;
+    if(diffSec<=LOCK_BEFORE_SEC && diffSec>=0 && drawn.length===0){
+      performDraw();
+    }
+  },1000);
+}
+
+setInterval(updateClock,1000);
+renderBoard();
+updateClock();
+
+</script>
+</body>
+</html>

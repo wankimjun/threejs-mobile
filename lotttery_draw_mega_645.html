@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng quay số Mega 6/45 - Vietlott</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 30px; }
+  h1 { font-size: 2.5rem; margin-bottom: 8px; letter-spacing: 2px; text-transform: uppercase; }
+  h1 .accent { color: #38bdf8; }
+  .subtitle { color: #94a3b8; font-size: 1.1rem; }
+
+  .card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+  }
+
+  .grid { display: grid; gap: 24px; }
+  @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
+
+  .panel-title {
+    font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px; color: #38bdf8;
+  }
+
+  /* Drum */
+  .drum-wrapper { position: relative; width: 100%; height: 420px; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.1); background: #0b1120; }
+  .drum {
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at 50% 40%, rgba(56,189,248,0.12), transparent 60%);
+    position: relative;
+  }
+  .ball {
+    position: absolute;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    border: 2px solid rgba(255,255,255,0.4);
+    color: #0f172a; font-weight: 800; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; cursor: default;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: transform 0.15s ease;
+  }
+  .ball.moving { animation: mix 0.6s infinite linear; }
+  .ball.drawn { transform: scale(0.95); }
+  .ball.flying { z-index: 50; pointer-events: none; }
+  @keyframes mix {
+    0% { transform: translate(0,0) rotate(0deg); }
+    25% { transform: translate(6px,-4px) rotate(12deg); }
+    50% { transform: translate(-4px,6px) rotate(-12deg); }
+    75% { transform: translate(4px,-2px) rotate(8deg); }
+    100% { transform: translate(0,0) rotate(0deg); }
+  }
+
+  /* Result tube */
+  .tube { width: 100%; height: 120px; border-radius: 10px; border: 2px dashed rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; gap: 10px; background: #0b1120; margin-top: 16px; }
+  .tube-slot { width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 14px; font-weight: 600; }
+  .tube-slot.filled { border-color: #38bdf8; background: rgba(56,189,248,0.15); color: #38bdf8; }
+
+  /* Controls */
+  .controls { display: flex; gap: 12px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+  button {
+    padding: 12px 24px; border: none; border-radius: 8px;
+    font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-draw { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; min-width: 140px; box-shadow: 0 0 0 rgba(37,99,235,0); }
+  .btn-draw:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px -4px rgba(37,99,235,0.4); }
+  .btn-draw:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-reset { background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.2); min-width: 100px; }
+  .btn-reset:hover { border-color: #38bdf8; color: #38bdf8; }
+
+  .result-card { text-align: center; }
+  .numbers { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 16px 0; }
+  .num-chip {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 2px solid #38bdf8; color: #38bdf8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 800; box-shadow: 0 0 20px rgba(56,189,248,0.35);
+  }
+  .draw-info { margin-top: 16px; font-size: 0.95rem; color: #94a3b8; line-height: 1.6; }
+  .draw-info b { color: #cbd5e1; }
+
+  .schedule { margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.9rem; color: #94a3b8; }
+  .schedule b { color: #e2e8f0; }
+
+  .status { margin-bottom: 12px; font-size: 0.95rem; color: #94a3b8; text-align: center; min-height: 1.5em; }
+  .status.ready { color: #22c55e; }
+  .status.drawing { color: #fbbf24; }
+  .status.done { color: #38bdf8; }
+
+  .footer { text-align: center; margin-top: 30px; font-size: 0.85rem; color: #64748b; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Mega <span class="accent">6/45</span></h1>
+    <div class="subtitle">Mô phỏng quay số mở thưởng - Vietlott</div>
+  </header>
+
+  <div class="card grid">
+    <section class="card">
+      <div class="panel-title">🎱 Lồng cầu 45 quả bóng</div>
+      <div class="drum-wrapper">
+        <div class="drum" id="drum"></div>
+        <div class="tube" id="tube"></div>
+      </div>
+      <div class="status" id="status">Sẵn sàng quay thưởng</div>
+      <div class="controls">
+        <button class="btn-draw" id="btnDraw">Bắt đầu quay</button>
+        <button class="btn-reset" id="btnReset">Làm mới</button>
+      </div>
+    </section>
+
+    <section class="card result-card">
+      <div class="panel-title">🏆 Kết quả opens thưởng</div>
+      <div class="numbers" id="numbers"></div>
+      <div class="draw-info" id="drawInfo"></div>
+      <div class="schedule">
+        <b>Lịch mở thưởng:</b> 18:00 hàng Thứ 4, Thứ 6 và Chủ Nhật.<br>
+        <b>Quy trình:</b> 1 lồng cầu, 45 bóng (01-45), rút ngẫu nhiên 6 quả bóng.<br>
+        <b>Thiết bị:</b> Smartplay International (Mỹ), phát sóng trực tiếp.
+      </div>
+    </section>
+  </div>
+
+  <div class="footer">
+    Mô phỏng minh họa quy trình quay số Mega 6/45 của Vietlott - chỉ dùng để mô phỏng, không liên kết với kết quả thực tế.
+  </div>
+</div>
+
+<script>
+(function(){
+  const drum = document.getElementById('drum');
+  const tube = document.getElementById('tube');
+  const btnDraw = document.getElementById('btnDraw');
+  const btnReset = document.getElementById('btnReset');
+  const status = document.getElementById('status');
+  const numbers = document.getElementById('numbers');
+  const drawInfo = document.getElementById('drawInfo');
+
+  const BALL_COUNT = 45;
+  const DRAW_COUNT = 6;
+  let balls = [];
+  let isDrawing = false;
+  let drawn = [];
+
+  function createBalls(){
+    drum.innerHTML = '';
+    balls = [];
+    for(let i=1;i<=BALL_COUNT;i++){
+      const b = document.createElement('div');
+      b.className = 'ball';
+      b.textContent = String(i).padStart(2,'0');
+      b.dataset.num = i;
+      placeRandom(b);
+      drum.appendChild(b);
+      balls.push({el:b, num:i, drawn:false});
+    }
+  }
+
+  function placeRandom(el){
+    const rect = drum.getBoundingClientRect();
+    const r = 20;
+    let x, y;
+    do {
+      x = r + Math.random()*(rect.width - 2*r);
+      y = r + Math.random()*(rect.height - 2*r);
+    } while(overlaps(el, x, y));
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  }
+
+  function overlaps(el, x, y){
+    for(const b of balls){
+      const bx = parseFloat(b.el.style.left);
+      const by = parseFloat(b.el.style.top);
+      const dx = x - bx, dy = y - by;
+      if(dx*dx + dy*dy < 44*44) return true;
+    }
+    return false;
+  }
+
+  function shufflePositions(){
+    for(const b of balls){
+      if(b.drawn) continue;
+      placeRandom(b.el);
+    }
+  }
+
+  function mix(){
+    status.textContent = 'Máy thổi khí trộn đều toàn bộ bóng...';
+    status.className = 'status drawing';
+    btnDraw.disabled = true;
+    btnReset.disabled = true;
+
+    for(const b of balls) b.el.classList.add('moving');
+    setTimeout(()=>{
+      for(const b of balls) b.el.classList.remove('moving');
+      shufflePositions();
+      drawNext(0);
+    }, 1800);
+  }
+
+  function drawNext(index){
+    if(index >= DRAW_COUNT){
+      finishDraw();
+      return;
+    }
+    const available = balls.filter(b=>!b.drawn);
+    const pick = available[Math.floor(Math.random()*available.length)];
+    pick.drawn = true;
+    drawn.push(pick.num);
+    flyBall(pick, index, ()=>drawNext(index+1));
+  }
+
+  function flyBall(ball, slotIndex, onComplete){
+    status.textContent = 'Đẩy quả bóng số ' + String(ball.num).padStart(2,'0') + ' lên ống dẫn...';
+    const el = ball.el;
+    el.classList.add('flying');
+    const drumRect = drum.getBoundingClientRect();
+    const containerRect = document.querySelector('.drum-wrapper').getBoundingClientRect();
+
+    // calculate target slot center
+    const slot = tube.children[slotIndex];
+    const targetX = slot.getBoundingClientRect().left + slot.offsetWidth/2 - containerRect.left;
+    const targetY = slot.getBoundingClientRect().top + slot.offsetHeight/2 - containerRect.top;
+
+    const startX = parseFloat(el.style.left) + el.offsetWidth/2;
+    const startY = parseFloat(el.style.top) + el.offsetHeight/2;
+
+    // animate via requestAnimationFrame
+    const duration = 700;
+    const start = performance.now();
+    function frame(now){
+      const t = Math.min(1,(now-start)/duration);
+      // ease out cubic
+      const e = 1 - Math.pow(1-t,3);
+      const cx = startX + (targetX-startX)*e;
+      const cy = startY + (targetY-startY)*e + (t<0.5 ? -40*Math.sin(Math.PI*t) : 0);
+      el.style.left = (cx - el.offsetWidth/2) + 'px';
+      el.style.top = (cy - el.offsetHeight/2) + 'px';
+      if(t<1){ requestAnimationFrame(frame); }
+      else {
+        el.classList.remove('flying','moving');
+        el.style.left = '';
+        el.style.top = '';
+        slot.classList.add('filled');
+        slot.textContent = String(ball.num).padStart(2,'0');
+        addChip(ball.num, slotIndex);
+        onComplete();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function addChip(num, index){
+    const chip = document.createElement('div');
+    chip.className = 'num-chip';
+    chip.textContent = String(num).padStart(2,'0');
+    chip.style.opacity = '0';
+    chip.style.transform = 'scale(0.8)';
+    numbers.appendChild(chip);
+    requestAnimationFrame(()=>{
+      chip.style.transition = 'all 0.4s cubic-bezier(0.175,0.885,0.32,1.275)';
+      chip.style.opacity = '1';
+      chip.style.transform = 'scale(1)';
+    });
+    // reveal sequentially
+    setTimeout(()=>{}, index*100);
+  }
+
+  function finishDraw(){
+    isDrawing = false;
+    btnDraw.disabled = false;
+    btnReset.disabled = false;
+    const sorted = [...drawn].sort((a,b)=>a-b);
+    status.textContent = 'Kết quả kỳ quay: ' + sorted.map(n=>String(n).padStart(2,'0')).join(' - ');
+    status.className = 'status done';
+    drawInfo.innerHTML = '<b>Bộ số trúng thưởng chính thức:</b> ' + sorted.map(n=>String(n).padStart(2,'0')).join(', ') + '<br>Giá vé cơ bản: 10.000 VNĐ - Trùng từ 3 đến 6 số nhận thưởng.';
+  }
+
+  function reset(){
+    drawn = [];
+    isDrawing = false;
+    tube.innerHTML = '';
+    numbers.innerHTML = '';
+    drawInfo.innerHTML = '';
+    status.textContent = 'Sẵn sàng quay thưởng';
+    status.className = 'status ready';
+    btnDraw.disabled = false;
+    btnReset.disabled = false;
+    createBalls();
+  }
+
+  btnDraw.addEventListener('click', ()=>{
+    if(isDrawing) return;
+    reset();
+    mix();
+  });
+  btnReset.addEventListener('click', reset);
+
+  createBalls();
+})();
+</script>
+</body>
+</html>

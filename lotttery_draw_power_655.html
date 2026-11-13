@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng quay số Power 6/55 - Vietlott</title>
+<style>
+  :root {
+    --primary: #0f4c81;
+    --accent: #e74c3c;
+    --gold: #f1c40f;
+    --dark: #1a252f;
+    --light: #f4f6f8;
+    --ball: #3498db;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    line-height: 1.6;
+  }
+  a { color: inherit; text-decoration: none; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+  /* Header */
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 20px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+  .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; }
+  .logo span { color: var(--gold); }
+  .schedule {
+    background: rgba(255,255,255,0.1);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, var(--primary) 0%, #163a5f 100%);
+    color: #fff;
+    padding: 60px 0;
+    text-align: center;
+  }
+  .hero h1 { font-size: 2.5rem; margin-bottom: 10px; }
+  .hero h1 span { color: var(--gold); }
+  .hero p { font-size: 1.1rem; opacity: 0.9; max-width: 700px; margin: 0 auto 20px; }
+  .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    padding: 12px 24px;
+    border-radius: 6px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #c0392b; transform: translateY(-2px); }
+  .btn-secondary { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+  .btn-secondary:hover { background: rgba(255,255,255,0.25); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* Sections */
+  section { padding: 50px 0; }
+  .section-title {
+    font-size: 1.75rem;
+    margin-bottom: 30px;
+    color: var(--primary);
+    text-align: center;
+    position: relative;
+    display: inline-block;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 25%;
+    width: 50%;
+    height: 3px;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+
+  /* Draw Simulator */
+  .simulator-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 30px;
+  }
+  .drum-stage {
+    position: relative;
+    height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 25px;
+    border: 3px dashed #bdc3c7;
+    border-radius: 12px;
+    background: #fafbfc;
+    overflow: hidden;
+  }
+  .drum {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle at 30% 30%, #fff, #e8ecf0);
+    border-radius: 50%;
+    border: 6px solid var(--primary);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.15), 0 10px 30px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: drumRotate 8s linear infinite;
+    animation-play-state: paused;
+  }
+  .drum.spinning { animation-play-state: running; }
+  @keyframes drumRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .ball {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--ball);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    border: 2px solid rgba(255,255,255,0.5);
+    user-select: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+  .ball.drawn {
+    background: var(--accent);
+    transform: scale(1.15);
+    box-shadow: 0 0 20px var(--accent);
+  }
+  .ball.special {
+    background: #9b59b6;
+  }
+  .controls { text-align: center; margin-bottom: 25px; }
+  .status { font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; min-height: 1.5em; }
+  .status.drawing { color: var(--accent); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+  /* Results */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 25px;
+    justify-items: center;
+  }
+  .result-ball {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  }
+  .result-ball.special { background: #9b59b6; animation-delay: 0.1s; }
+  .result-ball:nth-child(1) { animation-delay: 0.2s; }
+  .result-ball:nth-child(2) { animation-delay: 0.4s; }
+  .result-ball:nth-child(3) { animation-delay: 0.6s; }
+  .result-ball:nth-child(4) { animation-delay: 0.8s; }
+  .result-ball:nth-child(5) { animation-delay: 1.0s; }
+  .result-ball:nth-child(6) { animation-delay: 1.2s; }
+  .result-ball:nth-child(7) { animation-delay: 1.4s; }
+  @keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .result-label { margin-top: 8px; font-size: 0.85rem; color: #7f8c8d; text-align: center; }
+  .special-label { color: #9b59b6; font-weight: 600; }
+
+  /* Info cards */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+  }
+  .info-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+    border-top: 4px solid var(--primary);
+  }
+  .info-card h3 { margin-bottom: 15px; color: var(--primary); font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+  .info-card h3 .num { background: var(--gold); color: var(--dark); width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; }
+  .info-card p { font-size: 0.95rem; color: #555; margin-bottom: 12px; }
+  .info-card ul { list-style: disc inside; color: #555; font-size: 0.95rem; }
+  .info-card ul li { margin-bottom: 6px; }
+
+  /* Ticket checker */
+  .checker-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .checker-card h2 { text-align: center; margin-bottom: 20px; color: var(--primary); }
+  .input-row { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
+  .ticket-input {
+    width: 48px;
+    height: 48px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border: 2px solid #bdc3c7;
+    border-radius: 8px;
+    padding: 4px;
+  }
+  .ticket-input:focus { outline: none; border-color: var(--primary); }
+  .ticket-input.valid { border-color: #27ae60; background: #e9f7ef; }
+  .ticket-input.invalid { border-color: #e74c3c; background: #fdedec; }
+  .check-actions { text-align: center; margin: 20px 0; }
+  .check-result { margin-top: 20px; padding: 20px; border-radius: 8px; display: none; text-align: center; }
+  .check-result.show { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .check-result.win { background: #e9f7ef; border: 2px solid #27ae60; color: #1e8449; }
+  .check-result.lose { background: #fdedec; border: 2px solid #e74c3c; color: #c0392b; }
+  .prize-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 1.1rem; margin-top: 10px; }
+  .prize-j1 { background: #e67e22; color: #fff; }
+  .prize-j2 { background: #9b59b6; color: #fff; }
+  .prize-1 { background: var(--primary); color: #fff; }
+  .prize-2 { background: var(--accent); color: #fff; }
+  .prize-3 { background: #f39c12; color: #fff; }
+
+  /* History */
+  .history-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 12px rgba(0,0,0,0.07); }
+  .history-table th { background: var(--primary); color: #fff; padding: 14px; text-align: left; font-size: 0.9rem; }
+  .history-table td { padding: 14px; border-bottom: 1px solid #ecf0f1; font-size: 0.9rem; }
+  .history-table tr:last-child td { border-bottom: none; }
+  .history-table tr:hover { background: #f4f6f8; }
+  .history-balls { display: flex; gap: 6px; flex-wrap: wrap; }
+  .history-ball { width: 26px; height: 26px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .history-ball.special { background: #9b59b6; }
+
+  footer {
+    background: var(--dark);
+    color: #bdc3c7;
+    padding: 30px 0;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  footer p { margin-bottom: 6px; }
+  .warning { color: #e74c3c; font-size: 0.85rem; margin-top: 10px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 1.8rem; }
+    .drum { width: 240px; height: 240px; }
+    .drum-stage { height: 340px; }
+    .section-title { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="logo">VIETLOTT <span>POWER 6/55</span></div>
+    <div class="schedule">Lịch quay: 18h00 - Thứ 3, Thứ 5, Thứ 7 hàng tuần</div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <h1>Mô phỏng quay số <span>Power 6/55</span></h1>
+    <p>Lồng cầu thổi khí tự động chứa 55 quả bóng (01–55), rút tổng cộng 7 quả mỗi kỳ: 6 số chính + 1 số đặc biệt.</p>
+    <div class="btn-group">
+      <button class="btn btn-primary" id="btnDraw">Bắt đầu quay số</button>
+      <button class="btn btn-secondary" id="btnReset">Tạo bộ số mới</button>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2 class="section-title">Máy quay số mô phỏng</h2>
+    <div class="simulator-card">
+      <div class="drum-stage" id="drumStage">
+        <div class="drum" id="drum"></div>
+      </div>
+      <div class="controls">
+        <div class="status" id="status">Sẵn sàng quay số</div>
+        <div class="results-grid" id="resultsGrid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2 class="section-title">Quy chuẩn thiết bị & giám sát</h2>
+    <div class="info-grid">
+      <div class="info-card">
+        <h3><span class="num">1</span> Kiểm tra bóng trước giờ quay</h3>
+        <p>Hội đồng Giám sát xổ số trực tiếp kiểm tra niêm phong, đo kích thước và cân trọng lượng từng quả bóng, rồi bốc thăm ngẫu nhiên vali bóng dùng cho kỳ quay.</p>
+      </div>
+      <div class="info-card">
+        <h3><span class="num">2</span> Vận hành tự động hoàn toàn</h3>
+        <p>Máy quay do hãng <strong>Smartplay International (Mỹ)</strong> sản xuất, hoạt động theo quy trình khép kín đã lập trình sẵn, không can thiệp thủ công.</p>
+      </div>
+      <div class="info-card">
+        <h3><span class="num">3</span> Phát sóng trực tiếp</h3>
+        <p>Toàn bộ 7 lần rút bóng truyền hình trực tiếp trên các kênh đối tác (TodayTV, SCTV2) và Fanpage chính thức của Vietlott.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2 class="section-title">Kiểm tra vé của bạn</h2>
+    <div class="checker-card">
+      <h2>So sánh kết quả</h2>
+      <p style="text-align:center; color:#666; margin-bottom:20px; font-size:0.9rem;">Giá vé: 10.000 VNĐ/lần tham gia • Không cần đúng thứ tự</p>
+      <div class="input-row" id="ticketInputs"></div>
+      <div class="check-actions">
+        <button class="btn btn-primary" id="btnCheck">Kiểm tra giải</button>
+        <button class="btn btn-secondary" id="btnRandomTicket">Số ngẫu nhiên</button>
+      </div>
+      <div class="check-result" id="checkResult">
+        <div id="checkMessage"></div>
+        <div id="prizeBadge" class="prize-badge"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2 class="section-title">Lịch sử quay số gần đây</h2>
+    <div style="overflow-x:auto;">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Kỳ số</th>
+            <th>Ngày giờ</th>
+            <th>Số chính</th>
+            <th>Số đặc biệt</th>
+            <th>Jackpot 1</th>
+            <th>Jackpot 2</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Mô phỏngPower 6/55 - Vietlott &copy; 2026</p>
+    <p class="warning">Lưu ý: Đây là mô phỏng dùng cho mục đích giáo dục và giải trí, không phải kết quả mở thưởng chính thức.</p>
+  </div>
+</footer>
+
+<script>
+  const TOTAL_BALLS = 55;
+  const MAIN_COUNT = 6;
+  const SPECIAL_COUNT = 1;
+  const TOTAL_DRAWS = MAIN_COUNT + SPECIAL_COUNT;
+
+  let drumBalls = [];
+  let drawnBalls = [];
+  let isDrawing = false;
+  let drawHistory = [];
+  let jackpot1 = 350000000000; // 350 tỷ
+  let jackpot2 = 80000000000;   // 80 tỷ
+  let ticketNumbers = [];
+
+  const drumEl = document.getElementById('drum');
+  const stageEl = document.getElementById('drumStage');
+  const statusEl = document.getElementById('status');
+  const resultsGrid = document.getElementById('resultsGrid');
+  const btnDraw = document.getElementById('btnDraw');
+  const btnReset = document.getElementById('btnReset');
+  const ticketInputsEl = document.getElementById('ticketInputs');
+  const btnCheck = document.getElementById('btnCheck');
+  const btnRandomTicket = document.getElementById('btnRandomTicket');
+  const checkResultEl = document.getElementById('checkResult');
+  const checkMessageEl = document.getElementById('checkMessage');
+  const prizeBadgeEl = document.getElementById('prizeBadge');
+  const historyBody = document.getElementById('historyBody');
+
+  function initDrum() {
+    drumBalls = [];
+    for (let i = 1; i <= TOTAL_BALLS; i++) {
+      drumBalls.push({ number: i, drawn: false });
+    }
+    renderDrumBalls();
+  }
+
+  function renderDrumBalls() {
+    drumEl.innerHTML = '';
+    const available = drumBalls.filter(b => !b.drawn);
+    const centerX = 150, centerY = 150;
+    const layers = 3;
+    const radiusStep = 42;
+
+    available.forEach((ball, idx) => {
+      const layer = Math.floor(idx / 12) % layers;
+      const posInLayer = idx % 12;
+      const angle = (posInLayer / 12) * Math.PI * 2 + (layer * 0.4);
+      const r = 30 + layer * radiusStep + Math.sin(idx * 0.7) * 12;
+      const x = centerX + Math.cos(angle) * r - 23;
+      const y = centerY + Math.sin(angle) * r - 23;
+
+      const el = document.createElement('div');
+      el.className = 'ball';
+      el.textContent = String(ball.number).padStart(2, '0');
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.dataset.number = ball.number;
+      drumEl.appendChild(el);
+    });
+  }
+
+  function formatCurrency(vnd) {
+    return vnd.toLocaleString('vi-VN') + ' đ';
+  }
+
+  function updateJackpots() {
+    // Simple simulation update
+    document.title = `Power 6/55 - Jackpot 1: ${formatCurrency(jackpot1)}`;
+  }
+
+  function drawBall() {
+    const available = drumBalls.filter(b => !b.drawn);
+    if (available.length === 0) return null;
+    const idx = Math.floor(Math.random() * available.length);
+    const ball = available[idx];
+    ball.drawn = true;
+    drawnBalls.push(ball);
+    renderDrumBalls();
+    return ball;
+  }
+
+  async function runDraw() {
+    if (isDrawing) return;
+    isDrawing = true;
+    btnDraw.disabled = true;
+    btnReset.disabled = true;
+    drawnBalls = [];
+    resultsGrid.innerHTML = '';
+    statusEl.textContent = 'Đang quay số...';
+    statusEl.className = 'status drawing';
+
+    drumEl.classList.add('spinning');
+    await sleep(1500);
+
+    for (let i = 0; i < TOTAL_DRAWS; i++) {
+      drumEl.classList.remove('spinning');
+      await sleep(600);
+      const ball = drawBall();
+      if (!ball) break;
+
+      const el = document.createElement('div');
+      el.className = `result-ball ${i >= MAIN_COUNT ? 'special' : ''}`;
+      el.textContent = String(ball.number).padStart(2, '0');
+      resultsGrid.appendChild(el);
+
+      const highlight = document.querySelector(`.ball[data-number="${ball.number}"]`);
+      if (highlight) highlight.classList.add('drawn');
+
+      statusEl.textContent = i < MAIN_COUNT
+        ? `Rút số chính thứ ${i + 1}: ${String(ball.number).padStart(2, '0')}`
+        : `Rút số đặc biệt: ${String(ball.number).padStart(2, '0')}`;
+      await sleep(900);
+    }
+
+    drumEl.classList.remove('spinning');
+    isDrawing = false;
+    btnDraw.disabled = false;
+    btnReset.disabled = false;
+
+    const mainNumbers = drawnBalls.slice(0, MAIN_COUNT).map(b => b.number);
+    const specialNumber = drawnBalls[MAIN_COUNT] ? drawnBalls[MAIN_COUNT].number : null;
+
+    statusEl.textContent = `Kết quả: ${mainNumbers.map(n => String(n).padStart(2,'0')).join(' ')} + đặc biệt ${String(specialNumber).padStart(2,'0')}`;
+    statusEl.className = 'status';
+
+    addToHistory(mainNumbers, specialNumber);
+    updateJackpots();
+  }
+
+  function addToHistory(mainNumbers, specialNumber) {
+    const now = new Date();
+    const drawId = 'P' + now.getFullYear().toString().slice(-2) + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+    const entry = {
+      id: drawId,
+      date: now.toLocaleString('vi-VN'),
+      main: mainNumbers,
+      special: specialNumber,
+      j1: jackpot1,
+      j2: jackpot2
+    };
+    drawHistory.unshift(entry);
+    if (drawHistory.length > 10) drawHistory.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    historyBody.innerHTML = '';
+    drawHistory.forEach((e, idx) => {
+      const tr = document.createElement('tr');
+      const mainHtml = e.main.map(n => `<span class="history-ball">${String(n).padStart(2,'0')}</span>`).join('');
+      const specialHtml = `<span class="history-ball special">${String(e.special).padStart(2,'0')}</span>`;
+      tr.innerHTML = `
+        <td><strong>${e.id}</strong></td>
+        <td>${e.date}</td>
+        <td><div class="history-balls">${mainHtml}</div></td>
+        <td><div class="history-balls">${specialHtml}</div></td>
+        <td>${formatCurrency(e.j1)}</td>
+        <td>${formatCurrency(e.j2)}</td>
+      `;
+      historyBody.appendChild(tr);
+    });
+  }
+
+  function initTicketInputs() {
+    ticketInputsEl.innerHTML = '';
+    ticketNumbers = Array(MAIN_COUNT).fill(null);
+    for (let i = 0; i < MAIN_COUNT; i++) {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.maxLength = 2;
+      inp.className = 'ticket-input';
+      inp.placeholder = '00';
+      inp.dataset.index = i;
+      inp.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 2) val = val.slice(0, 2);
+        if (val.length === 1) val = '0' + val;
+        e.target.value = val;
+        const num = val ? parseInt(val, 10) : null;
+        ticketNumbers[i] = (num >= 1 && num <= 55) ? num : null;
+        validateInput(e.target, num);
+      });
+      inp.addEventListener('blur', (e) => {
+        if (!e.target.value) e.target.value = '';
+      });
+      ticketInputsEl.appendChild(inp);
+    }
+  }
+
+  function validateInput(inp, num) {
+    inp.classList.remove('valid', 'invalid');
+    const val = inp.value;
+    if (!val) return;
+    if (num >= 1 && num <= 55) {
+      inp.classList.add('valid');
+    } else {
+      inp.classList.add('invalid');
+    }
+    // Check duplicates
+    const allVals = Array.from(ticketInputsEl.querySelectorAll('.ticket-input')).map(x => x.value);
+    if (val && allVals.filter(v => v === val).length > 1) {
+      inp.classList.remove('valid');
+      inp.classList.add('invalid');
+    }
+  }
+
+  function randomTicket() {
+    const nums = [];
+    while (nums.length < MAIN_COUNT) {
+      const n = Math.floor(Math.random() * TOTAL_BALLS) + 1;
+      if (!nums.includes(n)) nums.push(n);
+    }
+    nums.sort((a,b) => a - b);
+    ticketNumbers = [...nums];
+    Array.from(ticketInputsEl.querySelectorAll('.ticket-input')).forEach((inp, i) => {
+      inp.value = String(nums[i]).padStart(2,'0');
+      inp.classList.remove('valid', 'invalid');
+      inp.classList.add('valid');
+    });
+  }
+
+  function checkTicket() {
+    if (drawnBalls.length === 0) {
+      alert('Vui lòng quay số trước khi kiểm tra vé.');
+      return;
+    }
+    const userNums = ticketNumbers.filter(n => n != null);
+    if (userNums.length !== MAIN_COUNT) {
+      alert('Vui lòng nhập đủ 6 số từ 01 đến 55.');
+      return;
+    }
+    if (new Set(userNums).size !== MAIN_COUNT) {
+      alert('Không được nhập số trùng lặp.');
+      return;
+    }
+
+    const mainSet = new Set(drawnBalls.slice(0, MAIN_COUNT).map(b => b.number));
+    const specialNum = drawnBalls[MAIN_COUNT] ? drawnBalls[MAIN_COUNT].number : null;
+
+    let matchMain = 0;
+    userNums.forEach(n => { if (mainSet.has(n)) matchMain++; });
+    const matchSpecial = userNums.includes(specialNum);
+
+    checkResultEl.classList.remove('win', 'lose');
+    checkResultEl.classList.add('show');
+
+    let message = '';
+    let badge = '';
+    let badgeClass = '';
+
+    if (matchMain === 6) {
+      // Jackpot 1
+      message = `Chúc mừng! Bạn trúng ${matchMain} số chính. BẠN TRÚNG JACKPOT 1!`;
+      badge = `Jackpot 1: ${formatCurrency(jackpot1)}`;
+      badgeClass = 'prize-badge prize-j1';
+      checkResultEl.classList.add('win');
+    } else if (matchMain === 5 && matchSpecial) {
+      message = `Bạn trúng ${matchMain} số chính + số đặc biệt. BẠN TRÚNG JACKPOT 2!`;
+      badge = `Jackpot 2: ${formatCurrency(jackpot2)}`;
+      badgeClass = 'prize-badge prize-j2';
+      checkResultEl.classList.add('win');
+    } else if (matchMain === 5) {
+      message = `Bạn trúng ${matchMain} số chính. Giải Nhất!`;
+      badge = 'Giải Nhất';
+      badgeClass = 'prize-badge prize-1';
+      checkResultEl.classList.add('win');
+    } else if (matchMain === 4 && matchSpecial) {
+      message = `Bạn trúng ${matchMain} số chính + số đặc biệt. Giải Nhì!`;
+      badge = 'Giải Nhì';
+      badgeClass = 'prize-badge prize-2';
+      checkResultEl.classList.add('win');
+    } else if (matchMain === 4) {
+      message = `Bạn trúng ${matchMain} số chính. Giải Ba!`;
+      badge = 'Giải Ba';
+      badgeClass = 'prize-badge prize-3';
+      checkResultEl.classList.add('win');
+    } else {
+      message = `Bạn trúng ${matchMain} số chính${matchSpecial ? ' + số đặc biệt' : ''}. Chúc bạn may mắn lần sau!`;
+      badge = 'Không trúng giải';
+      badgeClass = 'prize-badge';
+      checkResultEl.classList.add('lose');
+    }
+
+    checkMessageEl.textContent = message;
+    prizeBadgeEl.className = badgeClass;
+    prizeBadgeEl.textContent = badge;
+  }
+
+  function sleep(ms) {
+    return new Promise(res => setTimeout(res, ms));
+  }
+
+  btnDraw.addEventListener('click', runDraw);
+  btnReset.addEventListener('click', () => {
+    if (isDrawing) return;
+    initDrum();
+    drawnBalls = [];
+    resultsGrid.innerHTML = '';
+    statusEl.textContent = 'Sẵn sàng quay số';
+    statusEl.className = 'status';
+    initTicketInputs();
+    checkResultEl.classList.remove('show');
+  });
+  btnCheck.addEventListener('click', checkTicket);
+  btnRandomTicket.addEventListener('click', randomTicket);
+
+  // Initialize
+  initDrum();
+  initTicketInputs();
+  renderHistory();
+  updateJackpots();
+</script>
+</body>
+</html>

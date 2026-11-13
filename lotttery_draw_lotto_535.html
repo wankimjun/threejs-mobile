@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng quay số Lotto 5/35 - Vietlott</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    min-height: 100vh;
+    color: #fff;
+    padding: 20px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  header {
+    text-align: center;
+    padding: 30px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 30px;
+  }
+  header h1 { font-size: 2.5rem; color: #fbbf24; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(251,191,36,0.3); }
+  header p { color: #cbd5e1; font-size: 1.1rem; }
+  .badge { display: inline-block; margin-top: 10px; padding: 6px 16px; background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); border-radius: 20px; font-size: 0.9rem; letter-spacing: 1px; }
+
+  .draw-times { display: flex; gap: 20px; justify-content: center; margin: 25px 0; flex-wrap: wrap; }
+  .time-slot {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 14px 24px;
+    min-width: 150px;
+    text-align: center;
+    backdrop-filter: blur(6px);
+  }
+  .time-slot .label { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+  .time-slot .value { font-size: 1.6rem; font-weight: bold; color: #fbbf24; margin-top: 4px; }
+
+  .main-grid { display: grid; grid-template-columns: 1fr 420px; gap: 30px; }
+  @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* Left panel - draw machines */
+  .machines-panel { display: flex; flex-direction: column; gap: 20px; }
+  .machine-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+  }
+  .machine-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+  }
+  .machine-indicator { width: 12px; height: 12px; border-radius: 50%; }
+  .machine-main .machine-indicator { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
+  .machine-special .machine-indicator { background: #10b981; box-shadow: 0 0 12px #10b981; }
+  .machine-header h3 { font-size: 1.3rem; color: #fff; flex: 1; }
+  .machine-count { font-size: 1.1rem; color: #94a3b8; }
+  .machine-count span { color: #fff; font-weight: bold; margin-left: 4px; }
+
+  .drum { position: relative; width: 100%; height: 340px; border-radius: 12px; background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid rgba(255,255,255,0.08); overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
+  .drum::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.06), transparent 50%);
+    pointer-events: none;
+  }
+  .ball {
+    position: absolute;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f1f5f9, #cbd5e1);
+    border: 2px solid #fff;
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 1.15rem;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    cursor: default;
+    z-index: 10;
+    transform-origin: center;
+  }
+  .ball.rolling { animation: roll 0.15s linear infinite; }
+  @keyframes roll { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .ball.flying {
+    transition: all 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .ball.picked {
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 4px rgba(251,191,36,0.25), 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .ball.special { color: #047857; }
+  .ball.main { color: #dc2626; }
+
+  .air-bubbles { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  .bubble {
+    position: absolute;
+    background: rgba(255,255,255,0.12);
+    border-radius: 50%;
+    animation: bubbleUp linear infinite;
+  }
+  @keyframes bubbleUp {
+    0% { transform: translateY(100vh) scale(1); opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.8; }
+    100% { transform: translateY(-10vh) scale(1.4); opacity: 0; }
+  }
+
+  /* Results panel */
+  .results-panel { display: flex; flex-direction: column; gap: 20px; }
+  .results-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+  }
+  .results-card h3 { font-size: 1.25rem; color: #fbbf24; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .winning-numbers { display: flex; gap: 12px; flex-wrap: wrap; }
+  .number-chip {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 800;
+    border: 2px solid rgba(255,255,255,0.15);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+  }
+  .number-chip.main { background: linear-gradient(135deg, #ef4444, #b91c1c); border-color: #fca5a5; }
+  .number-chip.special { background: linear-gradient(135deg, #10b981, #059669); border-color: #6ee7b7; color: #ecfdf5; }
+
+  .controls { display: flex; gap: 12px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+  button.btn {
+    padding: 12px 26px; border-radius: 10px; border: none;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    color: #fff; transition: all 0.2s;
+  }
+  button.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  button.btn.start { background: linear-gradient(135deg, #10b981, #059669); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 0 20px rgba(16,185,129,0.25); }
+  button.btn.start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 30px rgba(16,185,129,0.4); }
+  button.btn.reset { background: linear-gradient(135deg, #ef4444, #b91c1c); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 0 20px rgba(239,68,68,0.25); }
+  button.btn.reset:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 30px rgba(239,68,68,0.4); }
+
+  button.btn.drawing {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.65; } }
+
+  /* Info panels */
+  .info-section { margin-top: 40px; }
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .info-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 20px;
+    backdrop-filter: blur(6px);
+  }
+  .info-card h4 { color: #fbbf24; font-size: 1.1rem; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
+  .info-card p { color: #cbd5e1; font-size: 0.95rem; line-height: 1.55; margin-bottom: 8px; }
+  .info-card p:last-child { margin-bottom: 0; }
+  .info-card ul { color: #cbd5e1; font-size: 0.95rem; line-height: 1.7; padding-left: 18px; margin-bottom: 0; }
+  .info-card li { margin-bottom: 6px; }
+
+  .jackpot-rule {
+    margin-top: 30px;
+    background: linear-gradient(135deg, rgba(251,191,36,0.12), rgba(168,85,247,0.08));
+    border: 1px solid rgba(251,191,36,0.25);
+    border-radius: 14px;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+  }
+  .jackpot-rule h4 { color: #fbbf24; font-size: 1.2rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .jackpot-rule p { color: #cbd5e1; font-size: 0.98rem; line-height: 1.6; margin-bottom: 10px; }
+  .jackpot-rule p:last-child { margin-bottom: 0; }
+
+  .status-toast {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(15,23,42,0.95); border: 1px solid rgba(255,255,255,0.15);
+    color: #fff; padding: 12px 24px; border-radius: 10px;
+    font-size: 1rem; font-weight: 600; z-index: 1000;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .status-toast.show { opacity: 1; }
+  .status-toast.ok { border-color: #10b981; color: #6ee7b7; }
+  .status-toast.err { border-color: #ef4444; color: #fca5a5; }
+
+  footer { margin-top: 50px; padding: 25px 0; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; color: #64748b; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Mô phỏng quay số Lotto 5/35</h1>
+    <p>Xổ số tự chọn Lotto 5/35 của Vietlott</p>
+    <span class="badge">Hệ thống 2 lồng cầu thổi khí tự động</span>
+  </header>
+
+  <div class="draw-times">
+    <div class="time-slot">
+      <div class="label">Ca 1</div>
+      <div class="value" id="time1">13:00</div>
+      <div style="font-size:0.8rem;color:#94a3b8;">hàng ngày</div>
+    </div>
+    <div class="time-slot">
+      <div class="label">Ca 2</div>
+      <div class="value" id="time2">21:00</div>
+      <div style="font-size:0.8rem;color:#94a3b8;">hàng ngày</div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div class="machines-panel">
+      <div class="machine-card machine-main">
+        <div class="machine-header">
+          <div class="machine-indicator"></div>
+          <h3>Lồng cầu số chính</h3>
+          <div class="machine-count">35 quả bóng (01–35)</div>
+        </div>
+        <div class="drum" id="drumMain">
+          <div class="air-bubbles" id="bubblesMain"></div>
+        </div>
+        <div style="margin-top:10px;text-align:center;color:#94a3b8;font-size:0.85rem;">Thuổi khí tự động <span class="dot" id="airMain"></span></div>
+      </div>
+
+      <div class="machine-card machine-special">
+        <div class="machine-header">
+          <div class="machine-indicator" style="background:#10b981;box-shadow:0 0 12px #10b981;"></div>
+          <h3>Lồng cầu số đặc biệt</h3>
+          <div class="machine-count">12 quả bóng (01–12)</div>
+        </div>
+        <div class="drum" id="drumSpecial">
+          <div class="air-bubbles" id="bubblesSpecial"></div>
+        </div>
+        <div style="margin-top:10px;text-align:center;color:#94a3b8;font-size:0.85rem;">Thuổi khí tự động <span class="dot" id="airSpecial"></span></div>
+      </div>
+    </div>
+
+    <div class="results-panel">
+      <div class="results-card">
+        <h3>🎯 Bộ số trúng thưởng</h3>
+        <div class="winning-numbers" id="winningNumbers"></div>
+        <div class="controls">
+          <button class="btn start" id="btnStart" onclick="startDraw()">Bắt đầu quay số</button>
+          <button class="btn reset" id="btnReset" onclick="resetDraw()">Làm mới</button>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <div class="info-grid">
+          <div class="info-card">
+            <h4>Thiết bị</h4>
+            <p>Máy quay lồng cầu và bộ bóng sản xuất bởi <b>Smartplay International (Mỹ)</b>, đạt chứng nhận <b>Hiệp hội Xổ số Thế giới (WLA)</b>.</p>
+          </div>
+          <div class="info-card">
+            <h4>Giám sát</h4>
+            <p>Hội đồng Giám sát xổ số trực tiếp kiểm tra niêm phong, cân trọng lượng, kích thước từng quả bóng trước mỗi kỳ quay.</p>
+          </div>
+          <div class="info-card">
+            <h4>Phát sóng</h4>
+            <p>Phát sóng trực tiếp trên YouTube, Fanpage chính thức của Vietlott và ứng dụng Vietlott SMS.</p>
+          </div>
+        </div>
+
+        <div class="jackpot-rule">
+          <h4>💰 Quy tắc "Chia Giải Độc Đắc"</h4>
+          <p><strong>Điều kiện:</strong> Giải Độc Đắc tích lũy vượt 12 tỷ đồng mà vẫn chưa có người trúng thưởng.</p>
+          <p><strong>Thời điểm:</strong> Nếu tiếp tục không có vé trúng giải Độc Đắc, toàn bộ số tiền thưởng này sẽ được chia đều cho các hạng giải từ Giải Nhất đến Giải Năm tại kỳ quay 21h00 ngày hôm sau.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    © Vietlott — Mô phỏng quay số Lotto 5/35. Dành cho mục đích giải trí và minh họa quy trình mở thưởng.
+  </footer>
+</div>
+
+<div class="status-toast" id="toast"></div>
+
+<script>
+const BALL_MAIN_COUNT = 35;
+const BALL_SPECIAL_COUNT = 12;
+const DRAW_MAIN_COUNT = 5;
+const DRAW_SPECIAL_COUNT = 1;
+
+let isDrawing = false;
+let drawnMain = [];
+let drawnSpecial = [];
+
+const drumMain = document.getElementById('drumMain');
+const drumSpecial = document.getElementById('drumSpecial');
+const bubblesMain = document.getElementById('bubblesMain');
+const bubblesSpecial = document.getElementById('bubblesSpecial');
+const btnStart = document.getElementById('btnStart');
+const btnReset = document.getElementById('btnReset');
+const winningNumbers = document.getElementById('winningNumbers');
+const toast = document.getElementById('toast');
+
+function createBubbles(container, count) {
+  container.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = Math.random() * 14 + 6;
+    b.style.width = size + 'px';
+    b.style.height = size + 'px';
+    b.style.left = Math.random() * 100 + '%';
+    b.style.animationDuration = (Math.random() * 4 + 2) + 's';
+    b.style.animationDelay = (Math.random() * 5) + 's';
+    container.appendChild(b);
+  }
+}
+
+function createBalls(drum, count, prefix) {
+  drum.innerHTML = '';
+  const rect = drum.getBoundingClientRect();
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+  const rMin = 40, rMax = 120;
+  const balls = [];
+  for (let i = 1; i <= count; i++) {
+    const ball = document.createElement('div');
+    ball.className = 'ball ' + prefix;
+    ball.textContent = String(i).padStart(2, '0');
+    ball.dataset.num = i;
+    const angle = Math.random() * Math.PI * 2;
+    const r = rMin + Math.random() * (rMax - rMin);
+    const x = cx + Math.cos(angle) * r - 24;
+    const y = cy + Math.sin(angle) * r - 24;
+    ball.style.left = x + 'px';
+    ball.style.top = y + 'px';
+    ball.classList.add('rolling');
+    drum.appendChild(ball);
+    balls.push(ball);
+  }
+  return balls;
+}
+
+function showToast(msg, type) {
+  toast.textContent = msg;
+  toast.className = 'status-toast ' + (type || '') + ' show';
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function resetDraw() {
+  if (isDrawing) return;
+  isDrawing = false;
+  drawnMain = [];
+  drawnSpecial = [];
+  winningNumbers.innerHTML = '';
+  btnStart.disabled = false;
+  btnStart.textContent = 'Bắt đầu quay số';
+  btnStart.className = 'btn start';
+  btnReset.disabled = false;
+  createBalls(drumMain, BALL_MAIN_COUNT, 'main');
+  createBalls(drumSpecial, BALL_SPECIAL_COUNT, 'special');
+  createBubbles(bubblesMain, 24);
+  createBubbles(bubblesSpecial, 18);
+  showToast('Đã làm mới. Sẵn sàng quay số.', '');
+}
+
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function startDraw() {
+  if (isDrawing) return;
+  isDrawing = true;
+  btnStart.disabled = true;
+  btnReset.disabled = true;
+  btnStart.textContent = 'Đang quay số...';
+  btnStart.className = 'btn start drawing';
+  winningNumbers.innerHTML = '';
+
+  // Main drum
+  const mainBalls = drumMain.querySelectorAll('.ball');
+  mainBalls.forEach(b => b.classList.add('rolling'));
+  showToast('Lồng cầu số chính đang hoạt động...', '');
+  await sleep(2200);
+
+  const mainPool = Array.from({ length: BALL_MAIN_COUNT }, (_, i) => i + 1);
+  const pickedMain = [];
+  for (let i = 0; i < DRAW_MAIN_COUNT; i++) {
+    const idx = Math.floor(Math.random() * mainPool.length);
+    const num = mainPool.splice(idx, 1)[0];
+    pickedMain.push(num);
+
+    const ball = drumMain.querySelector('.ball[data-num="'+num+'"]');
+    if (ball) {
+      ball.classList.remove('rolling');
+      ball.classList.add('flying', 'picked');
+      // fly to center top of drum
+      ball.style.left = '48%';
+      ball.style.top = '18%';
+      ball.style.transform = 'scale(1.2)';
+      ball.style.zIndex = 100 + i;
+    }
+    await sleep(900);
+  }
+  drawnMain = pickedMain.slice();
+  renderNumbers(pickedMain, 'main');
+  showToast('Đã rút xong 5 số chính.', '');
+  await sleep(700);
+
+  // Special drum
+  const specialBalls = drumSpecial.querySelectorAll('.ball');
+  specialBalls.forEach(b => b.classList.add('rolling'));
+  showToast('Lồng cầu số đặc biệt đang hoạt động...', '');
+  await sleep(1800);
+
+  const specialPool = Array.from({ length: BALL_SPECIAL_COUNT }, (_, i) => i + 1);
+  const sIdx = Math.floor(Math.random() * specialPool.length);
+  const specialNum = specialPool[sIdx];
+  drawnSpecial = [specialNum];
+
+  const sBall = drumSpecial.querySelector('.ball[data-num="'+specialNum+'"]');
+  if (sBall) {
+    sBall.classList.remove('rolling');
+    sBall.classList.add('flying', 'picked', 'special');
+    sBall.style.left = '48%';
+    sBall.style.top = '18%';
+    sBall.style.transform = 'scale(1.2)';
+  }
+  await sleep(700);
+  renderNumbers(drawnSpecial, 'special');
+
+  btnStart.textContent = 'Hoàn thành';
+  btnStart.className = 'btn start';
+  btnStart.disabled = false;
+  btnReset.disabled = false;
+  isDrawing = false;
+  showToast('Kết quả quay số đã ra.', 'ok');
+}
+
+function renderNumbers(nums, type) {
+  nums.forEach((num, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'number-chip ' + type;
+    chip.textContent = String(num).padStart(2, '0');
+    chip.style.opacity = '0';
+    chip.style.transform = 'scale(0.8)';
+    winningNumbers.appendChild(chip);
+    setTimeout(() => {
+      chip.style.transition = 'all 0.5s cubic-bezier(0.34,1.56,0.64,1)';
+      chip.style.opacity = '1';
+      chip.style.transform = 'scale(1)';
+    }, i * 120);
+  });
+}
+
+// Live clock for draw times
+function updateClock() {
+  const now = new Date();
+  document.getElementById('time1').textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Init
+resetDraw();
+</script>
+
+</body>
+</html>
