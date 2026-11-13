@@ -3,377 +3,595 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mô phỏng quay số Xổ số Max 3D - Vietlott</title>
+<title>Mô phỏng Vietlott Max 3D / 3D+ / 3D Pro</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --red: #d32f2f; --red-dark: #b71c1c; --amber: #ffa000; --gold: #ffd54f;
-    --ink: #0b0e14; --panel: #131826; --line: #2a334a; --text: #e8eaf2;
-    --muted: #9aa3b8; --digit: #ffffff;
+    --red: #d32f2f; --red-dark: #b71c1c; --amber: #ffb300; --gold: #ffd54f;
+    --bg: #0b0e14; --panel: #131826; --panel-2: #1a2134; --line: #2a334a;
+    --text: #e8eaf2; --muted: #9aa3b8; --green: #22c55e; --blue: #1565c0;
   }
-  html, body { height: 100%; }
   body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--ink); color: var(--text);
-    line-height: 1.5; min-height: 100vh;
+    background: radial-gradient(900px 500px at 15% -10%, #3b0d0d 0%, transparent 60%), var(--bg);
+    color: var(--text); min-height: 100vh; line-height: 1.5;
   }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 22px 16px 40px; }
 
-  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
   .brand { display: flex; align-items: center; gap: 12px; }
-  .badge {
-    width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--red), var(--red-dark));
-    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.25rem; box-shadow: 0 8px 24px rgba(211,47,47,.35);
-  }
-  .title-group h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: .2px; }
-  .title-group p { color: var(--muted); font-size: .92rem; margin-top: 2px; }
+  .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--red), var(--red-dark));
+    display: grid; place-items: center; font-weight: 900; color: #fff; box-shadow: 0 8px 24px rgba(211,47,47,.35); }
+  h1 { font-size: 1.4rem; font-weight: 800; }
+  .brand p { color: var(--muted); font-size: .88rem; }
 
-  .gamebar { display: flex; gap: 8px; padding: 10px 14px; border: 1px solid var(--line); background: var(--panel); border-radius: 12px; }
-  .gamebar button {
-    border: 1px solid var(--line); background: transparent; color: var(--muted); padding: 6px 14px;
-    border-radius: 8px; font-size: .9rem; cursor: pointer; transition: all .2s;
-  }
-  .gamebar button.active { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 0 0 2px rgba(211,47,47,.25); }
-  .gamebar button:hover:not(.active) { color: var(--text); border-color: #3e4a66; }
+  .tabs { display: flex; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 5px; }
+  .tabs button { background: transparent; border: 1px solid transparent; color: var(--muted); padding: 7px 14px; border-radius: 8px;
+    font-weight: 700; cursor: pointer; font-size: .9rem; }
+  .tabs button.active { background: var(--red); color: #fff; box-shadow: 0 0 0 2px rgba(211,47,47,.25); }
+  .tabs button:hover:not(.active):not(:disabled) { color: var(--text); border-color: #3e4a66; }
+  .tabs button:disabled { opacity: .5; cursor: not-allowed; }
 
-  .info { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 14px 0 18px; }
-  .card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
-  }
-  .card.kpi { border-top: 3px solid var(--amber); }
-  .card .k { display: block; font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-  .card .v { font-size: 1.35rem; font-weight: 800; color: var(--amber); }
-  .card .v span { color: var(--text); font-weight: 600; opacity: .9; }
-  .card ul { color: var(--muted); font-size: .85rem; padding-left: 16px; margin-top: 6px; }
-  .card ul li { margin-bottom: 3px; }
+  .sched { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 14px; font-size: .92rem; }
+  .sched b { color: var(--amber); }
 
-  .machines { display: flex; gap: 18px; justify-content: center; align-items: flex-start; margin: 16px 0 6px; flex-wrap: wrap; }
-  .machine { width: 208px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 10px 16px; display: flex; flex-direction: column; align-items: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
-  .machine::before { content: attr(data-pos); position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: .78rem; font-weight: 800; letter-spacing: 1px; color: var(--amber); text-transform: uppercase; }
-  .machine-label { margin-top: 8px; font-size: .85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-  .machine .hit .machine-label { color: var(--gold); }
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  .panel h2 { font-size: .98rem; color: var(--amber); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .4px; }
+  .hint { font-size: .84rem; color: var(--muted); margin-bottom: 10px; line-height: 1.55; }
 
-  .drum { width: 180px; height: 118px; border: 2px solid var(--line); border-radius: 10px; background: #0f1320; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; box-shadow: inset 0 0 20px rgba(0,0,0,.6); }
-  .drum::after { content: ""; position: absolute; inset: -6px; border-radius: 14px; border: 1px solid rgba(255,255,255,.06); pointer-events: none; }
-  .ball {
-    width: 40px; height: 40px; border-radius: 50%; background: #1c2436; border: 2px solid #33405c;
-    color: #fff; font-weight: 800; font-size: 1.15rem; display: grid; place-items: center;
-    position: absolute; cursor: default; user-select: none; transition: transform .15s, box-shadow .15s, border-color .15s, filter .15s;
-    box-shadow: 0 4px 12px rgba(0,0,0,.5);
-  }
-  .ball.n0 { background: #1c2436; } .ball.n1 { background: #2a1f2e; } .ball.n2 { background: #1f2a2e; }
-  .ball.n3 { background: #2e2a1f; } .ball.n4 { background: #1f2e2a; } .ball.n5 { background: #2a1f2e; }
-  .ball.n6 { background: #1f2a2e; } .ball.n7 { background: #2e2a1f; } .ball.n8 { background: #1c2436; }
-  .ball.n9 { background: #2a2e1f; }
+  textarea { width: 100%; min-height: 180px; resize: vertical; padding: 12px; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; font-family: Consolas, 'Courier New', monospace; font-size: 1rem; letter-spacing: 1px; }
+  textarea:focus { outline: none; border-color: var(--amber); }
+  textarea:disabled { opacity: .5; }
+  .msg { margin-top: 8px; font-size: .86rem; min-height: 1.3em; }
+  .msg.ok { color: var(--green); }
+  .msg.err { color: #f87171; }
 
-  .machine.tumbling .ball { animation: tumble 1.5s ease-in-out infinite; }
-  @keyframes tumble {
-    0%   { transform: translate(var(--a-x), var(--a-y)) rotate(var(--a-r)deg); }
-    33%  { transform: translate(var(--b-x), var(--b-y)) rotate(var(--b-r)deg); }
-    66%  { transform: translate(var(--c-x), var(--c-y)) rotate(var(--c-r)deg); }
-    100% { transform: translate(var(--a-x), var(--a-y)) rotate(var(--a-r)deg); }
-  }
-  .machine.tumbling .ball:nth-child(odd)  { animation-direction: reverse; animation-duration: 1.7s; }
-  .machine.tumbling .ball:nth-child(3n)   { animation-duration: 1.3s; animation-delay: .15s; }
-  .machine.tumbling .ball:nth-child(5n+1) { animation-duration: 1.9s; animation-delay: -.2s; }
+  .machines { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .machine { display: flex; flex-direction: column; align-items: center; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 8px 12px; }
+  .mlabel { font-size: .78rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  canvas { width: 240px; height: 296px; display: block; }
 
-  .ball.hit {
-    transform: scale(1.35); border-color: var(--gold); box-shadow: 0 0 0 6px rgba(255,213,79,.35), 0 8px 20px rgba(0,0,0,.6);
-    filter: drop-shadow(0 0 10px var(--gold)); z-index: 5; background: #2e2412;
-  }
-  .machine:not(.tumbling) .ball:not(.hit) { opacity: .55; filter: grayscale(.35); }
-  .machine.tumbling .ball:not(.hit) { opacity: .9; filter: none; }
+  .controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+  .chk { font-size: .88rem; color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  button.btn { border: none; border-radius: 10px; padding: 10px 20px; font-weight: 800; font-size: .95rem; color: #fff; cursor: pointer; transition: all .15s; }
+  button.btn:disabled { opacity: .45; cursor: not-allowed; }
+  button.btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn-primary { background: linear-gradient(135deg, var(--red), var(--red-dark)); box-shadow: 0 8px 20px rgba(211,47,47,.3); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn-outline { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+  .btn-outline:hover:not(:disabled) { border-color: var(--amber); color: var(--text); }
+  .status { text-align: center; margin-top: 12px; font-size: .92rem; color: var(--muted); min-height: 1.4em; }
+  .status b { color: var(--gold); }
 
-  .controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 20px 0 8px; flex-wrap: wrap; }
-  button.btn {
-    border: none; border-radius: 10px; padding: 10px 22px; font-size: 1rem; font-weight: 800;
-    color: #fff; cursor: pointer; transition: transform .1s, opacity .2s, box-shadow .2s;
-    box-shadow: 0 8px 20px rgba(0,0,0,.45);
-  }
-  button.btn:active { transform: translateY(1px); }
-  button.btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
-  .btn-primary { background: linear-gradient(135deg, var(--red), var(--red-dark)); }
-  .btn-primary:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 10px 26px rgba(211,47,47,.45); }
-  .btn-auto { background: linear-gradient(135deg, #1565c0, #0d47a1); }
-  .btn-auto:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 10px 26px rgba(21,101,192,.45); }
-  .btn-reset { background: #33405c; color: var(--muted); }
-  .btn-reset:hover:not(:disabled) { background: #3e4a66; color: #fff; }
+  .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
+  .slot { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .slot .sl { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 700; }
+  .slot .sn { font-size: 1.7rem; font-weight: 900; letter-spacing: 3px; color: #334155; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+  .slot .sq { font-size: .7rem; color: var(--muted); }
+  .slot.filled .sn { color: var(--gold); text-shadow: 0 0 12px rgba(255,213,79,.4); }
+  .slot.hit { border-color: var(--green); background: rgba(34,197,94,.12); }
+  .slot.hit .sn { color: var(--green); text-shadow: 0 0 12px rgba(34,197,94,.5); }
 
-  .results { margin-top: 6px; }
-  .results h2 { font-size: 1.05rem; font-weight: 800; color: var(--amber); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
-  .prize-group { margin-bottom: 16px; }
-  .prize-title {
-    display: flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 900;
-    color: #fff; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--line);
-  }
-  .prize-title .tag { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-weight: 900; font-size: .85rem; }
-  .pt-db .tag { background: #7b1fa2; color: #fff; } .pt-db { border-color: #7b1fa2; background: rgba(123,31,162,.12); }
-  .pt-1 .tag { background: var(--red); color: #fff; } .pt-1 { border-color: var(--red); background: rgba(211,47,47,.12); }
-  .pt-2 .tag { background: #1565c0; color: #fff; } .pt-2 { border-color: #1565c0; background: rgba(21,101,192,.12); }
-  .pt-3 .tag { background: #2e7d32; color: #fff; } .pt-3 { border-color: #2e7d32; background: rgba(46,125,50,.12); }
-  .draws-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
-  .draw-cell {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  }
-  .draw-cell .n { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 700; }
-  .draw-cell .num { font-size: 1.9rem; font-weight: 900; letter-spacing: 2px; font-variant-numeric: tabular-nums; color: var(--digit); min-height: 1.9rem; }
-  .draw-cell .num.empty { color: #33405c; }
-  .draw-cell.ready .num { color: var(--gold); text-shadow: 0 0 14px rgba(255,213,79,.45); }
+  .banner { padding: 14px; border-radius: 10px; text-align: center; font-weight: 800; font-size: 1.02rem; margin-bottom: 12px; }
+  .banner.win { background: rgba(34,197,94,.14); border: 1px solid var(--green); color: #86efac; }
+  .banner.lose { background: rgba(148,163,184,.1); border: 1px solid #475569; color: #cbd5e1; }
+  .banner.info { background: rgba(21,101,192,.12); border: 1px solid var(--blue); color: #bfdbfe; }
 
-  .note { margin-top: 14px; color: var(--muted); font-size: .82rem; text-align: center; line-height: 1.6; }
-  .next-draw { margin: 8px 0 4px; text-align: center; font-size: .92rem; font-weight: 700; color: var(--amber); }
+  .vrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .vrow .tn { font-family: Consolas, monospace; font-size: 1.05rem; font-weight: 800; letter-spacing: 2px; color: var(--amber); }
+  .vrow .vd { font-size: .9rem; font-weight: 700; }
+  .vrow.win .vd { color: #86efac; }
+  .vrow.lose .vd { color: var(--muted); }
 
-  @media (max-width: 640px) { .wrap { padding: 14px 10px; } header { flex-direction: column; align-items: flex-start; } .machines { gap: 12px; } .machine { width: 170px; } }
+  .note { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 8px; line-height: 1.6; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="brand">
-      <div class="badge">VL</div>
-      <div class="title-group">
-        <h1>Mô phỏng quay số Xổ số Max 3D</h1>
-        <p>Vietlott &bull; Hệ thống 3 lồng cầu thổi khí tự động &bull; 20 lần quay / kỳ</p>
+      <div class="logo">VL</div>
+      <div>
+        <h1>Mô phỏng Max 3D · 3D+ · 3D Pro</h1>
+        <p>Vietlott · 3 lồng cầu · 20 lần quay mỗi kỳ</p>
       </div>
     </div>
-    <div class="gamebar" id="gamebar">
-      <button type="button" data-game="max3d" class="active">Max 3D / 3D+</button>
-      <button type="button" data-game="max3dpro">Max 3D Pro</button>
+    <div class="tabs" id="tabs">
+      <button type="button" data-mode="max3d" class="active">Max 3D</button>
+      <button type="button" data-mode="max3dplus">Max 3D+</button>
+      <button type="button" data-mode="max3dpro">Max 3D Pro</button>
     </div>
   </header>
 
-  <div class="next-draw" id="nextdraw">Đang tính lần quay tiếp theo...</div>
+  <div class="sched" id="sched"></div>
 
-  <div class="info">
-    <div class="card kpi"><span class="k">Cấu tạo lồng cầu</span><span class="v">3 lồng <span>độc lập</span></span></div>
-    <div class="card kpi"><span class="k">Bóng mỗi lồng</span><span class="v">10 quả <span>(0 – 9)</span></span></div>
-    <div class="card kpi"><span class="k">Lần quay mỗi kỳ</span><span class="v">20 lần <span>(tự động)</span></span></div>
-    <div class="card kpi"><span class="k">Giờ quay</span><span class="v">18:00 <span>hàng ngày</span></span></div>
-  </div>
-  <div class="card" style="margin-top:0;">
-    <ul>
-      <li><strong>Lịch quay:</strong> Thứ Hai đến Thứ Bảy lúc 18:00. Max 3D / 3D+: Thứ 2, 4, 6 &bull; Max 3D Pro: Thứ 3, 5, 7.</li>
-      <li><strong>Hạng giải:</strong> Đặc Biệt 2 quay &bull; Nhất 4 quay &bull; Nhì 6 quay &bull; Ba 8 quay.</li>
-      <li><strong>Thiết bị:</strong> Smartplay International (Mỹ), vận hành tự động, kiểm định niêm phong/cân đo/bốc vali trước giờ quay.</li>
-    </ul>
-  </div>
+  <div class="grid">
+    <section class="panel">
+      <h2>🎫 Nhập vé trước khi quay</h2>
+      <div class="hint" id="hint"></div>
+      <textarea id="tickets" spellcheck="false"></textarea>
+      <div class="msg" id="ticketMsg"></div>
+    </section>
 
-  <div class="machines" id="machines"></div>
-  <div class="machine-label" id="roundlabel" style="text-align:center;width:100%;margin-top:2px;">Sẵn sàng quay</div>
-
-  <div class="controls">
-    <button type="button" class="btn btn-primary" id="btndraw">Bắt đầu quay</button>
-    <button type="button" class="btn btn-auto" id="btnauto">Tự động 20 l&;n quay</button>
-    <button type="button" class="btn btn-reset" id="btnreset">Làm mới</button>
-  </div>
-
-  <div class="results" id="results">
-    <h2 id="resultstitle">Kết quả 20 lần quay</h2>
-    <div id="prizegroups"></div>
+    <section class="panel">
+      <h2>🎱 Lồng quay</h2>
+      <div class="machines">
+        <div class="machine"><div class="mlabel">Hàng Trăm</div><canvas id="c0" width="240" height="296"></canvas></div>
+        <div class="machine"><div class="mlabel">Hàng Chục</div><canvas id="c1" width="240" height="296"></canvas></div>
+        <div class="machine"><div class="mlabel">Hàng Đơn vị</div><canvas id="c2" width="240" height="296"></canvas></div>
+      </div>
+      <div class="controls">
+        <label class="chk"><input type="checkbox" id="fast"> Quay nhanh</label>
+        <button type="button" class="btn btn-primary" id="btnStart">Bắt đầu quay 20 lần</button>
+        <button type="button" class="btn btn-outline" id="btnReset">Làm mới</button>
+      </div>
+      <div class="status" id="status">Nhập vé (nếu có) rồi nhấn Bắt đầu quay.</div>
+    </section>
   </div>
 
-  <p class="note">Mô phỏng này chỉ dùng cho mục đích trải nghiệm và minh họa. Kết quả ngẫu nhiên, kh&ocircng gắn liền với xổ số thực.</p>
+  <section class="panel">
+    <h2>🏆 Kết quả 20 lần quay</h2>
+    <div class="results" id="results"></div>
+  </section>
+
+  <section class="panel">
+    <h2>📣 Đối chiếu vé</h2>
+    <div id="verdict"><div class="banner info">Chưa có kết quả để đối chiếu.</div></div>
+  </section>
+
+  <div class="note">
+    Mô phỏng minh họa, kết quả ngẫu nhiên trên trình duyệt, không liên kết với hệ thống mở thưởng thực tế.
+    Luật dò vé Max 3D+ theo bài báo tham khảo; vui lòng đối chiếu thể lệ chính thức tại vietlott.vn.
+  </div>
 </div>
 
 <script>
-const GAMES = {
-  max3d:  { name: 'Max 3D / 3D+', days: [1, 3, 5] },
-  max3dpro: { name: 'Max 3D Pro', days: [2, 4, 6] }
-};
-const PRIZES = [
-  { key: 'db', label: 'Giải Đặc Biệt', count: 2 },
-  { key: '1',  label: 'Giải Nhất',     count: 4 },
-  { key: '2',  label: 'Giải Nhì',       count: 6 },
-  { key: '3',  label: 'Giải Ba',        count: 8 }
-];
+(function () {
+  'use strict';
 
-let game = 'max3d';
-let results = [];
-let drawing = false;
-const machinesEl = document.getElementById('machines');
-const prizeGroupsEl = document.getElementById('prizegroups');
-const btnDraw = document.getElementById('btndraw');
-const btnAuto = document.getElementById('btnauto');
-const btnReset = document.getElementById('btnreset');
-const roundLabel = document.getElementById('roundlabel');
-const nextDrawEl = document.getElementById('nextdraw');
+  // ---------- Cấu hình ----------
+  const G = 900;          // gia tốc trọng trường (px/s²)
+  const MAX_W = 5;        // tốc độ quay tối đa (rad/s)
+  const CX = 120, CY = 120, RD = 100, BR = 14;
+  const HOLE = { x: 120, y: CY + RD - 6 };
+  const CHUTE_Y = 282;
+  const DRAW_GROUPS = [
+    { key: 'n1', label: 'Giải Nhất', count: 2 },
+    { key: 'n2', label: 'Giải Nhì', count: 4 },
+    { key: 'n3', label: 'Giải Ba', count: 6 },
+    { key: 'kk', label: 'Giải Khuyến khích', count: 8 }
+  ];
+  const PLAN = [];
+  DRAW_GROUPS.forEach(g => { for (let i = 0; i < g.count; i++) PLAN.push(g.key); });
 
-// ---------- build machines ----------
-function buildMachines() {
-  machinesEl.innerHTML = '';
-  const positions = ['Hàng Trăm', 'Hàng Chục', 'Hàng Đơn vị'];
-  positions.forEach((pos, i) => {
-    const m = document.createElement('div');
-    m.className = 'machine';
-    m.dataset.pos = pos;
-    const drum = document.createElement('div');
-    drum.className = 'drum';
-    for (let n = 0; n < 10; n++) {
-      const b = document.createElement('div');
-      b.className = `ball n${n}`;
-      b.textContent = n;
-      const col = n % 5;
-      const row = Math.floor(n / 5);
-      b.style.left = `${10 + col * 36}px`;
-      b.style.top  = `${14 + row * 46}px`;
-      drum.appendChild(b);
+  // Luật Max 3D cơ bản & Max 3D Pro: trùng đúng 3 chữ số (cùng thứ tự) với một số trong hạng đó
+  const BASE_TIERS = DRAW_GROUPS.map(g => ({
+    label: g.label,
+    value: null,
+    test: (t, d, k) => d[g.key].some(x => k(x) === k(t[0]))
+  }));
+
+  // Luật Max 3D+: vé có 2 bộ số, dò theo đảo số (cùng 3 chữ số, khác thứ tự vẫn trúng)
+  function pairMatch(sets, pool, k) {
+    for (let i = 0; i < pool.length; i++) {
+      for (let j = 0; j < pool.length; j++) {
+        if (i === j) continue;
+        if (k(pool[i]) === k(sets[0]) && k(pool[j]) === k(sets[1])) return true;
+      }
     }
-    m.appendChild(drum);
-    const lab = document.createElement('div');
-    lab.className = 'machine-label';
-    lab.textContent = pos;
-    m.appendChild(lab);
-    machinesEl.appendChild(m);
-  });
-}
-const machines = Array.from(document.querySelectorAll('.machine'));
+    return false;
+  }
+  const PLUS_TIERS = [
+    { label: 'Giải 1 (Nhất)', value: '1.000.000.000 đ', test: (t, d, k) => pairMatch(t, d.n1, k) },
+    { label: 'Giải 2 (Nhì)', value: '40.000.000 đ', test: (t, d, k) => pairMatch(t, d.n2, k) },
+    { label: 'Giải 3 (Ba)', value: '10.000.000 đ', test: (t, d, k) => pairMatch(t, d.n3, k) },
+    { label: 'Giải 4 (Khuyến khích)', value: '5.000.000 đ', test: (t, d, k) => pairMatch(t, d.kk, k) },
+    { label: 'Giải 5', value: '1.000.000 đ', test: (t, d, k) => pairMatch(t, [...d.n1, ...d.n2, ...d.n3, ...d.kk], k) },
+    { label: 'Giải 6', value: '150.000 đ', test: (t, d, k) => t.some(s => d.n1.some(x => k(x) === k(s))) },
+    { label: 'Giải 7', value: '40.000 đ', test: (t, d, k) => t.some(s => [...d.n2, ...d.n3, ...d.kk].some(x => k(x) === k(s))) }
+  ];
 
-// ---------- build result cells ----------
-function buildResults() {
-  results = [];
-  prizeGroupsEl.innerHTML = '';
-  let idx = 0;
-  PRIZES.forEach((prize, pi) => {
-    const group = document.createElement('div');
-    group.className = `prize-group pt-${prize.key}`;
-    const title = document.createElement('div');
-    title.className = 'prize-title';
-    title.innerHTML = `<span class="tag">${pi + 1}</span>${prize.label} <span style="margin-left:auto;font-weight:600;font-size:.85rem;color:var(--muted)">${prize.count} quay</span>`;
-    group.appendChild(title);
-    const grid = document.createElement('div');
-    grid.className = 'draws-grid';
-    for (let c = 0; c < prize.count; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'draw-cell';
-      cell.innerHTML = `<div class="n">Quay ${++idx}</div><div class="num empty">---</div>`;
-      grid.appendChild(cell);
-      results.push({ prize: prize.key, drawIndex: idx, digits: null, cell });
+  const MODES = {
+    max3d: {
+      name: 'Max 3D', sets: 1, days: [1, 3, 5], tiers: BASE_TIERS,
+      hint: 'Mỗi dòng là 1 vé gồm 3 chữ số (000–999). Ví dụ: <b>123</b>. Trùng đúng 3 chữ số với số trúng thì trúng giải.',
+      placeholder: '123\n007\n980'
+    },
+    max3dplus: {
+      name: 'Max 3D+', sets: 2, days: [1, 3, 5], tiers: PLUS_TIERS,
+      hint: 'Mỗi dòng là 1 vé gồm <b>2 bộ số</b> 3 chữ số, ngăn cách bằng khoảng trắng, dấu - hoặc dấu phẩy. Ví dụ: <b>123 456</b>. Được phép đảo số.',
+      placeholder: '123 456\n007-980'
+    },
+    max3dpro: {
+      name: 'Max 3D Pro', sets: 1, days: [2, 4, 6], tiers: BASE_TIERS,
+      hint: 'Mỗi dòng là 1 bộ 3 chữ số (000–999). Lịch quay Thứ 3, 5, 7. Luật đang dùng giống Max 3D cơ bản.',
+      placeholder: '123\n456'
     }
-    group.appendChild(grid);
-    prizeGroupsEl.appendChild(group);
-  });
-}
-
-// ---------- animation helpers ----------
-function setTumbleVars() {
-  machines.forEach(m => {
-    const balls = m.querySelectorAll('.ball');
-    balls.forEach(b => {
-      const r = () => (Math.random() * 2 - 1);
-      b.style.setProperty('--a-x', `${r() * 55}px`);
-      b.style.setProperty('--a-y', `${r() * 45}px`);
-      b.style.setProperty('--a-r', `${r() * 180}`);
-      b.style.setProperty('--b-x', `${r() * 55}px`);
-      b.style.setProperty('--b-y', `${r() * 45}px`);
-      b.style.setProperty('--b-r', `${r() * 180}`);
-      b.style.setProperty('--c-x', `${r() * 55}px`);
-      b.style.setProperty('--c-y', `${r() * 45}px`);
-      b.style.setProperty('--c-r', `${r() * 180}`);
-    });
-  });
-}
-
-function spinAll() {
-  setTumbleVars();
-  machines.forEach(m => m.classList.add('tumbling'));
-  machines.forEach(m => m.querySelectorAll('.ball').forEach(b => b.classList.remove('hit')));
-  return new Promise(resolve => setTimeout(resolve, 1500));
-}
-
-function revealDigits(digits) {
-  return new Promise(resolve => {
-    digits.forEach((d, i) => {
-      setTimeout(() => {
-        const ball = machines[i].querySelector(`.ball.n${d}`);
-        ball.classList.add('hit');
-      }, i * 120);
-    });
-    setTimeout(resolve, 400);
-  });
-}
-
-function clearHits() {
-  machines.forEach(m => {
-    m.classList.remove('tumbling');
-    m.querySelectorAll('.ball').forEach(b => b.classList.remove('hit'));
-  });
-}
-
-// ---------- schedule ----------
-function updateNextDraw() {
-  const days = GAMES[game].days;
-  const now = new Date();
-  let d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0, 0);
-  const step = () => {
-    if (days.includes(d.getDay()) && d > now) return d;
-    d.setDate(d.getDate() + 1);
-    d.setHours(18, 0, 0, 0);
-    return step();
   };
-  const next = step();
-  const opts = { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: 'numeric' };
-  nextDrawEl.textContent = `Lần quay tiếp theo: ${next.toLocaleString('vi-VN', opts)}`;
-}
 
-// ---------- draw flow ----------
-function formatNum(digits) {
-  return digits.map(String).map(n => n.padStart(1, '0')).join('');
-}
+  // ---------- Trạng thái ----------
+  let mode = 'max3d';
+  let busy = false;
+  let tickets = [];        // [{id, sets:[...]}]
+  let results = [];       // [{key,label,num}]
 
-async function runDraw() {
-  if (drawing) return;
-  drawing = true;
-  btnDraw.disabled = btnAuto.disabled = btnReset.disabled = true;
-  roundLabel.textContent = 'Đang quay…';
-  buildResults();
-  clearHits();
+  // ---------- Tiện ích ----------
+  const $ = id => document.getElementById(id);
+  const ease = k => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  const speed = () => ($('fast').checked ? 0.3 : 1);
+  const T = ms => Math.max(1, ms * speed());
+  const wait = ms => new Promise(r => setTimeout(r, T(ms)));
+  function tween(ms, fn) {
+    return new Promise(res => {
+      const d = T(ms), t0 = performance.now();
+      (function f(now) {
+        const k = Math.min(1, (now - t0) / d);
+        fn(k);
+        if (k < 1) requestAnimationFrame(f); else res();
+      })(t0);
+    });
+  }
+  const normOf = m => m === 'max3dplus'
+    ? (s => s.split('').sort().join(''))  // đảo số
+    : (s => s);
 
-  const plan = [];
-  PRIZES.forEach((p, pi) => {
-    for (let c = 0; c < p.count; c++) plan.push({ prize: p.key, label: p.label, pi });
-  });
+  // ---------- Lồng quay (canvas + vật lý) ----------
+  const COLORS = n => `hsl(${n * 36}, 72%, 56%)`;
 
-  for (let i = 0; i < plan.length; i++) {
-    const { prize, label } = plan[i];
-    const digits = [Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), Math.floor(Math.random() * 10)];
-    await spinAll();
-    await revealDigits(digits);
-    const r = results[i];
-    r.digits = digits;
-    r.cell.querySelector('.num').textContent = formatNum(digits);
-    r.cell.classList.add('ready');
-    r.cell.querySelector('.num').classList.remove('empty');
-    roundLabel.textContent = `Kết quả ${label}: ${formatNum(digits)}`;
-    if (i < plan.length - 1) await new Promise(res => setTimeout(res, 700));
+  class Machine {
+    constructor(canvas) {
+      this.c = canvas;
+      this.g = canvas.getContext('2d');
+      this.balls = [];
+      this.omega = 0;
+      this.angle = 0;
+      this.digit = '–';
+      this.reset();
+    }
+    reset() {
+      this.balls = [];
+      for (let n = 0; n < 10; n++) {
+        let x, y, ok = false, t = 0;
+        do {
+          const a = Math.random() * Math.PI * 2;
+          const r = Math.sqrt(Math.random()) * (RD - BR - 8);
+          x = CX + Math.cos(a) * r; y = CY + Math.sin(a) * r;
+          ok = this.balls.every(o => Math.hypot(o.x - x, o.y - y) > 2 * BR + 1);
+          t++;
+        } while (!ok && t < 200);
+        this.balls.push({ n, x, y, vx: 0, vy: 0, frozen: false });
+      }
+    }
+    step(h) {
+      const om = this.omega, maxd = RD - BR;
+      const act = this.balls.filter(b => !b.frozen);
+      for (const b of act) {
+        const dx = b.x - CX, dy = b.y - CY;
+        b.vy += G * h;
+        b.vx += om * om * dx * 0.6 * h;   // lực ly tâm đẩy bóng ra thành lồng
+        b.vy += om * om * dy * 0.6 * h;
+        b.vx *= 0.998; b.vy *= 0.998;
+        b.x += b.vx * h; b.y += b.vy * h;
+      }
+      // Va chạm giữa các bóng
+      for (let it = 0; it < 2; it++) {
+        for (let i = 0; i < act.length; i++) for (let j = i + 1; j < act.length; j++) {
+          const a = act[i], b = act[j];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const d = Math.hypot(dx, dy);
+          const minD = 2 * BR;
+          if (d < minD && d > 1e-6) {
+            const nx = dx / d, ny = dy / d, over = (minD - d) / 2;
+            a.x -= nx * over; a.y -= ny * over; b.x += nx * over; b.y += ny * over;
+            const vrel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+            if (vrel < 0) {
+              const imp = -1.2 * vrel / 2;
+              a.vx -= nx * imp; a.vy -= ny * imp; b.vx += nx * imp; b.vy += ny * imp;
+            }
+          }
+        }
+      }
+      // Va chạm thành lồng: thành lồng kéo bóng theo chuyển động xoay
+      for (const b of act) {
+        const dx = b.x - CX, dy = b.y - CY, r = Math.hypot(dx, dy);
+        if (r > maxd) {
+          const nx = dx / r, ny = dy / r;
+          b.x = CX + nx * maxd; b.y = CY + ny * maxd;
+          let vn = b.vx * nx + b.vy * ny;
+          if (vn > 0) vn = -0.45 * vn;
+          const tx = -ny, ty = nx;
+          let vt = b.vx * tx + b.vy * ty;
+          vt += (om * maxd - vt) * 0.2;
+          b.vx = nx * vn + tx * vt;
+          b.vy = ny * vn + ty * vt;
+        }
+      }
+    }
+    update(dt) {
+      let acc = dt;
+      const h = 1 / 240;
+      while (acc > 0) { const s = Math.min(h, acc); this.step(s); acc -= s; }
+      this.angle += this.omega * dt;
+    }
+    pick() {
+      return new Promise(res => {
+        const b = this.balls[Math.floor(Math.random() * this.balls.length)];
+        b.frozen = true;
+        const sx = b.x, sy = b.y;
+        tween(500, k => {
+          const e = ease(k);
+          b.x = sx + (HOLE.x - sx) * e; b.y = sy + (HOLE.y - sy) * e;
+        }).then(() => tween(550, k => {
+          const e = ease(k);
+          b.x = HOLE.x; b.y = HOLE.y + (CHUTE_Y - HOLE.y) * e;
+        })).then(() => {
+          this.digit = String(b.n);
+          res(b.n);
+        });
+      });
+    }
+    draw() {
+      const g = this.g;
+      g.clearRect(0, 0, 240, 296);
+      // Máng xả
+      g.fillStyle = '#060a14';
+      g.fillRect(HOLE.x - 15, HOLE.y - 2, 30, CHUTE_Y - HOLE.y + 8);
+      // Thân lồng trong suốt
+      g.beginPath(); g.arc(CX, CY, RD, 0, Math.PI * 2);
+      g.fillStyle = 'rgba(148,163,184,0.07)'; g.fill();
+      // Nan lồng xoay
+      g.save();
+      g.beginPath(); g.arc(CX, CY, RD - 2, 0, Math.PI * 2); g.clip();
+      g.strokeStyle = 'rgba(203,213,225,0.22)'; g.lineWidth = 3;
+      for (let k = 0; k < 6; k++) {
+        const a = this.angle + k * Math.PI / 3;
+        g.beginPath();
+        g.moveTo(CX + Math.cos(a) * RD, CY + Math.sin(a) * RD);
+        g.lineTo(CX - Math.cos(a) * RD, CY - Math.sin(a) * RD);
+        g.stroke();
+      }
+      g.restore();
+      // Viền lồng
+      g.beginPath(); g.arc(CX, CY, RD, 0, Math.PI * 2);
+      g.lineWidth = 5; g.strokeStyle = '#64748b'; g.stroke();
+      // Lỗ xả
+      g.fillStyle = '#020617';
+      g.beginPath(); g.ellipse(HOLE.x, HOLE.y, 13, 5, 0, 0, Math.PI * 2); g.fill();
+      // Bóng (bóng đang xả vẽ sau cùng)
+      const drawBall = b => {
+        g.save();
+        if (b.frozen) { g.shadowColor = '#ffd54f'; g.shadowBlur = 14; }
+        const grad = g.createRadialGradient(b.x - 4, b.y - 5, 2, b.x, b.y, BR);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.4, COLORS(b.n));
+        grad.addColorStop(1, '#0b1020');
+        g.beginPath(); g.arc(b.x, b.y, BR, 0, Math.PI * 2);
+        g.fillStyle = grad; g.fill();
+        g.shadowBlur = 0;
+        g.fillStyle = '#0b1020';
+        g.font = 'bold 14px "Segoe UI", Arial';
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(String(b.n), b.x, b.y + 1);
+        g.restore();
+      };
+      this.balls.filter(b => !b.frozen).forEach(drawBall);
+      this.balls.filter(b => b.frozen).forEach(drawBall);
+      // Kết quả trong máng
+      g.fillStyle = '#ffd54f';
+      g.font = 'bold 30px "Segoe UI", Arial';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(this.digit, CX, 270 + 22);
+    }
   }
 
-  roundLabel.textContent = 'Hoàn tất 20 lần quay';
-  drawing = false;
-  btnDraw.disabled = btnAuto.disabled = btnReset.disabled = false;
-}
+  const machines = ['c0', 'c1', 'c2'].map(id => new Machine($(id)));
 
-btnDraw.addEventListener('click', runDraw);
-btnAuto.addEventListener('click', runDraw);
-btnReset.addEventListener('click', () => {
-  if (drawing) return;
-  clearHits();
-  buildResults();
-  roundLabel.textContent = 'Sẵn sàng quay';
-});
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    machines.forEach(m => { m.update(dt); m.draw(); });
+    requestAnimationFrame(frame);
+  }
 
-document.getElementById('gamebar').addEventListener('click', e => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  document.querySelectorAll('#gamebar button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  game = btn.dataset.game;
-  updateNextDraw();
-});
+  // ---------- Một lần quay (3 lồng cùng lúc) ----------
+  async function oneRound() {
+    machines.forEach(m => m.reset());
+    await Promise.all(machines.map(m => tween(600, k => { m.omega = MAX_W * ease(k); })));
+    await wait(1000);
+    await Promise.all(machines.map(m => tween(700, k => { m.omega = MAX_W * (1 - ease(k)); })));
+    machines.forEach(m => { m.omega = 0; });
+    await wait(300);
+    const picks = await Promise.all(machines.map(m => m.pick()));
+    return picks;
+  }
 
-buildMachines();
-buildResults();
-updateNextDraw();
-setInterval(updateNextDraw, 60000);
+  // ---------- Nhập vé ----------
+  function parseTickets(m, text) {
+    const lines = text.split(/\n/).map(s => s.trim()).filter(Boolean);
+    const out = [], errors = [];
+    lines.forEach((ln, i) => {
+      let sets = null;
+      if (m === 'max3dplus') {
+        const mm = ln.match(/^(\d{3})\s*[-,;\s]\s*(\d{3})$/);
+        if (mm) sets = [mm[1], mm[2]];
+        else if (/^\d{6}$/.test(ln)) sets = [ln.slice(0, 3), ln.slice(3)];
+      } else {
+        if (/^\d{3}$/.test(ln)) sets = [ln];
+      }
+      if (sets) out.push({ id: out.length + 1, sets });
+      else errors.push(`Dòng ${i + 1} "${ln}"`);
+    });
+    return { tickets: out, errors };
+  }
+
+  function validateInput(show = true) {
+    const { tickets: t, errors } = parseTickets(mode, $('tickets').value);
+    const msg = $('ticketMsg');
+    if (!show) return { t, errors };
+    if (!$('tickets').value.trim()) {
+      msg.className = 'msg'; msg.textContent = 'Chưa nhập vé nào. Vẫn có thể quay để xem kết quả.';
+    } else if (errors.length) {
+      msg.className = 'msg err';
+      msg.textContent = 'Sai định dạng: ' + errors.join('; ') + '. Hãy kiểm tra lại theo gợi ý ở trên.';
+    } else {
+      msg.className = 'msg ok';
+      msg.textContent = 'Đã nhập ' + t.length + ' vé hợp lệ.';
+    }
+    return { t, errors };
+  }
+  $('tickets').addEventListener('input', () => validateInput(true));
+
+  // ---------- Giao diện kết quả ----------
+  function buildSlots() {
+    const r = $('results');
+    r.innerHTML = '';
+    PLAN.forEach((key, i) => {
+      const g = DRAW_GROUPS.find(x => x.key === key);
+      const d = document.createElement('div');
+      d.className = 'slot'; d.id = 'slot' + i;
+      d.innerHTML = '<div class="sl">' + g.label + '</div><div class="sn">---</div><div class="sq">Lần ' + (i + 1) + '</div>';
+      r.appendChild(d);
+    });
+  }
+  function fillSlot(i, num) {
+    const d = $('slot' + i);
+    d.querySelector('.sn').textContent = num;
+    d.classList.add('filled');
+  }
+
+  function evaluateTicket(t, draws) {
+    const k = normOf(mode);
+    const tiers = MODES[mode].tiers;
+    for (const tier of tiers) if (tier.test(t.sets, draws, k)) return tier;
+    return null;
+  }
+
+  function showVerdict(draws) {
+    const box = $('verdict');
+    const k = normOf(mode);
+    if (tickets.length === 0) {
+      box.innerHTML = '<div class="banner info">Bạn chưa nhập vé nào, không có gì để đối chiếu.</div>';
+      return;
+    }
+    let wins = 0;
+    const rows = tickets.map(t => {
+      const tier = evaluateTicket(t, draws);
+      if (tier) wins++;
+      const label = t.sets.join(' · ');
+      const verdict = tier
+        ? '🎉 TRÚNG ' + tier.label + (tier.value ? ' · ' + tier.value : ' (theo thể lệ Vietlott)')
+        : 'Không trúng giải';
+      return '<div class="vrow ' + (tier ? 'win' : 'lose') + '"><span class="tn">Vé ' + t.id + ': ' + label +
+        '</span><span class="vd">' + verdict + '</span></div>';
+    }).join('');
+    const banner = wins > 0
+      ? '<div class="banner win">🎉 Chúc mừng! ' + wins + ' / ' + tickets.length + ' vé trúng thưởng.</div>'
+      : '<div class="banner lose">Rất tiếc, không vé nào trúng thưởng trong kỳ quay này.</div>';
+    box.innerHTML = banner + rows;
+
+    // Đánh dấu các số trúng trong bảng kết quả
+    results.forEach((r, i) => {
+      const hit = tickets.some(t => t.sets.some(s => k(s) === k(r.num)));
+      if (hit) $('slot' + i).classList.add('hit');
+    });
+  }
+
+  // ---------- Điều khiển ----------
+  function setLocked(v) {
+    $('btnStart').disabled = v;
+    $('btnReset').disabled = v;
+    $('tickets').disabled = v;
+    document.querySelectorAll('#tabs button').forEach(b => b.disabled = v);
+  }
+
+  async function runAll() {
+    if (busy) return;
+    const { t, errors } = validateInput(true);
+    if (errors.length) {
+      $('ticketMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    tickets = t;
+    busy = true;
+    setLocked(true);
+    results = [];
+    buildSlots();
+    $('verdict').innerHTML = '';
+
+    const draws = { n1: [], n2: [], n3: [], kk: [] };
+    for (let i = 0; i < PLAN.length; i++) {
+      const key = PLAN[i];
+      const g = DRAW_GROUPS.find(x => x.key === key);
+      $('status').innerHTML = 'Lần quay <b>' + (i + 1) + '/20</b> · ' + g.label + ': đang quay 3 lồng...';
+      const digits = await oneRound();
+      const num = digits.join('');
+      results.push({ key, label: g.label, num });
+      draws[key].push(num);
+      fillSlot(i, num);
+      await wait(250);
+    }
+
+    $('status').innerHTML = 'Đã hoàn tất 20 lần quay.';
+    showVerdict(draws);
+    busy = false;
+    setLocked(false);
+  }
+
+  function resetAll() {
+    if (busy) return;
+    results = [];
+    tickets = [];
+    buildSlots();
+    $('verdict').innerHTML = '<div class="banner info">Chưa có kết quả để đối chiếu.</div>';
+    $('status').textContent = 'Nhập vé (nếu có) rồi nhấn Bắt đầu quay.';
+    machines.forEach(m => { m.omega = 0; m.reset(); m.digit = '–'; });
+    validateInput(true);
+  }
+
+  function updateSchedule() {
+    const days = MODES[mode].days;
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0, 0);
+    while (!(days.includes(d.getDay()) && d > now)) {
+      d.setDate(d.getDate() + 1);
+      d.setHours(18, 0, 0, 0);
+    }
+    $('sched').innerHTML = 'Lịch quay <b>' + MODES[mode].name + '</b>: ' +
+      (mode === 'max3dpro' ? 'Thứ 3, 5, 7' : 'Thứ 2, 4, 6') + ' lúc 18:00. ' +
+      'Lần quay tiếp theo: <b>' + d.toLocaleString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</b>.';
+  }
+
+  function setMode(m) {
+    if (busy || m === mode) return;
+    mode = m;
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+    $('hint').innerHTML = MODES[m].hint;
+    $('tickets').placeholder = MODES[m].placeholder;
+    $('tickets').value = '';
+    resetAll();
+    updateSchedule();
+  }
+
+  document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  $('btnStart').addEventListener('click', runAll);
+  $('btnReset').addEventListener('click', resetAll);
+
+  // ---------- Khởi tạo ----------
+  $('hint').innerHTML = MODES[mode].hint;
+  $('tickets').placeholder = MODES[mode].placeholder;
+  buildSlots();
+  updateSchedule();
+  validateInput(true);
+  setInterval(updateSchedule, 60000);
+  requestAnimationFrame(t => { last = t; frame(t); });
+})();
 </script>
 </body>
 </html>
