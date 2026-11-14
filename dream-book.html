@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sổ Mơ Giải Mã Giấc Mơ 3D - Three.js</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: #06050e;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #f4f1ea;
+            user-select: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            cursor: grab;
+        }
+
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        /* Tiêu đề góc trên trái */
+        .hud-top {
+            position: fixed;
+            top: 20px;
+            left: 24px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hud-top h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: #f6c959;
+            text-shadow: 0 0 16px rgba(246, 201, 89, 0.45);
+        }
+
+        .hud-top p {
+            font-size: 12.5px;
+            color: rgba(244, 241, 234, 0.7);
+            margin-top: 4px;
+        }
+
+        /* Bảng tra cứu bên trái */
+        .search-panel {
+            position: fixed;
+            top: 84px;
+            left: 24px;
+            width: 340px;
+            max-width: calc(100vw - 48px);
+            max-height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 13, 28, 0.82);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(246, 201, 89, 0.25);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+            z-index: 10;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 10px;
+            padding: 10px 34px 10px 12px;
+            color: #ffffff;
+            font-size: 13.5px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: #f6c959;
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+
+        .clear-btn:hover {
+            color: #ffffff;
+        }
+
+        .quick-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .tag {
+            font-size: 11.5px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: rgba(246, 201, 89, 0.12);
+            border: 1px solid rgba(246, 201, 89, 0.3);
+            color: #f6c959;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+
+        .tag:hover {
+            background: #f6c959;
+            color: #0d0b18;
+        }
+
+        .result-count {
+            font-size: 11.5px;
+            color: rgba(244, 241, 234, 0.55);
+            margin-bottom: 8px;
+        }
+
+        .dream-list {
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 4px;
+        }
+
+        .dream-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .dream-list::-webkit-scrollbar-thumb {
+            background: rgba(246, 201, 89, 0.3);
+            border-radius: 999px;
+        }
+
+        .dream-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 11px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+
+        .dream-item:hover {
+            background: rgba(255, 255, 255, 0.09);
+        }
+
+        .dream-item.active {
+            background: rgba(246, 201, 89, 0.16);
+            border-color: rgba(246, 201, 89, 0.55);
+        }
+
+        .dream-label {
+            font-size: 13px;
+            text-transform: capitalize;
+            color: #f4f1ea;
+        }
+
+        .dream-nums {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+
+        .num-pill {
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(92, 225, 230, 0.16);
+            color: #5ce1e6;
+        }
+
+        .dream-item.active .num-pill {
+            background: #f6c959;
+            color: #0d0b18;
+        }
+
+        /* Thẻ giải mã bên phải */
+        .detail-card {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            width: 310px;
+            max-width: calc(100vw - 48px);
+            background: rgba(15, 13, 28, 0.84);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(92, 225, 230, 0.3);
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+            z-index: 10;
+        }
+
+        .detail-badge {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #5ce1e6;
+            margin-bottom: 6px;
+        }
+
+        .detail-title {
+            font-size: 20px;
+            font-weight: 700;
+            text-transform: capitalize;
+            color: #ffffff;
+            margin-bottom: 12px;
+        }
+
+        .detail-balls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .ball-badge {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 800;
+            background: radial-gradient(circle at 30% 30%, #ffe699, #d4941a);
+            color: #120e1c;
+            box-shadow: 0 0 14px rgba(246, 201, 89, 0.5);
+        }
+
+        .detail-note {
+            font-size: 11.5px;
+            line-height: 1.45;
+            color: rgba(244, 241, 234, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 10px;
+        }
+
+        /* Thanh điều khiển bên dưới */
+        .control-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(15, 13, 28, 0.84);
+            backdrop-filter: blur(12px);
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            z-index: 10;
+        }
+
+        .control-bar button {
+            background: rgba(255, 255, 255, 0.06);
+            color: #f4f1ea;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 12.5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-bar button:hover {
+            background: rgba(246, 201, 89, 0.2);
+            border-color: #f6c959;
+        }
+
+        .control-bar button.primary {
+            background: #f6c959;
+            color: #0d0b18;
+            border-color: #f6c959;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .search-panel {
+                top: auto;
+                bottom: 72px;
+                left: 16px;
+                width: calc(100vw - 32px);
+                max-height: 220px;
+            }
+
+            .detail-card {
+                top: 72px;
+                right: 16px;
+                width: calc(100vw - 32px);
+                padding: 12px 16px;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+
+<body>
+    <div class="hud-top">
+        <h1>SỔ MƠ DÂN GIAN 3D</h1>
+        <p>Mạng tinh vân 100 con số (00–99) • Kéo chuột: xoay • Cuộn: zoom</p>
+    </div>
+
+    <!-- Bảng tìm kiếm giấc mơ -->
+    <div class="search-panel">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Nhập giấc mơ (VD: rắn, cá, vàng, tiền...)" />
+            <button class="clear-btn" id="clear-btn" title="Xóa tìm kiếm">✕</button>
+        </div>
+        <div class="quick-tags">
+            <span class="tag" data-q="rắn">Rắn</span>
+            <span class="tag" data-q="cá">Cá</span>
+            <span class="tag" data-q="tiền">Tiền</span>
+            <span class="tag" data-q="vàng">Vàng</span>
+            <span class="tag" data-q="chó">Chó</span>
+            <span class="tag" data-q="mèo">Mèo</span>
+            <span class="tag" data-q="nước">Nước</span>
+            <span class="tag" data-q="xe">Xe</span>
+        </div>
+        <div class="result-count" id="result-count">Đang hiển thị 711 giấc mơ</div>
+        <div class="dream-list" id="dream-list"></div>
+    </div>
+
+    <!-- Thẻ hiển thị kết quả đang chọn -->
+    <div class="detail-card">
+        <div class="detail-badge" id="detail-badge">Giấc mơ đang chọn</div>
+        <div class="detail-title" id="detail-title">Con Rồng</div>
+        <div class="detail-balls" id="detail-balls"></div>
+        <div class="detail-note">
+            Dữ liệu tổng hợp từ sổ mơ dân gian truyền thống, chỉ mang tính tham khảo văn hóa và giải trí.
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Thanh điều khiển -->
+    <div class="control-bar">
+        <button id="btn-prev">◀ Trước</button>
+        <button id="btn-random" class="primary">✦ Giấc Mơ Ngẫu Nhiên</button>
+        <button id="btn-next">Tiếp ▶</button>
+    </div>
+
+    <script>
+        // Dữ liệu 711 mục Sổ Mơ từ tệp dream_book_data_3GJYWd.dart
+        const RAW_DREAM_DATA = `
+anh em gặp nhau|1
+ao hồ sông ngòi|38,93,54
+ao ước|25,52
+ba ba|76
+ba bố con ăn no|19
+bao diêm|65
+bia mộ|5,85
+biếu cụ|58,85
+biển cạn|58,53
+biển xanh|68,83,6
+bom đạn|22,62
+buồn phiền|42,32
+buồn vì chồng|1,7
+buồn vì vợ|9,90
+buồng cau|10,30,70,75
+buồng chuối|70,72
+buồng kín|41,70,72
+buộc mắc dây|7,14
+bà chết sống lại|93,96
+bà chửa|9,29,39
+bà già trẻ em|14,41
+bà vãi|36,76
+bài có tứ quý|63,64
+bàn cờ|14,54,74,94
+bàn thờ|15,43,46,95
+bàn thờ bị đổ|5,55
+bàn thờ nghi ngút|89,98
+bàn ăn bầy đẹp|6
+bàn ăn dọn sạch|42,46
+bán hàng|18,28,98
+bán nhẫn vàng|67
+bánh dày|85
+bánh mì đen|35,54
+bánh ngọt|52,2
+bánh pháo|34
+bánh tẩm bột rán|53,65
+bánh xe|82
+bát ngọc|30,70
+bát nhang|2,52,24
+bát đĩa|85,87
+bãi biển|25,93
+bãi cá|95,83
+bãi tha ma|78,87
+bè gỗ|19,69
+bóng bàn|15,95,49
+bóng ma|72,85
+bóng rổ|2
+bóng đen|58
+bóng đá|62
+bông hoa|39
+bông sen|24,74
+bù nhìn|27,29,79
+bùa giải|16,18,78
+bùn lấy|73,37,23
+bùn đầm lầy|82,62
+băng đạn|32
+bơi giữa sông|89,98
+bơi lội|83,38,63,28
+bơi nước trong|89,39
+bươm bướm|26,62
+bạn hiền|38,83
+bảo lãnh đỡ đầu|86
+bảo vật|6,31,63,82
+bất lực|26,32
+bật lửa|7,70,75
+bắn bị thương|48
+bắn cung tên|77,72
+bắp cải|50,52
+bắp ngô|85,35,53
+bắt bớ|5,19
+bắt cá ở suối|45
+bắt rận cho chó|93,83
+bắt được nhiều cá|23,65,8,56
+bằng lòng đồng ý|52,32
+bẹp lốp xe|58,98
+bẻ gẫy đập vỡ|96,4
+bẻ ngô|53,35
+bến xe|58,98
+bếp củi cháy to|96,21
+bếp lò|43,63,83
+bếp lửa|20,25,54
+bếp đun|40,49
+bể nuôi cá cảnh|14,54
+bể nước|62,81
+bể nước ăn|45,62,21
+bị bỏng lửa|69,80
+bị bỏng nước sôi|2
+bị bỏng vào mồm|16,50,15
+bị bỏng vào tay|17,21
+bị bỏng vào đùi|17,71
+bị con gái bắt nạt|65,7
+bị ghép tội|46,73,21
+bị giật dây chuyền|65
+bị giật đồng hồ|6,41
+bị kẻ thù dọa|39,72
+bị mẹ chửi|16,37
+bị mẹ chửi rủa|83,97
+bị phạt|51,56
+bị thủ tiêu|6,14
+bị trấn lột|84,85
+bị tấn công|2,5
+bị vây đuổi|83,38
+bị đánh bất ngờ|91,41
+bị đánh bằng dao|1,12
+bị đấm|58
+bỏ mặc|1,10,11,16
+bỏ thuốc lá|12,21
+bố bế con gái|7,57
+bố bế con trai|81,11,52
+bố mẹ, bố con|20,60,21
+bố nuôi|60,70
+bốn người khiêng quan tài|43,44,54
+bổ củi|83
+bộ mặt buồn|51,56
+bộ mặt sầu|42,61
+bộ mặt tươi cười|41,46
+bộ mặt đẹp|22,98,39
+bộ quần áo vá|6,90
+bụi cây|56,65
+bữa ăn một mình|74,31,84,14,16
+ca hát|7,57,94
+ca hát vui chơi|19,29
+chai|94,86
+chai lọ|34,50
+chia ly|52,57,72
+chim cánh cụt|24,78
+chim hòa bình|32
+chim sẻ đậu|76
+chim trời|87
+chim đậu|87
+chim ỉa vào người|27
+chiến thắng|96,86
+cho con xe|69,96,64
+cho xe|29,79,92
+chuyển nhà|14,16
+chuyển nhà xí|9
+chuối|15,5,95
+chuồn chuồn|26,65
+chuồng xí|39,67
+chuột bạch|2,20
+chuột cống|57,45
+chuột đồng|15,51
+chái thìa|63
+cháo lòng|49,97
+cháy đống rơm|17,71,27,72
+cháy đồ điện|77,78,79
+chém chuột|92
+chém nhau|17,37,77
+chén to|94,95
+chó cắn chảy máu|98,99
+chó cắn đuổi|58,38
+chó đuổi chạy xuống ao|68
+chó đến nhà|93,98
+chú tiểu|36,76
+chý mô tơ|77,79
+chăn gối|46,47,70
+chơi cờ tướng|13,31
+chơi tú lơ khơ|3,62
+chơi xuân|19,39
+chơi điện tử|46,48,84
+chơi đá bóng|89,97
+chải chuốt|20,30,60
+chấy rận|79,84,2
+chấy đầy đầu|57,59
+chết đuối sống lại|0,6
+chỗ kín đàn ông|1,21
+chờ đợi|53,64
+chứa bạc|52,57,63
+chửi chồng|7,57,17
+chữ số|22,82
+con bò|88
+con chai|68
+con chim|56,80
+con chuột|2,20,55
+con chuột nhà|17,49
+con chó|29,59,95
+con chó con|48,49
+con chó nhật|76
+con chấy|92,95,98
+con cua|67,89
+con cá con|24,26,72
+con cáo|48,28
+con cóc|4
+con công|98,67
+con dê|15,35,75
+con dệp|82,85
+con gái mình chết|35
+con hạc|17,57
+con hổ|6,60,30,46
+con khỉ|72,27
+con lươn|56,90
+con lợn|76
+con muỗi|46
+con mèo|18,58,89
+con mình chết|35
+con mọt|5,39
+con nai|34,48
+con ngỗng|8,83
+con ngựa|12,52,72
+con nhái|26,62
+con nhện|33,73
+con quạ|25,62,65
+con ruồi|35
+con rái cá|48,79
+con rắn|32,42,72
+con rết|94
+con rệp|98
+con rồng|10,50,90
+con sò|48
+con sóc|69,79
+con thuyền|33,38
+con thỏ|8,48,69
+con tim|11,31,51,71
+con tin|85,97
+con trai cho vàng|43
+con trai đầu lòng|79
+con trâu|3,63,86
+con trăn|3,63
+con trăn đầy người|86,87
+con trĩ|1,21,61,26
+con tàu|42,82
+con tôm|58
+con voi|13,53
+con vẹm|61,62
+con vịt|49
+con điên|52,8,89
+con đĩ|1,21,26
+con ếch|28,43
+con ốc|65
+con ốc nhồi|67
+con ở|25,65,76
+cua bể|5,46,65
+cuốc xẻng|65,54
+cày cấy|9,90,89
+cá chuối|59
+cá chuồn|76
+cá cảnh|40
+cá mây chiều|28,82
+cá nướng|48
+cá quả|45
+cá thường|56
+cá to nhỏ|9
+cá trê|48
+cá trạch|85
+cá trắng|46
+cá vàng|20,29
+cái bàn|95
+cái bình|85
+cái chum|75,35
+cái chày|11,98
+cái chén|93
+cái chậu|94,32
+cái chổi|85,93
+cái cày|26,75,56
+cái cân|89,86
+cái câu|1,26,73
+cái cù|2,32,62
+cái dấu|25,75
+cái ghế|49,68
+cái giếng|92,29
+cái kim|84,34
+cái kính|85
+cái kẹo|36,2
+cái làn|84,85
+cái mai|19,91,87
+cái miếu|63,68
+cái miệng|78
+cái muôi|71
+cái màn|85,97
+cái màn xanh|14,41
+cái mâm|18,81,86
+cái môi|0,75
+cái mũ|28,46,86,68
+cái mả|30,70,40,90
+cái nhà|27,77,91,41
+cái nhìn hẹp hòi|72
+cái nhìn nham hiểm|61,49
+cái nhìn tốt|27,72
+cái nhẫn|81
+cái nón|5,15,75
+cái thuổng|94,96
+cái thìa|54
+cái tát|6
+cái tích|93
+cái tẩu|26,75,21
+cái xích|79,82
+cái xẻng|63,64
+cánh chim|1,65
+cánh cửa|28,83
+cánh cửa cũ|44,94
+cánh cửa mới đóng|42,43,52
+cánh tay|18,81
+cánh tay lông lá|42
+câu cá ao hồ|8,80,85
+câu cá rô|76
+câu được cá|83,33
+câu được rắn|1,81
+cây chuối|34,84
+cây cảnh trong nhà|6
+cây cổ thụ|50,54
+cây không hoa|75,85
+cây khế|7,70
+cây nhiều lộc|4,5
+cây nở hoa|43,16,61
+cây sai quả|49,73,36
+cây to|33,66,76
+cây xoan|49,94
+cò trắng|84,0
+cò xanh|2,73
+có máu|19,69
+cô liên|47,57
+cô tiên|17,35,19,91
+công an|14,34,54
+cúng chay|37,71
+cúng người chết|74
+cúng tổ tiên|40,46
+căn buồng bình thường|20,21,40,60
+cơ may|79,38
+cưới vợ|70,65,69
+cười với bản thân|21,61
+cười với nam|9,59
+cười với phụ nữ|7,9
+cưỡng ép|3,38,83
+cạo râu|83,84
+cảnh buồn|46
+cần câu|26,75
+cầu vồng|4,40,45
+cắt tóc|82,83,85
+cắt tóc nam|14,54,65,45
+cắt tóc nữ|57,85
+cối giã cua|92,87
+cối giã giò|86,48
+cống rãnh|4,44
+cổng chào|20,40,80
+cổng trào|40,80,20
+cột điện|11
+củ cà rốt|1,51
+củ khoai|75,95
+củ su hào|0,1,6
+của đàn bà|27,87,28
+cứt|63,13
+cứt bám lên mặt|3,7
+cứt bám ngón tay|0,5
+cứt bê bết đi mưa|14,41
+cứt vứt vào nhà|63
+cứt đầy ống quần phải thay|91,92
+cứu người rơi xuống ao|7,16,18
+cứu đàn ông khỏi chết đuối|54
+dao găm|7,17
+dao phay|85
+dao xây|16,61
+diều hâu|68,67
+dây chuyền vàng|8,80
+dây xích|4,46,61
+dông bão|8
+dùng lửa đốt súc vật|48
+dương vật|21,12,51
+dầu hỏa|17,71,16,61
+dậy võ|56,6
+dắt bò|2,28
+dắt trâu|29
+dọn nhà vệ sinh|26,62
+et xăng|64,74
+gieo trồng|57,46
+giun|11,94
+giá treo cổ|84,68
+giáo viên|52,57
+giò chả|22,43
+giông bão|8,58,53
+giải thoát|84,85
+giấy tờ ướt|26,66
+giết lợn|82,32
+giết người|83,47
+gà thịt rồi|28,36
+gái đẹp|38,83
+gặp cây đa|9,5,12
+gặp cụ già đạo đức|41,64,62
+gặp gà|33,45,57
+gặp lợn|59,62,27
+gặp người nhà|70,75,78
+gặp người yêu|46,47,87
+gặp phà|28,52,93
+gặp tiền|1,76,67
+gặp ăn xin|24,76,86
+gặp đàn bà|28,87
+gặp đàn ông|26,27
+hai anh em bế nhau|73
+hai bàn thờ|46,96,91
+hai bố con|32,82,98
+hai chị em gái đánh nhau|45,57
+hai con chó|96,94
+hai con mèo cắn nhau|86
+hai lần thấy mẹ|62,83,68,80
+hai người khiêng quan tài|83,87
+hai người đàn ông chết đuối|4,6
+hai quan tài|26,16,36
+hai thằng ăn cắp|26,62
+hiếp dâm|92,84
+hiện vật|65,56
+hoa súng|10,20
+hoàng tử|83,38
+hà mã|56
+hàn bánh xe|41,46
+hành kinh|67,68
+hát văn|25,50,55
+hãm hại|84
+hòm đạn|90,95,59
+hôn nhau|0,84
+hùm beo|29,40
+hương cháy|7,20,70,57
+hương đèn|6,31,63,82
+hầm tối tăm|87,82
+học trò|27,37
+hồn người chết|4,40,80,84
+hồn quý|75
+khai thác vàng|12,21,10,1
+khiêu vũ|42,47,43
+khoai lang|51,52,95
+khoang tầu|41,71
+khoe|56,59
+khách hàng|30,89
+khách sạn|32,47
+khâm phục|37,73
+khâu vá|36
+khí giới|7,70
+khó đẻ|19,91,96
+khăn màu hồng|4,24
+khăn mặt|73,96
+khăn nhung|78,87
+khẩu pháo|70,72
+khỏa thân|18,81,48
+kim chỉ|11,94,15
+kiếm|96
+kè cầu ao|66,61,70
+kéo thuyền|38,83,88
+kéo thuyền trên sông|6,60
+kêu cứu|35,65
+kì lân|65,78
+kẻ chăn trâu|13,31,60
+kẻ cướp|3,83
+kẻ trộm cậy cửa|79,20
+làm cổng|56
+làm nhà hộ bạn|7,19
+làm tình|19,69
+lá thư|75,76,83
+lá vàng|86,48
+lái buôn|32
+lâu đài|82,87
+lâu đài bị đốt|3,87
+lò sưởi tắt|42,47
+lúa gạo|8,80
+lấy nước trong bể|2,7
+lấy đàn bà điên|83
+lịch bắt cá|21,32
+lọc dầu|37,57,97
+lốp xe đạp|1,8
+lội ao vớt bèo|8,18
+lội bì bõm|4,9,32
+lội ruộng|9,90,99
+lớn trắng|74,79
+lớp học đông người|81,84
+lợn cắn|17,71,61
+lợn nhà|39
+lợn quay|4,40
+lợn đen nhỏ|38
+lửa cháy|7,27,67,87
+lửa đốt dế mèn|27,72
+lựu đạn|54,46
+ma hiện hình|37
+may quần áo mới|54
+mua bán|15,25
+mua quạt điện|35
+màu trắng|1
+màu vàng|10
+màu xanh|9,90,45,95
+màu đỏ|28,68,82
+máu chảy nhiều|84,86,38
+máy bay đổ|59,95
+máy bơm nước|25,52
+máy khâu|78,87
+mâm cơm|78,87
+mâm cơm nhiều người|29,94
+mèo nhà|18,81
+mèo nằm ngủ|0,58
+mình bắn súng lục|61
+mình bị bắt|84
+mình bị đuổi|94,85
+mình chém người|56
+mình thoát chết|86,87
+mình đá bóng|49,62
+mình đỏ|72,91
+mình ở khách sạn|64,69
+món tiền nhỏ|3,7
+múc nước giếng|6,37,63
+mũ cứng|56,65
+mũ phớt|1,2
+mũ sắt|77,27,72
+mũi dao|36,76
+mũi khoan|34,54,74
+mơ bố chết nhưng bố chưa chết|83,75
+mơ chồng ngoại tình|90,87
+mơ có vàng ngọc|3,63,83
+mơ hai chữ số|64,14
+mơ hiện rõ hình|96,46
+mơ lai gái|14,41
+mơ mình bán hàng ăn|6,7
+mơ người dị dạng|84,86
+mơ ngủ|33,35,73
+mơ nhiều con số|93,39
+mơ nhiều trăn|95,87
+mơ rắn vào nhà|22,23,30
+mơ thấy ai chết không rõ|3,8
+mơ thấy bà|42,27,51
+mơ thấy bò|4,88
+mơ thấy dế|33,45,99
+mơ thấy mẹ chết mà mẹ chưa chết|24,26
+mơ thấy nhiều con số|92,93
+mơ thấy tiền xu|1,2
+mơ thấy tình địch|62,61
+mơ thấy đàn ông|28,59
+mơ thấy đôi vợ chồng hạnh phúc|14,41
+mơ trẻ con chết|92,65
+mơ vợ chết|93,39
+mơ vợ chết nhưng vợ chưa chết|73,54
+mơ vợ ngoại tình|3,93
+mơ đi học|17,41,91,71
+mưa bão|29,69
+mưa nhỏ|68,8,78
+mưa rào|7,67,87
+mất bô rô|52,28
+mất cắp|86,84,39
+mất của|35,44,66
+mất trộm ti vi|15,78
+mất ví|67
+mất xe tìm thấy|28,82,92
+mất xe tìm thấy được|67,64
+mất xe đạp|28,82
+mất xe đạp lại tìm thấy được|28,13,61
+mặc nhiều quần|6
+mặc nhiều quần áo|79
+mặc áo đẹp|12,33
+mặt nạ|30,35,32
+mặt trăng|18,81
+mẹ bế con gái|64,14
+mẹ bế con trai|81,11,51
+mẹ con|63,20
+mẹ đỡ đầu|26,67,76
+mỏ vàng dưới sông|38,39
+mồ mả|36,76
+mồm|18,81,85
+một mình trong quán|79
+mực đen|10,90,78
+nam nữ yêu nhau|12,21
+nam đi xe máy|88,38
+nam đèo nữ|12,25,92
+nghe caset điện yếu|74
+nghi ngờ|49,94
+nghi ngờ vàng giả|60
+nghèo khổ|19,14
+nghĩa địa|12,72,92
+nghệ sỹ|10
+ngã|66,16,61
+ngũ hương|28,92
+người bệnh|58,85,80
+người bị chó cắn|96
+người chết sống lại|85,37
+người dân tộc đánh nhau|83,37
+người già đến|56,86
+người khó đẻ|91
+người mù|62,82,68
+người mẹ tốt|1,22,41
+người nhà ma nhập|67,87,97
+người rủ đánh bạc|71
+người ta đánh mẹ chảy máu đầu|63,68,64
+người trèo bàn thờ|95,59
+người trèo xuồng|2,61,89
+người tàn tật|93,91
+người tây|13,43,93,98
+người xa về|45,75,32
+người ăn bánh mỳ|69
+người đàn ông ở trần|13,43
+người đòi nợ|92,12
+người đầy bùn|32,86
+người đập lửa|34,47,69
+người đẻ khó|91
+ngắm vuốt|17,38,81
+ngọc hoàng|5,15,17,95
+ngồi gãi chấy|15,14,16
+ngủ lang|96,86
+ngủ với gái|21,61,28,75,57
+ngựa bay|77
+ngựa ăn cỏ|60,82
+nhiều ghế|44,84
+nhiều hũ nước đái|96,69
+nhiều màu|78
+nhiều người đòi nợ mình|56
+nhà bán hàng|24,64,78
+nhà bé nhỏ|52,61
+nhà bằng bạc|2
+nhà hát|38,83
+nhà hộ sinh|37,73,71,79
+nhà mái bằng|46,64
+nhà mát|32,23
+nhà máy|48,68,28
+nhà nghỉ mát|32
+nhà ngói đỏ|84,92
+nhà to|51,89
+nhà trong rừng|2,18,51
+nhà trẻ|27,37
+nhà trọ|92,19
+nhà tối tăm|25,65
+nhà vệ sinh|34,71
+nhà xe|65,66,67
+nhà đất lợp rạ|82,84
+nhà đẹp|66,16
+nhà ở bình thường|26,66,86,96
+nhìn thấy máu người chảy|9,54
+nhẫn ngọc|37,73
+nhận tiền của người con gái|88
+nhận được của bố thí|48
+nhện trăng xa|63
+nhổ tóc sâu|64,46,41
+ném|5,65,85
+ném vào ma|65,66
+nóc nhà|86,68
+nói chuyện với bố|51,56
+nói chuyện với mẹ|57,75
+nói chuyện với người chết|84,29
+nói chuyện với người đã chết|75,76,90,92
+nói dối bạn|9,37
+nói tục|41,91,96
+nước chảy|35,45,65
+nước dâng|6,66,86,56,7,70,50
+nước dâng cao|6,56,66
+nước dâng vào ngõ|6,56
+nước lụt|67,68
+nước mắt|87,85
+nước sông dâng cao|89,98
+nước to vào nhà|6,8,56
+nước đái có máu|43
+nướng sắn|99,94
+nạo thai|53,63,42
+nằm đất|92
+nếm đồ chua chát|68,54,45
+nếm đồ ngọt|34,39
+nồi áp suất|84,39
+nữ rụng răng|3,53,85
+phun nước trong nhà|6,66
+phá ra cười|41,52,57
+pháp sư|9,29,35,96
+phát minh|6,17,37,97
+phát sư|8,25,50
+phóc mơ tuya|99
+phóng sự|25,26,27
+phượng hoàng|13,78,98
+phải lội xuống ao|7
+phật|57,75
+phụ hồ|3,8,83
+phụ lòng|18,28,78
+quan tài|6,56,26
+quan tài bố nuôi|62,63
+quan tài chôn rồi|1,51
+quan tài chưa chôn|4
+quan tài có xác chết|74,21
+quan tài mở nắp|31,36
+quyển vở|18,19
+quái vật|30,39,17
+quán rượu ngoài trời|69
+quét nhà|34,43
+quạt trần|82
+quả bàng|31,32
+quả bóng|11,45,72
+quả bưởi|1,9,70
+quả cam|5,25,55
+quả chuối|34,43
+quả dừa|50,70,9
+quả na|13,14
+quả quất|30,70
+quả rụng|89,93
+quả trên cây|84,48
+quả đu đủ|58,89
+quản bưởi|17,71
+quần lót|2,59
+quần áo vá nhiều|1,11
+qụa chết|36,80,85
+ra suối mưa to|35,53
+ra đa|45,54
+râu|3,53,7,75
+râu mọc dài|25,57
+rơi kính đeo|32,89
+rơm rạ|36,78
+rắn bơi|21,82
+rắn cắn gót chân|57
+rắn cắn người|43,73
+rắn quấn|5,15,51
+rắn quấn chân|96
+rắn quấn người|49,97
+rắn rết|0,20,28,40,82
+rắn đất|38,78
+rệp|26,64
+rồng bay|57,34
+rổ trứng|70,30
+rổ đỗ|28,48,68,86
+rụng cả hàm răng|3
+rụng một chiếc răng|31
+rụng răng|31,32,52,62
+rửa chân|86,68
+sang nhà láng giềng|42,43,64
+sao trên trời|33,38
+say rượu|35,45,90
+sinh lí hai người|2,22
+sinh đẻ|27,56
+suối nước trong|41,47
+suối nước đục|9,18
+sông ngòi|42
+súng ak|86
+súng b40|18,64
+súng bắn dài|68
+súng hơi|0,97
+sư sãi bắt đồn|76,46
+sư tử|25,45
+sấm sét|94,95,54
+sắt|93,58
+sổ rách bìa|45,49
+sổ sách|38,88
+sổ điểm|30,35
+sợ ma|75,23,96
+sụt lở|9,13
+sửa lại hố xí|79,70
+tai nạn tàu hỏa|7,26
+tai nạn xe máy|95
+tai nạn ô tô|69,54
+tham ăn|69,84
+than thở|90,95
+thanh sắt|19,9
+thi thố|0,62
+thiên tài|49,79,29
+thiếu ngũ văn|63
+thoát trấn lột|0,8
+thua bạc|25,35
+thua xì|39,93,63
+thuyền bị đắm|8,10,64
+thuyền xa lầy|73,23
+thuốc lá giả|92,29
+thành lũy|40,45,54
+thèm khát tình yêu|86,31
+thìa|5,38
+thóc|34,74
+thôn quê|57,75
+thùng xách nước|70,93
+thước kẻ|11,5
+thạch thùng|32,72
+thất vọng|12,71,64
+thấy bể nước|87,54,61
+thấy có nước mà không người tắm|32,64,68,37
+thấy dây dầu|39
+thấy người bé nhỏ|45,61
+thấy người bị treo cổ|95,97
+thấy người bị ám sát|22,37
+thấy người cao lớn|21,32
+thấy người còn trẻ|64,78
+thấy người mua|68
+thấy người to béo|25,75,74
+thấy người đi dạo|32,89
+thấy người đốt làng|6,21,48
+thấy người đội mũ|56,89
+thấy tiền|2,52,82
+thấy treo cổ nhiều người|86
+thấy xác chết|4,60
+thần chết|83,93
+thần tài|36,39,79,10
+thầy bói|14,64,49
+thầy cúng|40,45
+thẩm phán quan tòa|24,89
+thằng hề|3,8
+thằng ngốc|29,90
+thằng điên|74,75
+thỏ con|38,78
+thỏi vàng|82,37
+thổ công|57,79
+thổ địa|38,78,87
+thợ làm bánh|3,21
+thợ xây|78,87,73
+ti vi|78,73
+tin mừng|12,32
+tin mừng ở xa|12,2
+tin xấu|2,3,4
+tin xấu đột ngột|1,13
+tinh trùng|7,65,88
+tiên trên cao|47
+tiết canh lợn|38,83
+tiền giả|0,86
+tiền hai nghìn|53,96
+tiền hai trăm|12,78,89
+tiền năm nghìn|87
+tiền năm trăm|56,46
+tranh|4,48,85
+trâu rừng|83,63
+trèo nóc nhà|48,98
+trèo thang|78,33,79
+trông thấy hai đống cứt tròn|1,2,20
+trúng quả đậm|75,84
+trúng số đề|86,68
+trúng đề|26,36,76
+trường học|56,69,83,9
+trắng hồng|24,84
+trẻ con cãi nhau|98,89
+trồng cây|84,97
+trời sao lác đác|31,49
+trời xanh|37,77,78
+tuồng lương|9,92
+tàn sát|5,59
+tàu biển|11,70,90
+tàu thủy|11,16
+tàu thủy cháy|38,83
+tên lửa|1
+tình báo|49
+tình nhân ồn ào|47,48
+tình tứ|64,74,84
+tình tứ nói chuyện|34
+tính tiền nhầm|39,72
+tòa án|39,4
+tù tội|92,29
+tượng đá|6,56
+tảng đá|20,40,60,80
+tầu bay|10,11
+tầu hỏa|74,72
+tẩy rửa|62,41,10,1
+tập võ|70,72
+tắm bồn|61,82,76
+tắm nước lạnh|61,86
+tắm nước trong|16,61
+tắm sông|94,76
+tờ báo|49,98
+tờ giấy|89,39
+tủ lạnh|24
+tủ lệch|89,85
+tủ sách|37,75
+từ giã|31,32,87
+tử hình sống lại|48,51,71
+tử vi|78
+tự nhiên cười|14,21
+vay mượn|6,86
+ve gái|65,63
+viên thuốc bổ|1
+viên đá nhỏ|0,5,38
+vua quan|4
+vào nhà máy|8,18,68
+vào vườn|9,90
+vây hãm|3,4
+vé sổ số|8,28
+vé thưởng|29,86
+vòng hoa|14,41
+vú|93,51,90,9
+vết máu|5,32,64
+vệ sĩ|10,20,80,81
+vợ biến thành mèo|54
+vợ chồng cãi nhau|1,2,52
+vợ tự tử|8,18,56
+vợ vá nhờ quần áo|7,70
+vực thẳm|17,71
+xe bò ba gác|7,87
+xe cấp cứu|5,50
+xe cần cẩu|56,65,51
+xe hơi|82,92
+xe lu|31,41
+xe điện|1,6,16
+xe đu|31,63,68
+xem hai bà cãi nhau|8
+xem kịch|13,63,35
+xem phim|90,78
+xem đá bóng|72,96
+xem đám ma|25,52
+xem đánh nhau|89
+xiên cá rô|3,5,50
+xung phong|92,94
+xác chết|12,52
+xác chết nhiều|7,38,78
+xây bể nước|21,32
+xây dựng bàn thờ|27,72
+xây nhà rỡ đi|8,10
+xì hơi xe|42,92
+xích lô|18,19,94
+xích mích với bạn|6
+xóm cũ|64,47
+yêu|75,70
+yêu đương|24,87,86
+ánh chớp|53
+áo bay|40,45
+áo bu dông|8,6,56
+áo của chồng|7,70
+áo của phụ nữ|0,2
+áo của vợ|9,19,91
+áo dài nữ|64,46
+áo hoa|22,33
+áo len|34,84
+áo lót|9,59
+áo mưa|87,42,7,67
+áo thể thao|43,34
+áo trẻ em|1,0,5
+áo tây|0,4
+áo vét|95,54,59
+ân ái|25,75
+ô tô cháy|47,56
+ô tô hồ lô kẹt chết người|12,21,26
+ô tô kẹp chết người|7,70
+ôm nhau|64,85,97
+ông chủ|21,26,22,27
+ông cụ già|15,65,56,96
+ông già|36,56,76
+ông già cho quà|75
+ông sãi, bà sãi|16,56,36
+ông sư|16,61,36
+ông trời|37
+ông táo|40,45,80,85
+ông tượng|82,6,43,88
+ăn chay|86,85
+ăn chua|93,39
+ăn chuối|34,64
+ăn cá to|5,60
+ăn cắp xe đạp|34
+ăn cỗ|93,67
+ăn củ đậu|38,39
+ăn hoa quả|84,68
+ăn hàng|3,4,52,19
+ăn khoai|75,85,58
+ăn mày|1
+ăn no quá|95,79
+ăn thịt mèo|19,91
+ăn thịt người|83,85
+ăn tiệc|83,87
+ăn tiệm|26,56,21
+ăn trưa|1,2,92
+ăn trộm|1,90
+ăn trộm cá|63,78,87
+ăn trộm xe máy|4
+ăn tôm|83,89
+đe dọa|37,73,78
+đi bộ đội|15,53
+đi chơi xuân|19,39
+đi câu|64,74,24
+đi câu không được cá|23,24,12
+đi du lịch|87
+đi làm|1,21,26
+đi lễ|12,21
+đi mua giầy|56,6
+đi phà qua sông|17,18
+đi thi|26
+đi thuyền|23,59,93,39
+đi trên sông|15,5
+đi tàu|39,87,78
+đi tắm|39,93,83
+đi vắng|5,20,25
+đi về gặp mưa|8,70,7
+đi xa ngoại tình|23,59
+đi xa đánh nhau|93,39
+đi xe cúp|85,57
+đi đái dắt|98,99
+đi đánh được cá|76,87,78
+đi đò|73,4,44
+đi đò dọc|73,37,32
+đi đổ cứt|15,16,61
+đi ỉ chảy|1,6
+đi ỉ gặp người|67,76
+đi ỉa|86,98
+đi ỉa chảy|1,6
+đi ỉa gặp người|67,76
+đi ỉa đông người|8,9
+đom đóm|19,59
+đuổi bắt|15,57,72
+đàn bà chửa|10,82
+đàn bà ghen|9,23
+đàn bà khỏa thân|3,32
+đàn chó|36,63
+đàn kiến|29
+đàn lợn|38,49
+đàn trâu|31,51
+đàn ông chết|6,26
+đàn ông ghen|9,12,31
+đàn ông khỏa thân|15,51
+đàn ông ăn mày|4,54
+đào giếng|65
+đào móng nhà|47,74
+đào đất|56
+đá bóng|0,9,8,5
+đá lửa|6,60
+đái dầm|20,60,70
+đám ma|34,35
+đánh chết người|45,85
+đánh chết rắn|25
+đánh cuộc|27,72
+đánh ghen|49,87
+đánh nhau bằng kiếm|60,61
+đánh nhau có vũ khí|3
+đánh nhau ném lựu đạn|67
+đánh nhau đổ máu|0,31,34,75
+đánh răng|67,47,79
+đánh vợ|52,51,53
+đánh đĩ|57,75
+đèn thần|7,57,75
+đèn ông sao|44,55
+đình chùa|1,40,80
+đòi nợ|53,35
+đói|13,93,59
+đóng thuyền|4,44,71,54
+đôi bít tất|96,39,83
+đôi chim bồ câu|2,22
+đôi dép|33,81
+đôi giày ba ta|2,3
+đôi vẹt|83,87
+đưa tang|27,72
+được bạc|82
+được của|53,78,80
+được thưởng|82,32
+được tiền|8,78
+được tiền chia hai|5,50
+được vàng|1,10,15,75
+đầu nhiều chấy|78
+đầu trâu|51,71,91
+đầu vú|38,39,84
+đắm thuyền trong ao|38,54
+đẻ ra cá|0,1,99,94
+đẻ ra mèo|1,23,62
+đền cổ|46,66
+đỉa bám đầy người|28,11
+đỉa bán vào chân|29
+đỉa cắn người|58
+địa ngục|12,63
+đống lửa|8,48
+đống rơm|25,50,27
+đốt lò sưởi|3,37
+đồi núi|68,86,81
+đồng hồ|95,58
+động trạm của quý của đàn bà|65,63
+đứng trên mái nhà|46,64
+ảnh bà cụ|54,59
+ỉa bậy chùi đít không sạch|86,98,49,39
+ổ khóa|95,86
+biển|58
+báo|26,62
+bát|31,38
+bị thương|3,90,63
+chim bay|67
+cho con|5,75
+cháy nhà|5,43,67
+chó cắn|29,92,93
+chó đen|94,68
+chó đẻ|51,91
+chùa|5,56,26
+chảy máu|8,19,29,69
+chết sống lại|62,74
+chết đuối|7,30,84
+chợ|25,52
+con đỉa|43
+cào cào|53
+cá|79
+cá chép|58
+cá lóc|68
+cá rô|20,40,82
+cá sấu|89
+cá trắm|1,41,81,43
+cát|36,63
+cãi nhau|36,37,68
+cưỡi ngựa|41
+cờ bạc|28,1,51
+dê|56
+giò|78,84,89
+giếng nước|29,92
+gà con|7,8
+gà trống|55,57
+heo rừng|78
+hoa sen|45
+hổ|78
+khỉ|56
+lá rụng|51,59
+lửa đảo|59
+ma đuổi|33,34,35
+may|79,98,25
+máy bay|47,74,71,17
+mèo cắn|29,14,41
+mèo rừng|14,54,94
+mèo trắng|23,32
+mưa|7,47,67,82
+mất tiền|69,71
+mất trộm|1,3,43
+mắt|62,82,11,21,91,15
+người chết|26,65
+ngọc|45,54,15
+ngủ|4,54,92
+ngựa|1,62
+nhẫn vàng|1,10,0
+nhện|56
+nắng|52,72,29,92
+quả|26,60
+quần áo|9,6
+rùa|56
+rùa biển|87
+rắn cắn|14,59,95
+rắn hai đầu|15,51
+rắn đuổi|69
+tai nạn|0,7,70,46
+thi đỗ|26,28
+thuốc lá|8,85
+tiền|62,12,67
+trộm cắp|5,45,85
+xe máy|42,47,72
+xe ngựa|15,52,92
+xe đạp|2,18,28
+xây nhà|14,16
+ăn cơm|74,85
+đi học|17
+đám cưới|7,9,75
+đánh cướp|8,84
+đánh nhau|3,7,59
+ếch|86
+`.trim();
+        function normalizeText(str) {
+            return str
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .trim();
+        }
+        const DREAM_BOOK = RAW_DREAM_DATA.split('\n').map((line, index) => {
+            const [label, numsStr] = line.split('|');
+            const numbers = numsStr.split(',').map((n) => Number(n));
+            return {
+                id: index,
+                label: label.trim(),
+                normalized: normalizeText(label),
+                numbers
+            };
+        });
+        function pad2(n) {
+            return String(n).padStart(2, '0');
+        }
+        // 1. Khởi tạo Three.js Scene
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x06050e, 0.007);
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+        // 2. Ánh sáng
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+        scene.add(ambientLight);
+        const light1 = new THREE.PointLight(0xf6c959, 2.5, 160);
+        light1.position.set(25, 30, 25);
+        scene.add(light1);
+        const light2 = new THREE.PointLight(0x5ce1e6, 2.2, 160);
+        light2.position.set(-25, -25, -25);
+        scene.add(light2);
+        // 3. Dựng Khối Cầu Tinh Vân 100 Con Số (00 - 99)
+        const sphereGroup = new THREE.Group();
+        scene.add(sphereGroup);
+        const SPHERE_RADIUS = 23;
+        const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+        const numberNodes = [];
+        function createNumberTexture(numStr, isHighlighted) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.beginPath();
+            ctx.arc(64, 64, 58, 0, Math.PI * 2);
+            ctx.fillStyle = isHighlighted ? '#f6c959' : 'rgba(20, 18, 38, 0.88)';
+            ctx.fill();
+            ctx.lineWidth = isHighlighted ? 8 : 4;
+            ctx.strokeStyle = isHighlighted ? '#ffffff' : 'rgba(92, 225, 230, 0.5)';
+            ctx.stroke();
+            ctx.fillStyle = isHighlighted ? '#0d0b18' : '#7ee8fa';
+            ctx.font = 'bold 52px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(numStr, 64, 68);
+            return new THREE.CanvasTexture(canvas);
+        }
+        const normalTextures = [];
+        const activeTextures = [];
+        for (let i = 0; i < 100; i++) {
+            const s = pad2(i);
+            normalTextures.push(createNumberTexture(s, false));
+            activeTextures.push(createNumberTexture(s, true));
+        }
+        for (let i = 0; i < 100; i++) {
+            // Phân bố Fibonacci Sphere đều 100 hạt trên bề mặt cầu
+            const phi = Math.acos(1 - (2 * (i + 0.5)) / 100);
+            const theta = i * GOLDEN_ANGLE;
+            const x = SPHERE_RADIUS * Math.sin(phi) * Math.cos(theta);
+            const y = SPHERE_RADIUS * Math.cos(phi);
+            const z = SPHERE_RADIUS * Math.sin(phi) * Math.sin(theta);
+            const spriteMat = new THREE.SpriteMaterial({ map: normalTextures[i], transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.position.set(x, y, z);
+            sprite.scale.set(2.8, 2.8, 1);
+            sphereGroup.add(sprite);
+            numberNodes.push({
+                number: i,
+                sprite,
+                basePos: new THREE.Vector3(x, y, z),
+                active: false
+            });
+        }
+        // Vòng quỹ đạo trang trí quanh khối cầu
+        const ringGeo1 = new THREE.TorusGeometry(SPHERE_RADIUS + 4, 0.1, 16, 128);
+        const ringMat1 = new THREE.MeshBasicMaterial({ color: 0xf6c959, transparent: true, opacity: 0.25 });
+        const ring1 = new THREE.Mesh(ringGeo1, ringMat1);
+        ring1.rotation.x = Math.PI / 2.4;
+        sphereGroup.add(ring1);
+        const ringGeo2 = new THREE.TorusGeometry(SPHERE_RADIUS + 6.5, 0.08, 16, 128);
+        const ringMat2 = new THREE.MeshBasicMaterial({ color: 0x5ce1e6, transparent: true, opacity: 0.2 });
+        const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
+        ring2.rotation.y = Math.PI / 3;
+        sphereGroup.add(ring2);
+        // Đường nối năng lượng giữa các số trúng của giấc mơ
+        let connectionLines = null;
+        function updateConnections(activeNumbers) {
+            if (connectionLines) {
+                sphereGroup.remove(connectionLines);
+                connectionLines.geometry.dispose();
+                connectionLines.material.dispose();
+                connectionLines = null;
+            }
+            if (activeNumbers.length < 2) return;
+            const points = [];
+            for (let i = 0; i < activeNumbers.length; i++) {
+                for (let j = i + 1; j < activeNumbers.length; j++) {
+                    const p1 = numberNodes[activeNumbers[i]].basePos;
+                    const p2 = numberNodes[activeNumbers[j]].basePos;
+                    points.push(p1, p2);
+                }
+            }
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const lineMat = new THREE.LineBasicMaterial({
+                color: 0xf6c959,
+                transparent: true,
+                opacity: 0.85
+            });
+            connectionLines = new THREE.LineSegments(lineGeo, lineMat);
+            sphereGroup.add(connectionLines);
+        }
+        // Bầu trời sao nền
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 1500;
+        const starPos = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i++) {
+            starPos[i] = (Math.random() - 0.5) * 280;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0.6 });
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+        // 4. Quản lý Giao diện & Tra cứu
+        const searchInput = document.getElementById('search-input');
+        const clearBtn = document.getElementById('clear-btn');
+        const resultCount = document.getElementById('result-count');
+        const dreamListEl = document.getElementById('dream-list');
+        const detailBadge = document.getElementById('detail-badge');
+        const detailTitle = document.getElementById('detail-title');
+        const detailBalls = document.getElementById('detail-balls');
+        let filteredDreams = [...DREAM_BOOK];
+        let currentDream = DREAM_BOOK.find((d) => d.label === 'con rồng') || DREAM_BOOK[0];
+        function selectDream(entry) {
+            currentDream = entry;
+            detailBadge.textContent = `Mục #${entry.id + 1} / ${DREAM_BOOK.length}`;
+            detailTitle.textContent = entry.label;
+            detailBalls.innerHTML = entry.numbers
+                .map((n) => `<div class="ball-badge">${pad2(n)}</div>`)
+                .join('');
+            // Cập nhật trạng thái nổi bật trên danh sách
+            document.querySelectorAll('.dream-item').forEach((el) => {
+                el.classList.toggle('active', Number(el.dataset.id) === entry.id);
+            });
+            // Cập nhật 100 quả cầu số trong không gian 3D
+            const activeSet = new Set(entry.numbers);
+            numberNodes.forEach((node) => {
+                const isHit = activeSet.has(node.number);
+                if (node.active !== isHit) {
+                    node.active = isHit;
+                    node.sprite.material.map = isHit ? activeTextures[node.number] : normalTextures[node.number];
+                    node.sprite.material.needsUpdate = true;
+                }
+            });
+            updateConnections(entry.numbers);
+        }
+        function renderDreamList(list) {
+            resultCount.textContent = `Tìm thấy ${list.length} / ${DREAM_BOOK.length} giấc mơ`;
+            const visibleItems = list.slice(0, 120); // Giới hạn 120 mục hiển thị DOM để mượt mà
+            dreamListEl.innerHTML = visibleItems
+                .map(
+                    (item) => `<div class="dream-item ${item.id === currentDream.id ? 'active' : ''}" data-id="${item.id}"> <span class="dream-label">${item.label}</span> <div class="dream-nums"> ${item.numbers.map((n) => `${pad2(n)}`).join('')} </div> </div> `
+                )
+                .join('');
+            dreamListEl.querySelectorAll('.dream-item').forEach((el) => {
+                el.addEventListener('click', () => {
+                    const found = DREAM_BOOK[Number(el.dataset.id)];
+                    if (found) selectDream(found);
+                });
+            });
+        }
+        function filterDreams(query) {
+            const q = normalizeText(query);
+            if (!q) {
+                filteredDreams = [...DREAM_BOOK];
+            } else {
+                filteredDreams = DREAM_BOOK.filter(
+                    (d) => d.normalized.includes(q) || d.numbers.some((n) => pad2(n).includes(q))
+                );
+            }
+            renderDreamList(filteredDreams);
+            if (filteredDreams.length > 0 && !filteredDreams.some((d) => d.id === currentDream.id)) {
+                selectDream(filteredDreams[0]);
+            }
+        }
+        searchInput.addEventListener('input', (e) => filterDreams(e.target.value));
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            filterDreams('');
+            searchInput.focus();
+        });
+        document.querySelectorAll('.tag').forEach((tag) => {
+            tag.addEventListener('click', () => {
+                searchInput.value = tag.dataset.q;
+                filterDreams(tag.dataset.q);
+            });
+        });
+        // Nút điều hướng Dưới cùng
+        document.getElementById('btn-random').addEventListener('click', () => {
+            const rand = DREAM_BOOK[Math.floor(Math.random() * DREAM_BOOK.length)];
+            selectDream(rand);
+            const activeEl = dreamListEl.querySelector('.dream-item[data-id="${rand.id}"]');
+            if (activeEl) activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => {
+            const prevIdx = (currentDream.id - 1 + DREAM_BOOK.length) % DREAM_BOOK.length;
+            selectDream(DREAM_BOOK[prevIdx]);
+        });
+        document.getElementById('btn-next').addEventListener('click', () => {
+            const nextIdx = (currentDream.id + 1) % DREAM_BOOK.length;
+            selectDream(DREAM_BOOK[nextIdx]);
+        });
+        // Khởi tạo dữ liệu ban đầu
+        renderDreamList(DREAM_BOOK);
+        selectDream(currentDream);
+        // 5. Điều khiển Camera chuột & zoom
+        let isDragging = false;
+        let prevX = 0;
+        let prevY = 0;
+        let targetRotY = 0.4;
+        let targetRotX = 0.25;
+        let currentRotY = 0.4;
+        let currentRotX = 0.25;
+        let targetZoom = 66;
+        let currentZoom = 66;
+        container.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            prevX = e.clientX;
+            prevY = e.clientY;
+        });
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - prevX;
+            const dy = e.clientY - prevY;
+            prevX = e.clientX;
+            prevY = e.clientY;
+            targetRotY -= dx * 0.006;
+            targetRotX += dy * 0.006;
+            targetRotX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, targetRotX));
+        });
+        container.addEventListener(
+            'wheel',
+            (e) => {
+                e.preventDefault();
+                targetZoom += e.deltaY * 0.04;
+                targetZoom = Math.max(30, Math.min(130, targetZoom));
+            },
+            { passive: false }
+        );
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        // 6. Vòng lặp Animation
+        let animTime = 0;
+        let lastTime = performance.now();
+        function animate(now) {
+            requestAnimationFrame(animate);
+            const dt = (now - lastTime) * 0.001;
+            lastTime = now;
+            animTime += dt;
+            if (!isDragging) {
+                targetRotY += dt * 0.16;
+            }
+            // Hiệu ứng nhịp thở cho các quả cầu số được chọn
+            numberNodes.forEach((node) => {
+                if (node.active) {
+                    const s = 4.6 + Math.sin(animTime * 5) * 0.45;
+                    node.sprite.scale.set(s, s, 1);
+                } else {
+                    node.sprite.scale.set(2.5, 2.5, 1);
+                }
+            });
+            ring1.rotation.z = animTime * 0.15;
+            ring2.rotation.x = animTime * 0.12;
+            currentRotX += (targetRotX - currentRotX) * 0.08;
+            currentRotY += (targetRotY - currentRotY) * 0.08;
+            currentZoom += (targetZoom - currentZoom) * 0.08;
+            camera.position.x = currentZoom * Math.sin(currentRotY) * Math.cos(currentRotX);
+            camera.position.y = currentZoom * Math.sin(currentRotX);
+            camera.position.z = currentZoom * Math.cos(currentRotY) * Math.cos(currentRotX);
+            camera.lookAt(0, 0, 0);
+            stars.rotation.y = animTime * 0.015;
+            renderer.render(scene, camera);
+        }
+        animate(performance.now());
+    </script>
+</body>
+
+</html>
