@@ -6,6 +6,7 @@
 <title>Mô phỏng quay số XSMN - Lồng cầu 3D, dò vé trúng giải</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --item-h: 40px; --gold: #fbbf24; --green: #22c55e; --red: #f87171; --muted: #94a3b8; --line: rgba(255,255,255,.08); }
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -14,51 +15,65 @@
   .container { max-width: 1100px; margin: 0 auto; }
   header { text-align: center; margin-bottom: 28px; }
   h1 { font-size: 2.3rem; margin-bottom: 8px; letter-spacing: 2px; text-transform: uppercase; }
-  h1 .accent { color: #fbbf24; }
-  .subtitle { color: #94a3b8; font-size: 1.05rem; }
+  h1 .accent { color: var(--gold); }
+  .subtitle { color: var(--muted); font-size: 1.05rem; }
 
   .card {
-    background: rgba(30, 41, 59, 0.6);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px; padding: 24px;
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
-    margin-bottom: 24px;
+    background: rgba(30, 41, 59, 0.6); border: 1px solid var(--line);
+    border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); margin-bottom: 24px;
   }
-  .panel-title {
-    font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px; color: #fbbf24;
-  }
-  .hint { font-size: 0.85rem; color: #94a3b8; line-height: 1.6; margin-bottom: 10px; }
+  .panel-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--gold); }
+  .hint { font-size: 0.85rem; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+  .muted { color: var(--muted); }
 
-  /* Nhập dãy số */
-  textarea {
-    width: 100%; min-height: 120px; resize: vertical; padding: 12px;
-    background: rgba(15,23,42,0.6); color: #f8fafc;
-    border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-    font-family: 'Consolas', 'Courier New', monospace; font-size: 1rem; letter-spacing: 1px;
-  }
-  textarea:focus { outline: none; border-color: #fbbf24; }
-  textarea:disabled { opacity: 0.5; }
-  .ticket-msg { margin-top: 10px; font-size: 0.9rem; min-height: 1.4em; }
-  .ticket-msg.ok { color: #22c55e; }
-  .ticket-msg.err { color: #f87171; }
+  /* Cột cuộn số */
+  .wheel-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .wcol { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .wlab { font-size: .68rem; color: var(--muted); text-align: center; }
+  .wheel-wrap { position: relative; width: 56px; height: calc(var(--item-h) * 3); border-radius: 12px;
+    background: rgba(15,23,42,.6); border: 1px solid rgba(255,255,255,.15); overflow: hidden; outline: none; }
+  .wheel-wrap:focus-visible { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.3); }
+  .wheel { height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; padding: var(--item-h) 0; }
+  .wheel::-webkit-scrollbar { display: none; }
+  .wheel .item { height: var(--item-h); line-height: var(--item-h); text-align: center; scroll-snap-align: center;
+    font-size: 1.1rem; font-weight: 800; color: #5b6478; cursor: pointer; user-select: none; transition: color .15s, font-size .15s; }
+  .wheel .item.active { color: var(--gold); font-size: 1.4rem; }
+  .band { position: absolute; left: 0; right: 0; top: var(--item-h); height: var(--item-h); pointer-events: none;
+    border-top: 1px solid rgba(251,191,36,.5); border-bottom: 1px solid rgba(251,191,36,.5); background: rgba(251,191,36,.06); }
 
-  /* Lịch quay */
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+  .msg { margin-top: 10px; font-size: .9rem; min-height: 1.4em; text-align: center; }
+  .msg.ok { color: var(--green); }
+  .msg.err { color: #f87171; }
+
+  .tlist-head { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 8px; font-size: .86rem; color: var(--muted); }
+  .tlist { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .trow { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: rgba(15,23,42,.4);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .trow .tid { font-size: .75rem; color: var(--muted); min-width: 40px; }
+  .trow .tnum { font-family: 'Consolas', 'Courier New', monospace; font-size: 1.2rem; font-weight: 800; letter-spacing: 3px; flex: 1; color: var(--gold); }
+  .trow .tv { font-size: .82rem; }
+  .trow.win { border-color: var(--green); }
+  .trow.win .tnum { color: var(--green); }
+  .trow.win .tv { color: #86efac; }
+  .trow.lose .tv { color: var(--muted); }
+  .rm { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: .75rem; cursor: pointer; }
+  .rm:hover:not(:disabled) { border-color: #f87171; color: #fca5a5; }
+  .empty { font-size: .85rem; color: var(--muted); text-align: center; padding: 12px 0; }
+
   .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
   .step {
-    padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(15,23,42,0.4); text-align: center; font-size: 0.85rem;
-    color: #94a3b8; transition: all 0.3s;
+    padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: rgba(15,23,42,0.4); text-align: center; font-size: 0.85rem; color: var(--muted); transition: all 0.3s;
   }
   .step .name { font-weight: 700; display: block; margin-bottom: 4px; color: #e2e8f0; font-size: 0.9rem; }
   .step .digits { font-size: 1.3rem; font-weight: 800; margin-top: 4px; letter-spacing: 1px; }
-  .step.current { border-color: #fbbf24; background: rgba(251,191,36,0.15); color: #fde68a; }
-  .step.current .name { color: #fbbf24; }
-  .step.done { border-color: #22c55e; color: #86efac; }
-  .step.done .name { color: #22c55e; }
+  .step.current { border-color: var(--gold); background: rgba(251,191,36,0.15); color: #fde68a; }
+  .step.current .name { color: var(--gold); }
+  .step.done { border-color: var(--green); color: #86efac; }
+  .step.done .name { color: var(--green); }
   .step.pending { opacity: 0.6; }
 
-  /* Sân khấu 3D */
   .stage {
     width: 100%; height: 440px; border-radius: 12px; overflow: hidden;
     background: radial-gradient(ellipse at 50% 30%, #1e293b 0%, #0b1120 100%);
@@ -68,57 +83,68 @@
   .stage canvas { display: block; width: 100%; height: 100%; }
   .stage-hint { position: absolute; left: 12px; bottom: 10px; font-size: 0.75rem; color: #64748b; pointer-events: none; }
 
-  .status { margin: 14px 0 6px; font-size: 0.95rem; color: #94a3b8; text-align: center; min-height: 2.6em; }
-  .status.ready { color: #22c55e; }
-  .status.drawing { color: #fbbf24; }
+  .status { margin: 14px 0 6px; font-size: 0.95rem; color: var(--muted); text-align: center; min-height: 2.6em; }
+  .status.ready { color: var(--green); }
+  .status.drawing { color: var(--gold); }
   .status.done { color: #38bdf8; }
 
   .controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   button {
     padding: 11px 22px; border: none; border-radius: 8px;
-    font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.2s; color: #fff;
   }
-  .btn-draw { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; min-width: 200px; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  .btn-draw { background: linear-gradient(135deg, #2563eb, #1d4ed8); min-width: 200px; }
   .btn-draw:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px -4px rgba(37,99,235,0.4); }
-  .btn-draw:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-reset { background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.2); min-width: 110px; }
-  .btn-reset:hover:not(:disabled) { border-color: #fbbf24; color: #fbbf24; }
-  .btn-reset:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-blue { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+  .btn-gold { background: linear-gradient(135deg, var(--gold), #d97706); color: #0f172a; }
+  .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,.2); color: var(--muted); }
+  .btn-outline:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+  .btn-small { padding: 7px 12px; font-size: .82rem; }
 
-  /* Kết quả */
+  select { background: rgba(15,23,42,.7); color: #f8fafc; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 6px 10px; font-size: .85rem; }
+
   .numbers { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
   .num-chip {
     min-width: 56px; height: 56px; padding: 0 10px; border-radius: 28px;
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    border: 2px solid #fbbf24; color: #fbbf24;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; font-weight: 800; box-shadow: 0 0 18px rgba(251,191,36,0.35);
+    background: linear-gradient(135deg, #1e293b, #0f172a); border: 2px solid var(--gold); color: var(--gold);
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; box-shadow: 0 0 18px rgba(251,191,36,0.35);
   }
   .table-wrap { overflow-x: auto; margin-top: 8px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-  th, td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; }
-  th { color: #94a3b8; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
-  td.nums { font-family: 'Consolas', 'Courier New', monospace; font-size: 1rem; color: #fbbf24; letter-spacing: 1px; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+  td.nums { font-family: 'Consolas', 'Courier New', monospace; font-size: 1rem; color: var(--gold); letter-spacing: 1px; }
   td.nums .hit { background: rgba(34,197,94,0.25); color: #86efac; border-radius: 4px; padding: 0 3px; font-weight: 800; }
 
-  .check-banner {
-    margin-top: 18px; padding: 14px; border-radius: 10px; font-weight: 700; text-align: center; font-size: 1.05rem;
-  }
-  .check-banner.win { background: rgba(34,197,94,0.15); border: 1px solid #22c55e; color: #86efac; }
+  .check-banner { margin-top: 18px; padding: 14px; border-radius: 10px; font-weight: 700; text-align: center; font-size: 1.05rem; }
+  .check-banner.win { background: rgba(34,197,94,0.15); border: 1px solid var(--green); color: #86efac; }
   .check-banner.lose { background: rgba(248,113,113,0.12); border: 1px solid #f87171; color: #fca5a5; }
   .check-banner.neutral { background: rgba(148,163,184,0.1); border: 1px solid #475569; color: #cbd5e1; }
 
-  .ticket-list { margin-top: 14px; display: grid; gap: 8px; }
-  .ticket-row {
-    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
-    padding: 10px 14px; border-radius: 10px; background: rgba(15,23,42,0.4); border: 1px solid rgba(255,255,255,0.06);
-  }
-  .ticket-row .tnum { font-family: 'Consolas', 'Courier New', monospace; font-size: 1.2rem; font-weight: 800; letter-spacing: 2px; }
-  .ticket-row.win .tnum { color: #22c55e; }
-  .ticket-row.lose .tnum { color: #cbd5e1; }
-  .ticket-row .verdict { font-size: 0.9rem; }
-  .ticket-row.win .verdict { color: #86efac; }
-  .ticket-row.lose .verdict { color: #94a3b8; }
+  /* Thống kê & gợi ý */
+  .stats-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; font-size: .86rem; color: var(--muted); }
+  .heat { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+  .heat .c { border-radius: 6px; padding: 4px 0; text-align: center; border: 1px solid rgba(255,255,255,.06); cursor: pointer; user-select: none; }
+  .heat .c .n { font-weight: 800; font-size: .78rem; }
+  .heat .c .f { font-size: .6rem; opacity: .85; }
+  .heat .c.sel { outline: 2px solid var(--gold); }
+  .legend { display: flex; align-items: center; gap: 8px; font-size: .75rem; color: var(--muted); margin-top: 8px; }
+  .legend .bar { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, hsl(220,65%,40%), hsl(110,65%,40%), hsl(0,65%,40%)); }
+  .lists { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+  @media (max-width: 800px) { .lists { grid-template-columns: 1fr; } }
+  .lst { background: rgba(15,23,42,.4); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .lst h3 { font-size: .78rem; color: var(--gold); text-transform: uppercase; margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font-size: .75rem; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: rgba(30,41,59,.9); border: 1px solid var(--line); }
+  .chip small { color: var(--muted); font-weight: 400; }
+  .sug { background: linear-gradient(135deg, rgba(251,191,36,.1), rgba(168,85,247,.08)); border: 1px solid rgba(251,191,36,.3);
+    border-radius: 12px; padding: 14px; margin-top: 14px; }
+  .sug .sugchips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .sug .sc { font-family: 'Consolas', monospace; font-weight: 800; letter-spacing: 2px; background: rgba(15,23,42,.7); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  .sug .why { font-size: .82rem; color: var(--muted); line-height: 1.55; }
+  .disclaimer { font-size: .78rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
 
   .footer { text-align: center; margin-top: 30px; font-size: 0.85rem; color: #64748b; }
 </style>
@@ -137,13 +163,27 @@
   </header>
 
   <section class="card">
-    <div class="panel-title">🎫 Nhập dãy số dự thưởng</div>
+    <div class="panel-title">🎫 Chọn dãy số dự thưởng</div>
     <div class="hint">
-      Mỗi dãy gồm đúng 6 chữ số. Có thể nhập nhiều dãy, ngăn cách bằng xuống dòng, dấu phẩy hoặc dấu chấm phẩy.<br>
+      Cuộn từng cột để chọn 6 chữ số (cuộn chuột, chạm, bấm số hoặc phím ↑ ↓ khi đang focus cột).
       Giải Đặc Biệt: dãy phải khớp hoàn toàn. Các giải khác: dãy khớp nếu các chữ số cuối trùng với số trúng giải.
     </div>
-    <textarea id="tickets" placeholder="Ví dụ:&#10;123456&#10;778899&#10;002341"></textarea>
-    <div class="ticket-msg" id="ticketMsg"></div>
+    <div class="wheel-row" id="wheelRow"></div>
+    <div class="btnrow">
+      <button type="button" class="btn-blue btn-small" id="btnQuick">🎲 Chọn nhanh</button>
+      <button type="button" class="btn-gold btn-small" id="btnAdd">+ Thêm dãy vào vé</button>
+      <button type="button" class="btn-outline btn-small" id="btnRandom5">Thêm 5 dãy ngẫu nhiên</button>
+    </div>
+    <div class="msg" id="ticketMsg"></div>
+
+    <div class="tlist-head">
+      <span>Các dãy đã chọn</span>
+      <span>
+        <span id="tcount">0 dãy</span>
+        <button type="button" class="btn-outline btn-small" id="btnClearTickets" style="margin-left:6px;padding:3px 8px;font-size:.75rem">Xóa tất cả</button>
+      </span>
+    </div>
+    <div class="tlist" id="tlist"></div>
   </section>
 
   <section class="card">
@@ -156,10 +196,10 @@
     <div class="stage" id="stage">
       <div class="stage-hint">Kéo chuột / chạm để xoay góc nhìn</div>
     </div>
-    <div class="status ready" id="status">Nhập dãy số (nếu có) rồi nhấn Bắt đầu</div>
+    <div class="status ready" id="status">Chọn dãy số (nếu có) rồi nhấn Bắt đầu</div>
     <div class="controls">
-      <button class="btn-draw" id="btnDraw">Bắt đầu quay 18 lượt</button>
-      <button class="btn-reset" id="btnReset">Làm mới</button>
+      <button type="button" class="btn-draw" id="btnDraw">Bắt đầu quay 18 lượt</button>
+      <button type="button" class="btn-outline" id="btnReset">Làm mới</button>
     </div>
   </section>
 
@@ -170,11 +210,62 @@
       <table>
         <thead><tr><th>Giải</th><th>Số trúng</th></tr></thead>
         <tbody id="resultTable">
-          <tr><td colspan="2" style="color:#64748b">Chưa có kết quả.</td></tr>
+          <tr><td colspan="2" class="muted">Chưa có kết quả.</td></tr>
         </tbody>
       </table>
     </div>
     <div id="checkArea"></div>
+  </section>
+
+  <section class="card">
+    <div class="panel-title">📊 Thống kê lô: số nóng · số lạnh</div>
+    <div class="stats-top">
+      <div>
+        Dựa trên: <select id="winSel">
+          <option value="5">5 lần quay gần nhất</option>
+          <option value="20">20 lần quay gần nhất</option>
+          <option value="50" selected>50 lần quay gần nhất</option>
+          <option value="all">Tất cả đã lưu</option>
+        </select>
+      </div>
+      <div><span id="drawsCount">0 lần đã lưu</span>
+        <button type="button" class="btn-outline btn-small" id="btnClearStats" style="margin-left:8px">Xóa thống kê</button>
+      </div>
+    </div>
+    <div class="hint" style="margin-bottom:8px">Thống kê theo <b>2 số cuối</b> (lô) trong các kết quả đã quay trên trình duyệt này. Bấm một ô để đặt 2 cột cuối của dãy số.</div>
+    <div class="heat" id="heat"></div>
+    <div class="legend"><span>Lạnh</span><div class="bar"></div><span>Nóng</span></div>
+    <div class="lists">
+      <div class="lst"><h3>🔥 Lô nóng (về nhiều)</h3><div class="chips" id="hotList"></div></div>
+      <div class="lst"><h3>🧊 Lô lạnh (về ít)</h3><div class="chips" id="coldList"></div></div>
+      <div class="lst"><h3>⏳ Lô gan (lâu chưa về)</h3><div class="chips" id="ganList"></div></div>
+    </div>
+
+    <div class="sug">
+      <div style="font-size:.9rem;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;font-weight:700">💡 Gợi ý dãy số</div>
+      <div class="btnrow" style="margin-top:10px">
+        <label class="muted" style="font-size:.84rem">Chiến lược
+          <select id="sugStrategy">
+            <option value="hot">Theo lô nóng</option>
+            <option value="cold">Theo lô lạnh</option>
+            <option value="mix" selected>Cân bằng (nóng + lạnh)</option>
+          </select>
+        </label>
+        <label class="muted" style="font-size:.84rem">Số dãy
+          <select id="sugCount">
+            <option>1</option><option selected>3</option><option>5</option><option>10</option>
+          </select>
+        </label>
+        <button type="button" class="btn-blue btn-small" id="btnSuggest">Gợi ý</button>
+        <button type="button" class="btn-gold btn-small" id="btnSugAdd" disabled>Thêm gợi ý vào vé</button>
+      </div>
+      <div class="sugchips" id="sugOut"></div>
+      <div class="why" id="sugWhy"></div>
+    </div>
+    <div class="disclaimer">
+      Thống kê và gợi ý chỉ mang tính tham khảo. Các quả bóng được rút ngẫu nhiên và độc lập, nên mỗi số có xác suất
+      như nhau trong mỗi lần quay; lô nóng hay lạnh không làm tăng hay giảm cơ hội trúng ở lần sau.
+    </div>
   </section>
 
   <div class="footer">
@@ -198,14 +289,18 @@
     { name: 'Giải Nhất',     drums: [1,2,3,4,5],   repeats: 1 },
     { name: 'Giải Đặc Biệt', drums: [0,1,2,3,4,5], repeats: 1 },
   ];
-  const ĐB_INDEX = PRIZES.length - 1;
-
+  const DB_INDEX = PRIZES.length - 1;
   const STEPS = [];
   PRIZES.forEach((p, i) => {
     for (let r = 0; r < p.repeats; r++) STEPS.push({ prizeIndex: i, name: p.name, drums: p.drums, repeat: r + 1 });
   });
 
-  // ---------- Hằng số ----------
+  const ITEM_H = 40;
+  const MAX_TICKETS = 50;
+  const STORE_KEY = 'xsmn_draws_v1';
+  const MAX_STORED = 500;
+
+  // ---------- Hằng số 3D ----------
   const DRUM_R = 1.8, BALL_R = 0.3, DRUM_L = 2.0, G = 9, SPACING = 4, MAX_W = 1.6;
   const RLIM = DRUM_R - BALL_R, ZLIM = DRUM_L / 2 - BALL_R;
   const SUB = 1 / 120;
@@ -214,12 +309,15 @@
   const $ = id => document.getElementById(id);
   const stage = $('stage');
   const statusEl = $('status'), numbersEl = $('numbers'), resultTable = $('resultTable');
-  const checkArea = $('checkArea'), stepsEl = $('steps'), ticketsEl = $('tickets'), ticketMsg = $('ticketMsg');
+  const checkArea = $('checkArea'), stepsEl = $('steps');
   const btnDraw = $('btnDraw'), btnReset = $('btnReset');
 
   let busy = false, stepIndex = 0;
-  let tickets = [];                    // các dãy đã nhập hợp lệ
-  let prizeResults = [];               // prizeResults[pi] = mảng các chuỗi số trúng giải pi
+  let tickets = [];                 // [{ id, num }]
+  let ticketSeq = 1;
+  let prizeResults = [];            // prizeResults[pi] = mảng các chuỗi số trúng giải pi
+  let draws = loadDraws();          // [{ id, time, nums:[18 chuỗi 6 số] }]
+  let lastSug = [];
 
   function rot(x, y, a) { const c = Math.cos(a), s = Math.sin(a); return [x * c - y * s, x * s + y * c]; }
   function ease(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
@@ -235,42 +333,234 @@
     });
   }
   function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+  const pad = n => String(n).padStart(2, '0');
+  const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
 
-  // ---------- Nhập & kiểm tra dãy số ----------
-  function parseTickets(text) {
-    return text.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+  // ---------- Lưu trữ ----------
+  function loadDraws() {
+    try { const v = JSON.parse(localStorage.getItem(STORE_KEY)); return Array.isArray(v) ? v : []; }
+    catch (e) { return []; }
   }
-  function validateInput() {
-    const raw = parseTickets(ticketsEl.value);
-    const valid = [], invalid = [];
-    raw.forEach(s => (/^\d{6}$/.test(s) ? valid : invalid).push(s));
-    if (raw.length === 0) {
-      ticketMsg.className = 'ticket-msg';
-      ticketMsg.textContent = 'Chưa nhập dãy số nào. Có thể quay mà không dò vé.';
-    } else if (invalid.length) {
-      ticketMsg.className = 'ticket-msg err';
-      ticketMsg.textContent = 'Có ' + invalid.length + ' dãy không hợp lệ (phải đúng 6 chữ số): ' + invalid.join(', ');
-    } else {
-      ticketMsg.className = 'ticket-msg ok';
-      ticketMsg.textContent = 'Đã nhập ' + valid.length + ' dãy hợp lệ.';
+  function saveDraws() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(draws.slice(-MAX_STORED))); }
+    catch (e) { /* bộ nhớ đầy hoặc bị chặn */ }
+  }
+
+  // ---------- Cột cuộn số ----------
+  const wheels = [];
+  function createWheel(parent, label) {
+    const col = document.createElement('div');
+    col.className = 'wcol';
+    const wrap = document.createElement('div');
+    wrap.className = 'wheel-wrap';
+    wrap.tabIndex = 0;
+    wrap.setAttribute('role', 'spinbutton');
+    wrap.setAttribute('aria-label', label);
+    const el = document.createElement('div');
+    el.className = 'wheel';
+    const items = [];
+    for (let n = 0; n < 10; n++) {
+      const d = document.createElement('div');
+      d.className = 'item';
+      d.textContent = n;
+      d.addEventListener('click', () => set(n, true));
+      el.appendChild(d);
+      items.push(d);
     }
-    return { valid, invalid };
+    const band = document.createElement('div');
+    band.className = 'band';
+    wrap.append(el, band);
+    const lab = document.createElement('div');
+    lab.className = 'wlab';
+    lab.textContent = label;
+    col.append(wrap, lab);
+    parent.appendChild(col);
+
+    let value = 0;
+    function paint() { items.forEach((it, i) => it.classList.toggle('active', i === value)); }
+    function set(v, smooth) {
+      value = v;
+      paint();
+      el.scrollTo({ top: v * ITEM_H, behavior: smooth ? 'smooth' : 'auto' });
+    }
+    el.addEventListener('scroll', () => {
+      const v = Math.max(0, Math.min(9, Math.round(el.scrollTop / ITEM_H)));
+      if (v !== value) { value = v; paint(); }
+    });
+    wrap.addEventListener('keydown', e => {
+      if (e.key === 'ArrowUp') { e.preventDefault(); set((value + 9) % 10, true); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); set((value + 1) % 10, true); }
+    });
+    set(0, false);
+    return {
+      get: () => value,
+      set: (v, smooth) => set(v, !!smooth),
+      setLocked: l => { wrap.style.pointerEvents = l ? 'none' : ''; wrap.style.opacity = l ? '.5' : ''; }
+    };
   }
-  ticketsEl.addEventListener('input', validateInput);
+
+  function buildWheels() {
+    const row = $('wheelRow');
+    row.innerHTML = '';
+    wheels.length = 0;
+    for (let i = 0; i < 6; i++) wheels.push(createWheel(row, PLACES[i]));
+  }
+  function readTicket() { return wheels.map(w => w.get()).join(''); }
+  function setTicket(s) { [...s].forEach((ch, i) => wheels[i].set(Number(ch), true)); }
+  function setWheelsLocked(v) { wheels.forEach(w => w.setLocked(v)); }
+  function randomTicket() { return pad3to6(Math.floor(Math.random() * 1e6)); }
+  function pad3to6(n) { return String(n).padStart(6, '0'); }
+
+  // ---------- Vé ----------
+  function flash(msg, ok) {
+    const f = $('ticketMsg');
+    f.className = 'msg ' + (ok ? 'ok' : 'err');
+    f.textContent = msg;
+  }
+
+  function addTicketNum(num) {
+    if (busy) return false;
+    if (tickets.length >= MAX_TICKETS) { flash('Tối đa ' + MAX_TICKETS + ' dãy.', false); return false; }
+    tickets.push({ id: ticketSeq++, num });
+    renderTickets();
+    return true;
+  }
+
+  function removeTicket(id) {
+    if (busy) return;
+    tickets = tickets.filter(t => t.id !== id);
+    renderTickets();
+  }
+
+  function renderTickets() {
+    $('tcount').textContent = tickets.length + ' dãy';
+    const list = $('tlist');
+    list.innerHTML = '';
+    if (!tickets.length) {
+      list.innerHTML = '<div class="empty">Chưa có dãy nào. Cuộn số rồi bấm “Thêm dãy vào vé”.</div>';
+      return;
+    }
+    const hasResult = prizeResults.some(a => a && a.length);
+    tickets.forEach(t => {
+      const row = document.createElement('div');
+      const wins = hasResult ? findWins(t.num) : [];
+      row.className = 'trow' + (wins.length ? ' win' : (hasResult ? ' lose' : ''));
+      let verdict = '';
+      if (hasResult) verdict = wins.length ? '✓ TRÚNG ' + wins[0].name : '✗ Không trúng';
+      row.innerHTML = '<span class="tid">#' + t.id + '</span><span class="tnum">' + t.num + '</span><span class="tv">' + verdict + '</span>';
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rm';
+      b.textContent = 'Xóa';
+      b.addEventListener('click', () => removeTicket(t.id));
+      row.appendChild(b);
+      list.appendChild(row);
+    });
+  }
 
   // Trả về các giải mà dãy số trúng (từ giải cao xuống thấp)
   function findWins(ticket) {
     const wins = [];
     for (let pi = PRIZES.length - 1; pi >= 0; pi--) {
       (prizeResults[pi] || []).forEach(s => {
-        const hit = (pi === ĐB_INDEX) ? (ticket === s) : (ticket.slice(-s.length) === s);
+        const hit = (pi === DB_INDEX) ? (ticket === s) : (ticket.slice(-s.length) === s);
         if (hit) wins.push({ name: PRIZES[pi].name, num: s });
       });
     }
     return wins;
   }
 
-  // ---------- Three.js ----------
+  // ---------- Thống kê lô ----------
+  function getWindow() { const v = $('winSel').value; return v === 'all' ? 'all' : Number(v); }
+
+  function statsFor(win) {
+    const list = win === 'all' ? draws : draws.slice(-win);
+    const freq = new Array(100).fill(0);
+    const gap = new Array(100).fill(list.length);
+    list.forEach((d, i) => d.nums.forEach(n => {
+      const lo = Number(n.slice(-2));
+      freq[lo]++;
+      gap[lo] = list.length - 1 - i;
+    }));
+    return { n: list.length, freq, gap };
+  }
+
+  function rankings() {
+    const s = statsFor(getWindow());
+    const all = Array.from({ length: 100 }, (_, i) => i);
+    const hot = [...all].sort((a, b) => s.freq[b] - s.freq[a] || s.gap[a] - s.gap[b] || a - b);
+    const cold = [...all].sort((a, b) => s.freq[a] - s.freq[b] || s.gap[b] - s.gap[a] || a - b);
+    const gan = [...all].sort((a, b) => s.gap[b] - s.gap[a] || a - b);
+    return { s, hot, cold, gan };
+  }
+
+  function renderStats() {
+    $('drawsCount').textContent = draws.length + ' lần đã lưu';
+    const { s, hot, cold, gan } = rankings();
+    const hasData = s.n > 0;
+    const max = Math.max(...s.freq), min = Math.min(...s.freq);
+
+    const heat = $('heat');
+    heat.innerHTML = '';
+    for (let lo = 0; lo < 100; lo++) {
+      const rel = max === min ? 0.5 : (s.freq[lo] - min) / (max - min);
+      const hue = Math.round(220 - 220 * rel);
+      const c = document.createElement('div');
+      c.className = 'c';
+      c.style.background = `hsl(${hue}, 60%, ${30 + rel * 14}%)`;
+      c.title = `Lô ${pad(lo)}: về ${s.freq[lo]} lần, cách đây ${hasData ? s.gap[lo] : '-'} lần quay`;
+      c.innerHTML = `<div class="n">${pad(lo)}</div><div class="f">${s.freq[lo]}×</div>`;
+      c.addEventListener('click', () => { if (!busy) setLastTwo(lo); });
+      heat.appendChild(c);
+    }
+
+    const fill = (id, list, extra) => {
+      $(id).innerHTML = hasData
+        ? list.slice(0, 10).map(lo => `<span class="chip">${pad(lo)} <small>${extra(lo)}</small></span>`).join('')
+        : '<span class="muted">Chưa có dữ liệu</span>';
+    };
+    fill('hotList', hot, lo => s.freq[lo] + '×');
+    fill('coldList', cold, lo => s.freq[lo] + '×');
+    fill('ganList', gan, lo => s.gap[lo] + ' lần');
+  }
+
+  function setLastTwo(lo) {
+    const str = pad(lo);
+    wheels[4].set(Number(str[0]), true);
+    wheels[5].set(Number(str[1]), true);
+    flash('Đã đặt 2 số cuối là ' + str + '.', true);
+  }
+
+  // ---------- Gợi ý ----------
+  function suggest() {
+    const { s, hot, cold } = rankings();
+    const strategy = $('sugStrategy').value;
+    const count = Number($('sugCount').value);
+    let pool, why;
+    if (!s.n) {
+      pool = Array.from({ length: 100 }, (_, i) => i);
+      why = 'Chưa có lần quay nào được lưu trên trình duyệt này, nên gợi ý ngẫu nhiên. Hãy quay thêm để có thống kê.';
+    } else if (strategy === 'hot') {
+      pool = hot.slice(0, 20);
+      why = 'Giữ 4 số đầu ngẫu nhiên, 2 số cuối lấy từ 20 lô nóng nhất trong ' + s.n + ' lần quay gần đây.';
+    } else if (strategy === 'cold') {
+      pool = cold.slice(0, 20);
+      why = 'Giữ 4 số đầu ngẫu nhiên, 2 số cuối lấy từ 20 lô lạnh nhất trong ' + s.n + ' lần quay gần đây.';
+    } else {
+      pool = [...new Set([...hot.slice(0, 10), ...cold.slice(0, 10)])];
+      why = 'Giữ 4 số đầu ngẫu nhiên, 2 số cuối lấy từ 10 lô nóng và 10 lô lạnh trong ' + s.n + ' lần quay gần đây.';
+    }
+    lastSug = Array.from({ length: count }, () => {
+      const head = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+      const lo = pool[Math.floor(Math.random() * pool.length)];
+      return head + pad(lo);
+    });
+    $('sugOut').innerHTML = lastSug.map(x => `<span class="sc">${x}</span>`).join('');
+    $('sugWhy').textContent = why + ' Đây chỉ là gợi ý ngẫu nhiên có chọn lọc, không làm tăng cơ hội trúng.';
+    $('btnSugAdd').disabled = false;
+  }
+
+  // ---------- Lồng 3D ----------
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -310,8 +600,7 @@
 
   const frameMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.25 });
   const glassMat = new THREE.MeshPhongMaterial({
-    color: 0x93c5fd, transparent: true, opacity: 0.16, side: THREE.DoubleSide,
-    depthWrite: false, shininess: 100
+    color: 0x93c5fd, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false, shininess: 100
   });
   const holeMat = new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.9 });
   const trayMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.5, roughness: 0.4 });
@@ -340,7 +629,6 @@
   for (let n = 0; n < 10; n++) ballMats.push(makeBallMaterial(n));
   const ballGeo = new THREE.SphereGeometry(BALL_R, 24, 18);
 
-  // ---------- Dựng 6 lồng ----------
   const drums = [];
   for (let i = 0; i < 6; i++) {
     const x = (i - 2.5) * SPACING;
@@ -384,7 +672,6 @@
     drums.push(drum);
   }
 
-  // ---------- Vật lý ----------
   function randomizeBalls(d) {
     d.balls.forEach((b, n) => {
       let x = 0, y = 0, z = 0, ok = false, tries = 0;
@@ -477,7 +764,6 @@
     }
   }
 
-  // ---------- Vòng lặp hiển thị ----------
   let last = performance.now(), acc = 0;
   function loop(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
@@ -503,7 +789,6 @@
   }
   window.addEventListener('resize', resize);
 
-  // Kéo để xoay cụm
   let dragging = false, lastX = 0, lastY = 0;
   const cv = renderer.domElement;
   cv.addEventListener('pointerdown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
@@ -571,7 +856,7 @@
     });
   }
 
-  function showStepResult(step, digits) {
+  function showStepResult(digits) {
     numbersEl.innerHTML = '';
     digits.forEach(num => {
       const chip = document.createElement('div');
@@ -601,22 +886,22 @@
     statusEl.textContent = 'Lượt ' + (stepIndex + 1) + '/18 - ' + step.name + ': đang nhặt bóng...';
     const digits = await Promise.all(active.map(pickFlow));
 
-    showStepResult(step, digits);
+    showStepResult(digits);
     setStepDigits(stepIndex, digits);
     markStep(stepIndex, 'done');
     stepIndex++;
     return digits;
   }
 
-  // ---------- Bảng kết quả & dò vé ----------
+  // ---------- Bảng kết quả & dò ----------
   function renderResultTable() {
     resultTable.innerHTML = '';
     for (let pi = PRIZES.length - 1; pi >= 0; pi--) {
       const nums = prizeResults[pi] || [];
       const tr = document.createElement('tr');
       const cells = nums.map(s => {
-        const hitTickets = tickets.some(t => (pi === ĐB_INDEX ? t === s : t.slice(-s.length) === s));
-        return hitTickets ? '<span class="hit">' + s + '</span>' : s;
+        const hit = tickets.some(t => (pi === DB_INDEX ? t.num === s : t.num.slice(-s.length) === s));
+        return hit ? '<span class="hit">' + s + '</span>' : s;
       });
       tr.innerHTML = '<td>' + PRIZES[pi].name + '</td><td class="nums">' + (cells.length ? cells.join(' · ') : '—') + '</td>';
       resultTable.appendChild(tr);
@@ -628,56 +913,46 @@
       checkArea.innerHTML = '<div class="check-banner neutral">Không có dãy số nào để so sánh.</div>';
       return;
     }
-    const rows = tickets.map(t => {
-      const wins = findWins(t);
-      if (wins.length) {
-        const best = wins[0];
-        const more = wins.length > 1 ? ' (+' + (wins.length - 1) + ' giải khác)' : '';
-        return '<div class="ticket-row win"><span class="tnum">' + t + '</span>' +
-          '<span class="verdict">✓ TRÚNG ' + best.name + ' (số ' + best.num + ')' + more + '</span></div>';
-      }
-      return '<div class="ticket-row lose"><span class="tnum">' + t + '</span>' +
-        '<span class="verdict">✗ Không trúng giải nào</span></div>';
-    }).join('');
-
-    const winCount = tickets.filter(t => findWins(t).length > 0).length;
+    const winCount = tickets.filter(t => findWins(t.num).length > 0).length;
     const banner = winCount > 0
       ? '<div class="check-banner win">🎉 Chúc mừng! Có ' + winCount + ' / ' + tickets.length + ' dãy số trúng giải.</div>'
-      : '<div class="check-banner lose">Rất tiếc, không có dãy số nào trúng giải trong kỳ quay này.</div>';
-
-    checkArea.innerHTML = banner + '<div class="ticket-list">' + rows + '</div>';
+      : '<div class="check-banner lose">Rất tiếc, không có dãy số nào trúng giải trong lần quay này.</div>';
+    renderTickets();
+    checkArea.innerHTML = banner;
   }
 
   // ---------- Điều khiển ----------
-  function setInputsLocked(locked) {
-    ticketsEl.disabled = locked;
-    btnReset.disabled = locked;
+  function lockUI(v) {
+    btnDraw.disabled = v;
+    btnReset.disabled = v;
+    $('btnQuick').disabled = v;
+    $('btnAdd').disabled = v;
+    $('btnRandom5').disabled = v;
+    $('btnClearTickets').disabled = v;
+    $('btnSuggest').disabled = v;
+    $('btnSugAdd').disabled = v || !lastSug.length;
+    $('btnClearStats').disabled = v;
+    setWheelsLocked(v);
   }
 
   async function runAll() {
-    const { valid, invalid } = validateInput();
-    if (invalid.length) {
-      ticketMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    tickets = valid;
-
     busy = true;
-    btnDraw.disabled = true;
-    setInputsLocked(true);
-
+    lockUI(true);
     stepIndex = 0;
     prizeResults = PRIZES.map(() => []);
     numbersEl.innerHTML = '';
     checkArea.innerHTML = '';
+    flash('', true);
     renderSteps();
     renderResultTable();
+    renderTickets();
 
     while (stepIndex < STEPS.length) {
       const step = STEPS[stepIndex];
       const digits = await runStep();
       prizeResults[step.prizeIndex].push(digits.join(''));
       renderResultTable();
+      renderTickets();
       await wait(400);
     }
 
@@ -686,9 +961,12 @@
     renderResultTable();
     renderCheck();
 
+    draws.push({ id: Date.now(), time: new Date().toLocaleString('vi-VN'), nums: prizeResults.flat() });
+    saveDraws();
+    renderStats();
+
     busy = false;
-    btnDraw.disabled = false;
-    setInputsLocked(false);
+    lockUI(false);
   }
 
   function resetAll() {
@@ -696,11 +974,12 @@
     prizeResults = [];
     numbersEl.innerHTML = '';
     checkArea.innerHTML = '';
-    resultTable.innerHTML = '<tr><td colspan="2" style="color:#64748b">Chưa có kết quả.</td></tr>';
+    resultTable.innerHTML = '<tr><td colspan="2" class="muted">Chưa có kết quả.</td></tr>';
     statusEl.className = 'status ready';
-    statusEl.textContent = 'Nhập dãy số (nếu có) rồi nhấn Bắt đầu';
+    statusEl.textContent = 'Chọn dãy số (nếu có) rồi nhấn Bắt đầu';
     drums.forEach(d => { d.omega = 0; randomizeBalls(d); });
     renderSteps();
+    renderTickets();
   }
 
   btnDraw.addEventListener('click', () => {
@@ -708,16 +987,59 @@
     resetAll();
     runAll();
   });
-  btnReset.addEventListener('click', () => {
+  btnReset.addEventListener('click', () => { if (!busy) resetAll(); });
+
+  $('btnQuick').addEventListener('click', () => {
     if (busy) return;
-    resetAll();
+    setTicket(randomTicket());
+    flash('Đã chọn ngẫu nhiên. Bấm “Thêm dãy vào vé” để lưu.', true);
   });
 
-  // Khởi tạo
-  validateInput();
+  $('btnAdd').addEventListener('click', () => {
+    if (busy) return;
+    if (addTicketNum(readTicket())) flash('Đã thêm dãy #' + (ticketSeq - 1) + '.', true);
+  });
+
+  $('btnRandom5').addEventListener('click', () => {
+    if (busy) return;
+    let added = 0;
+    for (let i = 0; i < 5; i++) { if (addTicketNum(randomTicket())) added++; else break; }
+    flash('Đã thêm ' + added + ' dãy ngẫu nhiên.', added > 0);
+  });
+
+  $('btnClearTickets').addEventListener('click', () => {
+    if (busy) return;
+    tickets = [];
+    renderTickets();
+    flash('Đã xóa tất cả dãy.', true);
+  });
+
+  $('winSel').addEventListener('change', renderStats);
+
+  $('btnClearStats').addEventListener('click', () => {
+    if (busy) return;
+    if (!confirm('Xóa toàn bộ kết quả đã lưu trên trình duyệt này?')) return;
+    draws = [];
+    saveDraws();
+    renderStats();
+  });
+
+  $('btnSuggest').addEventListener('click', suggest);
+
+  $('btnSugAdd').addEventListener('click', () => {
+    if (busy || !lastSug.length) return;
+    let added = 0;
+    for (const s of lastSug) { if (addTicketNum(s)) added++; else break; }
+    flash('Đã thêm ' + added + ' dãy gợi ý.', added > 0);
+  });
+
+  // ---------- Khởi tạo ----------
+  buildWheels();
+  renderSteps();
+  renderTickets();
+  renderStats();
   resize();
   drums.forEach(randomizeBalls);
-  renderSteps();
   requestAnimationFrame(t => { last = t; loop(t); });
 })();
 </script>

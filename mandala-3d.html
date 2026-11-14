@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mandala Văn Hoá 3D - Warehouse 3D</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #050508; font-family: system-ui, sans-serif; }
+  canvas { display: block; touch-action: none; }
+
+  #info {
+    position: absolute; top: 16px; left: 16px; right: 170px; color: #fff; z-index: 10;
+    pointer-events: none;
+  }
+  #info .title { font-size: 18px; font-weight: 600; line-height: 1.3; }
+  #info .sub { font-size: 13px; opacity: 0.7; margin-top: 4px; line-height: 1.4; }
+  #info .hint { font-size: 12px; opacity: 0.45; margin-top: 8px; }
+
+  #back { position: absolute; top: 16px; right: 16px; z-index: 10; }
+  #back a {
+    display: inline-block; color: #22d3ee; text-decoration: none; font-size: 14px;
+    padding: 8px 14px; border: 1px solid rgba(34,211,238,0.4); border-radius: 8px;
+    background: rgba(15,23,42,0.4);
+  }
+  #back a:hover, #back a:focus-visible { background: rgba(34,211,238,0.12); border-color: #22d3ee; outline: none; }
+
+  #styles {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; z-index: 10;
+    width: max-content; max-width: calc(100vw - 24px);
+  }
+  #styles button {
+    font-family: inherit; font-size: 13px; color: #e5e7eb; cursor: pointer;
+    padding: 8px 12px; border-radius: 8px; background: rgba(15,23,42,0.6);
+    border: 1px solid rgba(255,255,255,0.15); transition: background 0.15s, border-color 0.15s;
+  }
+  #styles button:hover { background: rgba(255,255,255,0.08); }
+  #styles button:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+  #styles button.active { color: #fff; background: rgba(255,255,255,0.12); border-width: 2px; }
+  #styles button#pause { margin-left: 8px; }
+
+  @media (max-width: 600px) {
+    #info { right: 16px; top: 64px; }
+    #info .title { font-size: 16px; }
+    #info .sub { font-size: 12px; }
+    #back { top: 12px; right: 12px; }
+    #styles button { font-size: 12px; padding: 7px 10px; }
+    #styles button#pause { margin-left: 0; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="info">
+  <div class="title" id="title" aria-live="polite"></div>
+  <div class="sub" id="sub"></div>
+  <div class="hint">Chuột trái: xoay &bull; Cuộn: zoom &bull; Phím 1–6: đổi phong cách &bull; Space: tạm dừng</div>
+</div>
+<div id="back"><a href="index.html">← Trở về menu</a></div>
+<nav id="styles" aria-label="Chọn phong cách mandala"></nav>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// Nhịp chung: mọi lớp đều dùng cùng một tốc độ cơ sở.
+// Lớp chẵn/lẻ quay ngược chiều, tỷ lệ tốc độ đơn giản (1, 0.5, 2...)
+// để các vòng cộng hưởng với nhau thay vì chạy lộn xộn.
+// ============================================================
+const OMEGA = 0.18;          // rad/giây, tốc độ cơ sở
+const BREATH_AMP = 0.012;    // nhịp thở chung: phóng to/thu nhỏ nhẹ, đồng pha cho cả mandala
+const BREATH_FREQ = 0.9;
+
+// ============================================================
+// Scene
+// ============================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050508);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 190);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 60;
+controls.maxDistance = 400;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.25;
+
+scene.add(new THREE.AmbientLight(0x404040, 1.0));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+dirLight.position.set(50, 60, 120);
+scene.add(dirLight);
+const lightA = new THREE.PointLight(0xffffff, 1.2, 400);
+lightA.position.set(0, 0, 90);
+scene.add(lightA);
+
+// ============================================================
+// Helpers
+// ============================================================
+function M(hex, o = {}) {
+  return new THREE.MeshStandardMaterial({
+    color: hex,
+    emissive: hex,
+    emissiveIntensity: o.ei ?? 0.25,
+    metalness: 0.25,
+    roughness: 0.45,
+    side: THREE.DoubleSide,
+    transparent: o.opacity !== undefined,
+    opacity: o.opacity ?? 1
+  });
+}
+
+// Lớp xoay: một nhóm có gốc tại (x, y), quay quanh chính gốc của nó.
+// dir: +1 / -1 / 0 (đứng yên); speed: hệ số nhân với OMEGA.
+function layer(parent, dir = 0, speed = 1, x = 0, y = 0) {
+  const l = new THREE.Group();
+  l.position.set(x, y, 0);
+  l.userData.rate = dir * speed * OMEGA;
+  parent.add(l);
+  return l;
+}
+
+// Cánh giọt nước: gốc tại (0,0), đỉnh hướng +Y.
+function petalGeo(length, width, depth = 0.6) {
+  const s = new THREE.Shape();
+  s.moveTo(0, 0);
+  s.bezierCurveTo(width, length * 0.25, width * 0.8, length * 0.9, 0, length);
+  s.bezierCurveTo(-width * 0.8, length * 0.9, -width, length * 0.25, 0, 0);
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 14 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+
+// Đặt các mesh đều quanh một vòng tròn, hướng ra ngoài.
+function placeRadial(parent, count, radius, geo, mats, { offset = 0, z = 0 } = {}) {
+  const arr = Array.isArray(mats) ? mats : [mats];
+  for (let i = 0; i < count; i++) {
+    const a = offset + (i * Math.PI * 2) / count;
+    const m = new THREE.Mesh(geo, arr[i % arr.length]);
+    m.position.set(Math.cos(a) * radius, Math.sin(a) * radius, z);
+    m.rotation.z = a - Math.PI / 2;
+    parent.add(m);
+  }
+}
+
+// Khung vuông dày (có lỗ rỗng ở giữa), tâm tại (cx, cy).
+function squareFrame(size, t, mat, cx = 0, cy = 0, z = 0) {
+  const h = size / 2;
+  const s = new THREE.Shape();
+  s.moveTo(-h, -h); s.lineTo(h, -h); s.lineTo(h, h); s.lineTo(-h, h); s.closePath();
+  const hi = h - t;
+  const hole = new THREE.Path();
+  hole.moveTo(-hi, -hi); hole.lineTo(-hi, hi); hole.lineTo(hi, hi); hole.lineTo(hi, -hi); hole.closePath();
+  s.holes.push(hole);
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 0.4, bevelEnabled: false }), mat);
+  m.position.set(cx, cy, z);
+  return m;
+}
+
+// Tam giác đều bán kính R; rot = góc của đỉnh đầu tiên.
+function triMesh(R, rot, mat, z = 0) {
+  const s = new THREE.Shape();
+  for (let k = 0; k < 3; k++) {
+    const a = rot + (k * Math.PI * 2) / 3;
+    const x = Math.cos(a) * R, y = Math.sin(a) * R;
+    if (k === 0) s.moveTo(x, y); else s.lineTo(x, y);
+  }
+  s.closePath();
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(s), mat);
+  m.position.z = z;
+  return m;
+}
+
+function torus(r, tube, mat, arc = Math.PI * 2) {
+  return new THREE.Mesh(new THREE.TorusGeometry(r, tube, 8, 160, arc), mat);
+}
+
+function sphere(r, mat, x = 0, y = 0, z = 0) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 24), mat);
+  m.position.set(x, y, z);
+  return m;
+}
+
+function box(w, h, d, mat, x = 0, y = 0, z = 0) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  return m;
+}
+
+// ============================================================
+// 1. Mandala Cát Tây Tạng
+// Khung ngoài: lớp chậm quay ngược. Cổng và vành lửa: quay thuận.
+// Vành sen 16 quay ngược, vành 8 quay thuận nhanh hơn. Ngũ Phật đứng yên ở tâm.
+// ============================================================
+function buildTibetan() {
+  const g = new THREE.Group();
+  const blue = 0x1e3a8a, gold = 0xe0a526, red = 0xb91c1c, white = 0xf5f0e6, green = 0x0f766e;
+
+  const frame = layer(g, -1, 0.4);
+  frame.add(squareFrame(104, 1.4, M(blue)));
+  frame.add(squareFrame(92, 0.9, M(gold)));
+
+  const gates = layer(g, 1, 1);
+  for (let k = 0; k < 4; k++) {
+    const h = new THREE.Group();
+    h.rotation.z = (k * Math.PI) / 2;
+    const gate = new THREE.Group();
+    gate.position.set(0, -46, 0);
+    gate.add(box(3, 12, 2, M(red), 0, 6, 0));
+    gate.add(box(16, 3, 2, M(gold), 0, 12, 0));
+    h.add(gate);
+    gates.add(h);
+  }
+
+  placeRadial(layer(g, -1, 1), 36, 56, new THREE.ConeGeometry(1.2, 4, 6), M(red, { ei: 0.5 }));
+  placeRadial(layer(g, -1, 1), 16, 30, petalGeo(10, 3.4), M(white));
+  placeRadial(layer(g, 1, 1.5), 8, 16, petalGeo(8, 3), M(gold), { offset: Math.PI / 8 });
+
+  const buddhas = layer(g, 0);
+  buddhas.add(sphere(2.6, M(white, { ei: 0.6 }), 0, 0, 1));
+  buddhas.add(sphere(2.4, M(blue, { ei: 0.5 }), 6, 0, 0));
+  buddhas.add(sphere(2.4, M(gold, { ei: 0.5 }), 0, -6, 0));
+  buddhas.add(sphere(2.4, M(red, { ei: 0.5 }), -6, 0, 0));
+  buddhas.add(sphere(2.4, M(green, { ei: 0.5 }), 0, 6, 0));
+  return g;
+}
+
+// ============================================================
+// 2. Sri Yantra
+// Tam giác hướng xuống và hướng lên xoay ngược nhau: đó là hình ảnh Shiva–Shakti.
+// ============================================================
+function buildSriYantra() {
+  const g = new THREE.Group();
+  const brown = 0x7c2d12, cream = 0xf5f5f4, gold = 0xeab308, orange = 0xf97316;
+  const red = 0xb91c1c, crimson = 0xdc2626;
+
+  const frames = layer(g, -1, 0.4);
+  frames.add(squareFrame(104, 1.2, M(brown)));
+  frames.add(squareFrame(94, 1.0, M(cream)));
+  frames.add(squareFrame(84, 1.0, M(gold)));
+
+  placeRadial(layer(g, 1, 0.8), 16, 36, petalGeo(14, 4.2), M(orange));
+
+  [31, 28, 25].forEach((r) => g.add(torus(r, 0.5, M(gold))));
+
+  const down = layer(g, 1, 0.6);
+  for (let k = 0; k < 5; k++) {
+    down.add(triMesh(23 - k * 3.6, -Math.PI / 2, M(red, { opacity: 0.85 }), 0.05 + k * 0.05));
+  }
+  const up = layer(g, -1, 0.6);
+  for (let k = 0; k < 4; k++) {
+    up.add(triMesh(20 - k * 4.2, Math.PI / 2, M(crimson, { opacity: 0.85 }), 0.4 + k * 0.05));
+  }
+
+  g.add(sphere(1.8, new THREE.MeshStandardMaterial({ color: 0x0a0a0a, emissive: gold, emissiveIntensity: 0.8 })));
+  return g;
+}
+
+// ============================================================
+// 3. Cửa sổ hoa hồng Gothic
+// Viền tròn đứng yên. Cánh ngoài chậm, cánh ruby quay ngược, oculus nhanh nhất.
+// ============================================================
+function buildGothicRose() {
+  const g = new THREE.Group();
+  const blue = 0x1d4ed8, ruby = 0xb91c1c, purple = 0x4c1d95, gold = 0xfacc15;
+
+  g.add(torus(64, 1.2, M(gold)));
+  g.add(torus(60, 0.8, M(blue)));
+
+  placeRadial(layer(g, 1, 0.6), 12, 42, petalGeo(18, 7.5), [M(blue, { ei: 0.4 }), M(purple, { ei: 0.4 })]);
+  placeRadial(layer(g, -1, 1), 8, 20, petalGeo(12, 5), M(ruby, { ei: 0.4 }));
+
+  const oculus = layer(g, 1, 1.8);
+  oculus.add(torus(9, 0.8, M(gold)));
+  placeRadial(oculus, 6, 5, petalGeo(6, 2.4), M(gold));
+
+  const tracery = layer(g, -1, 0.5);
+  for (let k = 0; k < 4; k++) {
+    const h = new THREE.Group();
+    h.rotation.z = (k * Math.PI) / 2 + Math.PI / 4;
+    h.add(torus(51, 0.6, M(purple), Math.PI / 2));
+    tracery.add(h);
+  }
+  return g;
+}
+
+// ============================================================
+// 4. Mandala hoa sen
+// Bánh xe pháp quay chậm. Ba vành cánh quay luân phiên ngược chiều.
+// ============================================================
+function buildLotus() {
+  const g = new THREE.Group();
+  const gold = 0xd4a017, pink = 0xec407a, lightPink = 0xf9a8d4, ivory = 0xfef3c7, water = 0x38bdf8;
+
+  const wheel = layer(g, 1, 0.6);
+  wheel.add(torus(8, 0.6, M(gold)));
+  for (let i = 0; i < 8; i++) {
+    const h = new THREE.Group();
+    h.rotation.z = (i * Math.PI) / 4;
+    h.add(box(0.8, 14, 0.8, M(gold)));
+    wheel.add(h);
+  }
+  wheel.add(sphere(1.8, M(gold, { ei: 0.6 })));
+
+  placeRadial(layer(g, -1, 1.2), 8, 10, petalGeo(12, 4), M(pink));
+  placeRadial(layer(g, 1, 0.8), 16, 26, petalGeo(22, 9), M(lightPink));
+  placeRadial(layer(g, -1, 0.5), 24, 42, petalGeo(18, 6), M(ivory));
+
+  const drop = sphere(2, M(water, { opacity: 0.9 }), 0, -58, 0);
+  drop.scale.set(1, 1.5, 1);
+  g.add(drop);
+  return g;
+}
+
+// ============================================================
+// 5. Tranh cát Navajo
+// Lưới bậc thang quay chậm cùng chiều. Cầu vồng quay ngược. Ngô quay nhanh.
+// ============================================================
+function buildNavajo() {
+  const g = new THREE.Group();
+  const white = 0xf5f5f0, turq = 0x00838f, yellow = 0xd4a017, red = 0xb45309;
+
+  const cells = layer(g, 1, 0.5);
+  for (let i = -6; i <= 6; i++) {
+    for (let j = -6; j <= 6; j++) {
+      const d = Math.abs(i) + Math.abs(j);
+      if (d > 6 || d % 2 !== 0) continue;
+      let c;
+      if (Math.abs(i) >= Math.abs(j)) c = i > 0 ? white : yellow;
+      else c = j > 0 ? red : turq;
+      cells.add(box(5.6, 5.6, 0.6, M(c, { ei: 0.2 }), i * 6, j * 6, 0));
+    }
+  }
+
+  // 4 trục đối xứng đứng yên làm khung
+  const axis = M(0x3f3f46);
+  g.add(box(92, 0.5, 0.5, axis));
+  g.add(box(0.5, 92, 0.5, axis));
+  const d1 = box(92, 0.5, 0.5, axis); d1.rotation.z = Math.PI / 4; g.add(d1);
+  const d2 = box(92, 0.5, 0.5, axis); d2.rotation.z = -Math.PI / 4; g.add(d2);
+
+  const rainbow = layer(g, -1, 0.3);
+  [[52, turq], [56, yellow], [60, red], [64, white]].forEach(([r, c]) => {
+    const arc = new THREE.Mesh(new THREE.TorusGeometry(r, 0.9, 8, 120, Math.PI), M(c));
+    arc.rotation.z = Math.PI;
+    rainbow.add(arc);
+  });
+
+  const corn = layer(g, 1, 1);
+  const cornMat = M(0xfacc15, { ei: 0.5 });
+  for (let k = 0; k < 4; k++) {
+    const h = new THREE.Group();
+    h.rotation.z = (k * Math.PI) / 2;
+    for (let s = 0; s < 5; s++) h.add(sphere(1.3, cornMat, -2 + s, 40, 0));
+    corn.add(h);
+  }
+  return g;
+}
+
+// ============================================================
+// 6. Kongōkai
+// Khung lưới đứng yên. Mỗi ô con quay tại chỗ (quanh tâm ô của chính nó).
+// Ô trung tâm (37 điểm) quay ngược với 8 ô xung quanh, tạo cảm giác đối lập hài hòa.
+// ============================================================
+function buildJapanese() {
+  const g = new THREE.Group();
+  const red = 0xc62828, gold = 0xd4a84b, ivory = 0xf5efe0, ink = 0x1a1a1a;
+
+  g.add(torus(72, 1.2, M(red)));
+
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      g.add(squareFrame(24, 0.6, M(gold), i * 26, j * 26));
+    }
+  }
+
+  // Ô trung tâm: 37 điểm = 1 + 8 + 12 + 16, quay thuận
+  const center = layer(g, 1, 0.5);
+  center.add(sphere(1.3, M(gold, { ei: 0.6 }), 0, 0, 0.5));
+  [[3.5, 8], [7, 12], [10, 16]].forEach(([r, n]) => {
+    for (let k = 0; k < n; k++) {
+      const a = (k * Math.PI * 2) / n;
+      center.add(sphere(0.6, M(ivory, { ei: 0.5 }), Math.cos(a) * r, Math.sin(a) * r, 0.5));
+    }
+  });
+
+  // 8 ô còn lại: mỗi ô 9 điểm 3×3, quay ngược, quanh tâm ô
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      if (i === 0 && j === 0) continue;
+      const cell = layer(g, -1, 0.5, i * 26, j * 26);
+      for (let a = -1; a <= 1; a++) {
+        for (let b = -1; b <= 1; b++) {
+          cell.add(sphere(0.9, M(ivory, { ei: 0.4 }), a * 6, b * 6, 0.5));
+        }
+      }
+    }
+  }
+
+  // Sao 8 tia vàng: quay chậm
+  const star = layer(g, -1, 0.3);
+  for (let k = 0; k < 8; k++) {
+    const h = new THREE.Group();
+    h.rotation.z = (k * Math.PI) / 4;
+    h.add(box(0.7, 30, 0.7, M(gold, { ei: 0.5 }), 0, 0, 0.8));
+    star.add(h);
+  }
+  g.add(sphere(2.5, M(ink, { ei: 0.8 }), 0, 0, 1.2));
+  return g;
+}
+
+// ============================================================
+// Danh mục 6 phong cách
+// ============================================================
+const STYLES = [
+  { key: 'tibetan',    label: '1. Cát Tây Tạng', title: 'Mandala Cát Tây Tạng (Kilkhora)',
+    sub: 'Cung vuông 4 cổng, vành sen 16 cánh, Ngũ Trí Như Lai',       accent: '#E53935', build: buildTibetan },
+  { key: 'sriYantra',  label: '2. Sri Yantra',   title: 'Sri Yantra (Shri Chakra)',
+    sub: 'Bhupura vuông, 9 tam giác lồng nhau, bindu ở tâm',           accent: '#D32F2F', build: buildSriYantra },
+  { key: 'gothicRose', label: '3. Hoa hồng Gothic', title: 'Cửa sổ hoa hồng Gothic',
+    sub: 'Kính màu ghép chì, 12 cánh ngoài, oculus ở tâm',              accent: '#5E35B1', build: buildGothicRose },
+  { key: 'lotus',      label: '4. Hoa sen',      title: 'Mandala Hoa Sen Phật giáo',
+    sub: 'Bánh xe pháp 8 căm, 3 vành cánh sen, giọt nước',              accent: '#EC407A', build: buildLotus },
+  { key: 'navajo',     label: '5. Tranh cát Navajo', title: 'Tranh cát Navajo (Iikááh)',
+    sub: 'Bậc thang 4 màu thiêng, 4 trục, cầu vồng, hạt ngô',           accent: '#00897B', build: buildNavajo },
+  { key: 'japanese',   label: '6. Kongōkai',     title: 'Mandala Kongōkai Nhật Bản',
+    sub: 'Lưới 3×3, 37 hiện thân trong ô trung tâm, sao 8 tia',         accent: '#C62828', build: buildJapanese }
+];
+
+// ============================================================
+// Chuyển đổi phong cách
+// ============================================================
+const holder = new THREE.Group();
+scene.add(holder);
+let current = null;
+
+function disposeGroup(group) {
+  group.traverse((o) => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) {
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.dispose());
+    }
+  });
+}
+
+const titleEl = document.getElementById('title');
+const subEl = document.getElementById('sub');
+const stylesEl = document.getElementById('styles');
+const buttons = {};
+
+STYLES.forEach((s) => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = s.label;
+  btn.setAttribute('aria-pressed', 'false');
+  btn.addEventListener('click', () => setStyle(s.key));
+  stylesEl.appendChild(btn);
+  buttons[s.key] = btn;
+});
+
+const pauseBtn = document.createElement('button');
+pauseBtn.type = 'button';
+pauseBtn.id = 'pause';
+pauseBtn.textContent = '⏸ Tạm dừng';
+pauseBtn.setAttribute('aria-pressed', 'false');
+pauseBtn.addEventListener('click', togglePause);
+stylesEl.appendChild(pauseBtn);
+
+let paused = false;
+function togglePause() {
+  paused = !paused;
+  controls.autoRotate = !paused;
+  pauseBtn.textContent = paused ? '▶ Tiếp tục' : '⏸ Tạm dừng';
+  pauseBtn.setAttribute('aria-pressed', String(paused));
+}
+
+function setStyle(key) {
+  const s = STYLES.find((x) => x.key === key);
+  if (!s) return;
+  if (current) {
+    holder.remove(current);
+    disposeGroup(current);
+  }
+  current = s.build();
+  holder.add(current);
+
+  titleEl.textContent = s.title;
+  titleEl.style.color = s.accent;
+  subEl.textContent = s.sub;
+  document.title = `${s.title} - Warehouse 3D`;
+
+  Object.entries(buttons).forEach(([k, b]) => {
+    const active = k === key;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-pressed', String(active));
+    b.style.borderColor = active ? s.accent : '';
+  });
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLButtonElement) return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    togglePause();
+    return;
+  }
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= STYLES.length) setStyle(STYLES[n - 1].key);
+});
+
+// ============================================================
+// Vòng lặp hiển thị
+// Mọi lớp đọc cùng một đồng hồ thời gian nên luôn đồng bộ.
+// Khi tạm dừng, thời gian ngừng trôi: mandala đứng đúng tư thế đang có.
+// ============================================================
+const clock = new THREE.Clock();
+let elapsed = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  if (!paused) {
+    elapsed += dt;
+    if (current) {
+      current.traverse((o) => {
+        if (o.userData.rate !== undefined) o.rotation.z = elapsed * o.userData.rate;
+      });
+      holder.scale.setScalar(1 + BREATH_AMP * Math.sin(elapsed * BREATH_FREQ));
+    }
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+setStyle('tibetan');
+animate();
+</script>
+</body>
+</html>
