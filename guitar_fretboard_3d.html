@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111820" />
+  <title>Guitar Fretboard 3D — Bản đồ nốt nhạc</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10171e;
+      --panel: #17222c;
+      --panel-soft: #1c2934;
+      --line: rgba(190, 211, 225, .12);
+      --text: #eef4f8;
+      --muted: #9aabb8;
+      --accent: #67d7c1;
+      --accent-2: #f0c36b;
+      --danger: #ff8b80;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body {
+      background: radial-gradient(ellipse at 64% 40%, #1b2b36 0%, #111a22 48%, #0c1218 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, select, input { font: inherit; }
+    .app { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+    .topbar {
+      height: 68px; flex: 0 0 68px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; border-bottom: 1px solid var(--line); background: rgba(13, 20, 27, .76);
+      backdrop-filter: blur(12px); z-index: 2;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px;
+      background: linear-gradient(145deg, #6bdfc7, #279c91); color: #08231f; font-size: 20px; font-weight: 900;
+      box-shadow: 0 5px 22px rgba(60, 210, 183, .16);
+    }
+    .brand h1 { margin: 0; font-size: 15px; letter-spacing: .02em; font-weight: 750; }
+    .brand p { margin: 3px 0 0; font-size: 11px; color: var(--muted); }
+    .top-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
+    .version { border: 1px solid rgba(103,215,193,.25); color: #9be9da; background: rgba(103,215,193,.08); padding: 6px 9px; border-radius: 999px; }
+    .layout { display: grid; grid-template-columns: 294px minmax(0, 1fr); flex: 1; min-height: 0; }
+    aside {
+      overflow-y: auto; padding: 18px 16px 22px; background: rgba(19, 29, 38, .9); border-right: 1px solid var(--line);
+    }
+    .section { margin-bottom: 20px; }
+    .eyebrow { margin: 0 0 10px; color: #7f95a5; font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .tuning-card, .info-card, .hint-card {
+      border: 1px solid var(--line); background: linear-gradient(145deg, rgba(34,49,61,.86), rgba(24,36,46,.9));
+      border-radius: 13px; padding: 12px;
+    }
+    .tuning-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .tuning-head strong { font-size: 12px; }
+    .mini-pill { font-size: 9px; color: #92ddcf; border-radius: 999px; background: rgba(103,215,193,.1); padding: 4px 7px; }
+    .string-list { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+    .string-chip { text-align: center; border: 1px solid rgba(255,255,255,.08); background: rgba(5,12,18,.24); border-radius: 8px; padding: 7px 1px 6px; }
+    .string-chip b { display: block; font-size: 15px; color: #f5f0dc; }
+    .string-chip span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .field-label { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 7px; font-size: 11px; font-weight: 650; color: #dce6ec; }
+    .field-label small { font-size: 10px; color: var(--muted); font-weight: 450; }
+    select {
+      width: 100%; height: 40px; border-radius: 9px; border: 1px solid rgba(180,205,220,.17);
+      background: #111c25; color: var(--text); padding: 0 11px; outline: none;
+    }
+    select:focus, button:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(103,215,193,.12); }
+    .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(190,211,225,.08); }
+    .control-row:last-child { border-bottom: 0; }
+    .control-row .row-title { font-size: 11px; color: #dce6ec; }
+    .control-row .row-sub { margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .switch { position: relative; width: 36px; height: 20px; flex: 0 0 auto; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch span { position: absolute; inset: 0; border-radius: 30px; cursor: pointer; background: #3a4b57; transition: .2s; }
+    .switch span::before { content: ""; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #eaf1f4; border-radius: 50%; transition: .2s; }
+    .switch input:checked + span { background: #299f8b; }
+    .switch input:checked + span::before { transform: translateX(16px); background: white; }
+    .info-card { min-height: 118px; border-color: rgba(103,215,193,.18); }
+    .info-kicker { color: #8da4b2; text-transform: uppercase; letter-spacing: .12em; font-size: 9px; font-weight: 800; }
+    .note-big { font-size: 34px; line-height: 1.05; font-weight: 800; color: #f5d27f; margin: 7px 0 8px; }
+    .note-meta { color: #b5c4ce; font-size: 10px; line-height: 1.7; }
+    .hint-card { font-size: 10px; line-height: 1.7; color: #aab9c3; }
+    .hint-card b { color: #e5edf2; }
+    .button-row { display: flex; gap: 8px; }
+    button {
+      min-height: 36px; border: 1px solid rgba(180,205,220,.16); border-radius: 9px; padding: 0 10px;
+      color: #deebef; background: rgba(255,255,255,.045); cursor: pointer; font-size: 10px; font-weight: 650;
+      transition: .18s ease;
+    }
+    button:hover { background: rgba(103,215,193,.1); border-color: rgba(103,215,193,.38); }
+    button.primary { background: rgba(103,215,193,.13); border-color: rgba(103,215,193,.25); color: #9be9da; }
+    .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+    #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+    .stage-heading { position: absolute; z-index: 1; top: 20px; left: 22px; pointer-events: none; }
+    .stage-heading h2 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+    .stage-heading p { margin: 5px 0 0; color: #91a4b1; font-size: 10px; }
+    .stage-tools { position: absolute; z-index: 1; top: 18px; right: 18px; display: flex; gap: 7px; }
+    .stage-tools button { background: rgba(15,25,33,.72); backdrop-filter: blur(8px); }
+    .legend {
+      position: absolute; z-index: 1; left: 20px; bottom: 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+      padding: 9px 12px; border: 1px solid rgba(190,211,225,.12); border-radius: 10px;
+      background: rgba(14,22,29,.72); backdrop-filter: blur(8px); color: #aebdc7; font-size: 9px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: #48b6a8; }
+    .legend-dot.sharp { background: #7d8d9c; }
+    .legend-dot.focus { background: #f0c36b; box-shadow: 0 0 9px rgba(240,195,107,.5); }
+    .stage-tip { position: absolute; z-index: 1; right: 20px; bottom: 20px; color: #93a6b3; font-size: 9px; text-align: right; pointer-events: none; }
+    .loading {
+      position: absolute; inset: 0; display: grid; place-items: center; color: #a6b9c5; font-size: 12px;
+      background: radial-gradient(ellipse at center, rgba(25,42,53,.5), rgba(12,19,25,.25)); pointer-events: none;
+    }
+    .loading.hidden { display: none; }
+    .error { color: var(--danger); padding: 20px; max-width: 520px; line-height: 1.6; text-align: center; }
+    .source-line { color: #758a98; font-size: 9px; line-height: 1.55; }
+    .source-line a { color: #8acfc3; text-decoration: none; }
+    .source-line a:hover { text-decoration: underline; }
+    @media (max-width: 800px) {
+      html, body { overflow: auto; }
+      .app { min-height: 100%; height: auto; }
+      .topbar { height: 60px; flex-basis: 60px; padding: 0 14px; }
+      .layout { display: flex; flex-direction: column; min-height: 0; }
+      aside { order: 2; overflow: visible; border-right: 0; border-top: 1px solid var(--line); padding: 16px; }
+      .stage { order: 1; height: 60vh; min-height: 410px; }
+      .top-meta > span:first-child { display: none; }
+      .stage-heading { top: 14px; left: 14px; }
+      .stage-heading h2 { font-size: 14px; }
+      .stage-tools { top: 10px; right: 10px; }
+      .stage-tools button { padding: 0 8px; }
+      .legend { left: 10px; bottom: 10px; gap: 8px; }
+      .stage-tip { display: none; }
+      .section { margin-bottom: 16px; }
+    }
+    @media (max-width: 430px) {
+      .brand p { display: none; }
+      .version { font-size: 9px; }
+      .stage { height: 54vh; min-height: 360px; }
+      .legend { max-width: calc(100% - 20px); font-size: 8px; }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">♪</div>
+        <div>
+          <h1>GUITAR NOTE LAB</h1>
+          <p>Bản đồ nốt nhạc trên cần đàn guitar 6 dây</p>
+        </div>
+      </div>
+      <div class="top-meta"><span>Mô hình học tập tương tác</span><span class="version">Three.js r187</span></div>
+    </header>
+
+    <div class="layout">
+      <aside>
+        <section class="section">
+          <p class="eyebrow">01 / Lên dây</p>
+          <div class="tuning-card">
+            <div class="tuning-head"><strong>Standard tuning</strong><span class="mini-pill">E A D G B E</span></div>
+            <div class="string-list" aria-label="Thứ tự dây từ dây 1 đến dây 6">
+              <div class="string-chip"><b>E</b><span>Dây 1 · E4</span></div>
+              <div class="string-chip"><b>B</b><span>Dây 2 · B3</span></div>
+              <div class="string-chip"><b>G</b><span>Dây 3 · G3</span></div>
+              <div class="string-chip"><b>D</b><span>Dây 4 · D3</span></div>
+              <div class="string-chip"><b>A</b><span>Dây 5 · A2</span></div>
+              <div class="string-chip"><b>E</b><span>Dây 6 · E2</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <p class="eyebrow">02 / Lọc nốt nhạc</p>
+          <label class="field-label" for="noteFilter">Nốt muốn tìm <small>Highlight mọi vị trí</small></label>
+          <select id="noteFilter">
+            <option value="-1">Tất cả nốt</option>
+            <option value="0">C</option>
+            <option value="1">C♯ / D♭</option>
+            <option value="2">D</option>
+            <option value="3">D♯ / E♭</option>
+            <option value="4">E</option>
+            <option value="5">F</option>
+            <option value="6">F♯ / G♭</option>
+            <option value="7">G</option>
+            <option value="8">G♯ / A♭</option>
+            <option value="9">A</option>
+            <option value="10">A♯ / B♭</option>
+            <option value="11">B</option>
+          </select>
+          <div style="height:13px"></div>
+          <div class="control-row">
+            <div><div class="row-title">Hiện tên nốt trên phím</div><div class="row-sub">Ẩn chữ, vẫn giữ điểm để chọn</div></div>
+            <label class="switch"><input id="labelsToggle" type="checkbox" checked /><span></span></label>
+          </div>
+        </section>
+
+        <section class="section">
+          <p class="eyebrow">03 / Vị trí được chọn</p>
+          <div class="info-card" aria-live="polite">
+            <div class="info-kicker" id="infoKicker">Chưa chọn vị trí</div>
+            <div class="note-big" id="noteBig">—</div>
+            <div class="note-meta" id="noteMeta">Nhấn vào một điểm trên cần đàn để xem tên nốt, dây, ngăn và tần số.</div>
+          </div>
+        </section>
+
+        <section class="section">
+          <p class="eyebrow">04 / Điều khiển</p>
+          <div class="hint-card">
+            <b>Chuột:</b> kéo trái để xoay · cuộn để phóng to/thu nhỏ · kéo phải để dịch chuyển.<br />
+            <b>Chạm:</b> vuốt để xoay · chụm hai ngón để zoom · chạm vào điểm nốt để nghe âm thanh.<br />
+            <b>Quy luật:</b> mỗi ngăn tăng 1 bán cung; ngăn 12 lặp lại tên nốt dây buông ở quãng tám cao hơn.
+          </div>
+          <div style="height:10px"></div>
+          <div class="button-row">
+            <button class="primary" id="resetCamera" type="button">⟳ Góc nhìn ban đầu</button>
+            <button id="clearSelection" type="button">Bỏ chọn</button>
+          </div>
+        </section>
+
+        <section class="section" style="margin-bottom:0">
+          <p class="eyebrow">Nguồn tham khảo</p>
+          <div class="source-line">
+            <a href="https://threejs.org/manual/pages/installation.html" target="_blank" rel="noopener">Three.js Manual</a> ·
+            <a href="https://fretfool.com/tunings/standard/" target="_blank" rel="noopener">Standard tuning EADGBE</a> ·
+            <a href="https://yourguitarbrain.com/wp-content/uploads/2022/03/Right-Handed-Guitar-Fretboard_12-Fret-24-Fret_963_Yourguitarbrain.com_.pdf" target="_blank" rel="noopener">Fretboard chart</a>.
+          </div>
+        </section>
+      </aside>
+
+      <main class="stage">
+        <div class="stage-heading"><h2>Cấu trúc cần đàn 3D</h2><p>Chọn từng vị trí để khám phá cao độ trên 6 dây</p></div>
+        <div class="stage-tools">
+          <button id="viewTop" type="button" title="Nhìn từ trên xuống">Nhìn từ trên</button>
+          <button id="viewAngle" type="button" title="Góc nhìn 3D">Góc 3D</button>
+        </div>
+        <canvas id="scene" aria-label="Mô hình cần đàn guitar 3D tương tác"></canvas>
+        <div class="loading" id="loading">Đang tải mô hình 3D…</div>
+        <div class="legend">
+          <span class="legend-item"><i class="legend-dot"></i>Nốt tự nhiên</span>
+          <span class="legend-item"><i class="legend-dot sharp"></i>Nốt thăng / giáng</span>
+          <span class="legend-item"><i class="legend-dot focus"></i>Nốt đang lọc</span>
+        </div>
+        <div class="stage-tip">Kéo để xoay mô hình · Nhấn vào nốt để nghe</div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const canvas = document.getElementById('scene');
+    const loading = document.getElementById('loading');
+    const noteFilter = document.getElementById('noteFilter');
+    const labelsToggle = document.getElementById('labelsToggle');
+    const infoKicker = document.getElementById('infoKicker');
+    const noteBig = document.getElementById('noteBig');
+    const noteMeta = document.getElementById('noteMeta');
+
+    const NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+    // MIDI standard tuning, ordered from string 1 (highest) to string 6 (lowest).
+    const OPEN_MIDI = [64, 59, 55, 50, 45, 40];
+    const STRING_LABELS = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
+    const PITCH_COLORS = [0x43b9a6, 0x788b9c, 0x54b7a2, 0x788b9c, 0x43b9a6, 0x54b7a2, 0x788b9c, 0x43b9a6, 0x788b9c, 0x43b9a6, 0x788b9c, 0x54b7a2];
+    const BOARD_LENGTH = 13;
+    const BOARD_WIDTH = 2.45;
+    const STRING_SPACING = BOARD_WIDTH / 6;
+    const FRET_WIRE_WIDTH = 0.045;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111b24);
+    scene.fog = new THREE.Fog(0x111b24, 23, 48);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.up.set(0, 0, 1);
+    const target = new THREE.Vector3(6.5, 0, 0);
+    camera.position.set(8.3, -11.8, 12.2);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.copy(target);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 7;
+    controls.maxDistance = 34;
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.update();
+
+    scene.add(new THREE.HemisphereLight(0xc8e7ff, 0x342218, 1.15));
+    const keyLight = new THREE.DirectionalLight(0xffe5c2, 2.3);
+    keyLight.position.set(3, -5, 14);
+    scene.add(keyLight);
+    const rimLight = new THREE.DirectionalLight(0x82c8e0, 1.15);
+    rimLight.position.set(-7, 8, 8);
+    scene.add(rimLight);
+
+    const mat = (color, roughness = 0.55, metalness = 0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
+    const woodMat = mat(0x5e3826, 0.78);
+    const boardMat = mat(0x241812, 0.62);
+    const fretMat = mat(0xc6d0d4, 0.25, 0.82);
+    const stringMat = mat(0xcbd3d6, 0.22, 0.86);
+    const nutMat = mat(0xe6dec8, 0.45, 0.12);
+    const darkMat = mat(0x111820, 0.5, 0.25);
+    const inlayMat = mat(0xb7bec0, 0.3, 0.35);
+    const guitarGroup = new THREE.Group();
+    scene.add(guitarGroup);
+
+    function fretX(fret) {
+      const denominator = 1 - Math.pow(2, -24 / 12);
+      return BOARD_LENGTH * (1 - Math.pow(2, -fret / 12)) / denominator;
+    }
+    const maxFrets = () => 24;
+    const boardEnd = fretX(25);
+    const boardTotalLength = boardEnd + 0.12;
+
+    function addBox(parent, size, position, material, bevel = false) {
+      let geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(position[0], position[1], position[2]);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return mesh;
+    }
+
+    // Neck core, fingerboard and tapered headstock.
+    addBox(guitarGroup, [boardTotalLength + 0.85, BOARD_WIDTH + 0.28, 0.25], [boardEnd / 2 + 0.08, 0, -0.16], woodMat);
+    addBox(guitarGroup, [boardTotalLength, BOARD_WIDTH, 0.11], [boardEnd / 2, 0, -0.005], boardMat);
+
+    const headShape = new THREE.Shape();
+    headShape.moveTo(-2.75, -0.88);
+    headShape.lineTo(-0.17, -1.23);
+    headShape.lineTo(-0.02, -1.24);
+    headShape.lineTo(-0.02, 1.24);
+    headShape.lineTo(-0.17, 1.23);
+    headShape.lineTo(-2.75, 0.88);
+    headShape.lineTo(-2.95, 0.68);
+    headShape.lineTo(-2.95, -0.68);
+    headShape.closePath();
+    const headGeo = new THREE.ExtrudeGeometry(headShape, { depth: 0.2, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.035, bevelThickness: 0.025 });
+    const headMesh = new THREE.Mesh(headGeo, woodMat);
+    headMesh.position.z = -0.12;
+    headMesh.castShadow = true;
+    guitarGroup.add(headMesh);
+
+    // Nut and bridge/saddle details.
+    addBox(guitarGroup, [0.11, BOARD_WIDTH + 0.02, 0.12], [-0.015, 0, 0.055], nutMat);
+    addBox(guitarGroup, [0.12, BOARD_WIDTH + 0.05, 0.12], [boardEnd + 0.88, 0, 0.04], fretMat);
+    addBox(guitarGroup, [0.22, BOARD_WIDTH + 0.18, 0.12], [boardEnd + 1.06, 0, -0.02], darkMat);
+
+    // Tuning pegs, arranged in three pairs along the headstock.
+    for (let i = 0; i < 6; i++) {
+      const y = (2.5 - i) * STRING_SPACING;
+      const side = i % 2 === 0 ? 1 : -1;
+      const x = -0.55 - Math.floor(i / 2) * 0.72;
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.18, 16), fretMat);
+      post.rotation.x = Math.PI / 2;
+      post.position.set(x, y, 0.07);
+      guitarGroup.add(post);
+      const key = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.075, 20), nutMat);
+      key.rotation.x = Math.PI / 2;
+      key.position.set(x, y + side * 0.43, 0.07);
+      guitarGroup.add(key);
+    }
+
+    // Fret wire positions are calculated from the equal-tempered 12th-root-of-two rule.
+    const fretGroup = new THREE.Group();
+    guitarGroup.add(fretGroup);
+    const inlayGroup = new THREE.Group();
+    guitarGroup.add(inlayGroup);
+    const stringGroup = new THREE.Group();
+    guitarGroup.add(stringGroup);
+
+    function makeNoteTexture(pitchClass, withText) {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      const color = `#${PITCH_COLORS[pitchClass].toString(16).padStart(6, '0')}`;
+      ctx.beginPath(); ctx.arc(64, 64, 58, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(244,250,250,.92)'; ctx.stroke();
+      if (withText) {
+        ctx.fillStyle = '#08171b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = pitchClass === 1 || pitchClass === 3 || pitchClass === 6 || pitchClass === 8 || pitchClass === 10 ? '700 43px Arial' : '800 50px Arial';
+        ctx.fillText(NOTE_NAMES[pitchClass], 64, 66);
+      }
+      const texture = new THREE.CanvasTexture(c);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+      return texture;
+    }
+    const noteTextures = [NOTE_NAMES.map((_, i) => makeNoteTexture(i, true)), NOTE_NAMES.map((_, i) => makeNoteTexture(i, false))];
+    const noteSprites = [];
+    let selectedPitchClass = -1;
+    let audioContext = null;
+
+    function clearGroup(group) {
+      while (group.children.length) {
+        const child = group.children[group.children.length - 1];
+        group.remove(child);
+        if (child.geometry) child.geometry.dispose();
+        if (child.material && child.material !== fretMat && child.material !== inlayMat && child.material !== stringMat) {
+          if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+          else child.material.dispose();
+        }
+      }
+    }
+
+    function buildFrets() {
+      clearGroup(fretGroup);
+      clearGroup(inlayGroup);
+      const count = maxFrets();
+      for (let fret = 1; fret <= count; fret++) {
+        const x = fretX(fret);
+        addBox(fretGroup, [FRET_WIRE_WIDTH, BOARD_WIDTH + 0.02, 0.055], [x, 0, 0.06], fretMat);
+      }
+      const dotFrets = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24].filter(f => f <= count);
+      for (const fret of dotFrets) {
+        const x = (fretX(fret) + fretX(fret + 1)) / 2;
+        const ys = fret === 12 || fret === 24 ? [-0.39, 0.39] : [0];
+        for (const y of ys) {
+          const dot = new THREE.Mesh(new THREE.CircleGeometry(0.075, 24), inlayMat);
+          dot.position.set(x, y, 0.055);
+          inlayGroup.add(dot);
+        }
+      }
+    }
+
+    function buildStrings() {
+      clearGroup(stringGroup);
+      for (let i = 0; i < 6; i++) {
+        const y = (2.5 - i) * STRING_SPACING;
+        const radius = 0.012 + (5 - i) * 0.0024;
+        const length = boardEnd + 3.43;
+        const wire = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 10), stringMat);
+        wire.rotation.z = Math.PI / 2;
+        wire.position.set((boardEnd - 1.37) / 2, y, 0.105);
+        stringGroup.add(wire);
+      }
+    }
+
+    function updateInfo(midi, stringIndex, fret) {
+      const name = NOTE_NAMES[midi % 12];
+      const octave = Math.floor(midi / 12) - 1;
+      const frequency = 440 * Math.pow(2, (midi - 69) / 12);
+      infoKicker.textContent = `DÂY ${stringIndex + 1} · NGĂN ${fret}`;
+      noteBig.textContent = `${name}${octave}`;
+      noteMeta.innerHTML = `Tên nốt: <b>${name}</b> · MIDI: ${midi}<br>Tần số xấp xỉ: <b>${frequency.toFixed(2)} Hz</b>`;
+      selectedPitchClass = midi % 12;
+      noteFilter.value = String(selectedPitchClass);
+      refreshHighlights();
+    }
+
+    function playMidi(midi) {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') audioContext.resume();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        const now = audioContext.currentTime;
+        oscillator.type = 'triangle';
+        oscillator.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.16, now + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+        oscillator.connect(gain); gain.connect(audioContext.destination);
+        oscillator.start(now); oscillator.stop(now + 1.28);
+      } catch (error) {
+        console.warn('Không thể phát âm thanh trên trình duyệt này:', error);
+      }
+    }
+
+    function refreshHighlights() {
+      const showLabels = labelsToggle.checked;
+      const filter = Number(noteFilter.value);
+      selectedPitchClass = filter;
+      for (const sprite of noteSprites) {
+        const pc = sprite.userData.pitchClass;
+        const isFocused = filter >= 0 && pc === filter;
+        const isDimmed = filter >= 0 && pc !== filter;
+        sprite.material.map = noteTextures[showLabels ? 0 : 1][pc];
+        sprite.material.opacity = isDimmed ? 0.19 : 1;
+        sprite.material.needsUpdate = true;
+        const scale = isFocused ? 0.335 : 0.285;
+        sprite.scale.set(scale, scale, 1);
+      }
+    }
+
+    function buildNotes() {
+      for (const sprite of noteSprites) {
+        guitarGroup.remove(sprite);
+        sprite.material.dispose();
+      }
+      noteSprites.length = 0;
+      const count = maxFrets();
+      for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
+        const y = (2.5 - stringIndex) * STRING_SPACING;
+        for (let fret = 0; fret <= count; fret++) {
+          const midi = OPEN_MIDI[stringIndex] + fret;
+          const pitchClass = midi % 12;
+          const left = fretX(fret);
+          const right = fretX(fret + 1);
+          const x = fret === 0 ? (left + right) / 2 + 0.05 : (left + right) / 2;
+          const material = new THREE.SpriteMaterial({ map: noteTextures[labelsToggle.checked ? 0 : 1][pitchClass], transparent: true, depthWrite: false, opacity: 1 });
+          const sprite = new THREE.Sprite(material);
+          sprite.position.set(x, y, 0.18);
+          sprite.scale.set(0.285, 0.285, 1);
+          sprite.userData = { midi, pitchClass, stringIndex, fret, pitchName: NOTE_NAMES[pitchClass] };
+          guitarGroup.add(sprite);
+          noteSprites.push(sprite);
+        }
+      }
+      refreshHighlights();
+    }
+
+    function rebuildBoard() {
+      buildFrets();
+      buildNotes();
+      infoKicker.textContent = 'Chưa chọn vị trí';
+      noteBig.textContent = '—';
+      noteMeta.textContent = 'Nhấn vào một điểm trên cần đàn để xem tên nốt, dây, ngăn và tần số.';
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    function handlePick(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const intersections = raycaster.intersectObjects(noteSprites, false);
+      if (intersections.length) {
+        const data = intersections[0].object.userData;
+        updateInfo(data.midi, data.stringIndex, data.fret);
+        playMidi(data.midi);
+      }
+    }
+    canvas.addEventListener('click', handlePick);
+
+    function resize() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (!width || !height) return;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(canvas);
+    window.addEventListener('resize', resize);
+    resize();
+
+    function setCamera(mode) {
+      if (mode === 'top') {
+        camera.position.set(6.5, -0.01, 21.5);
+        camera.up.set(0, 1, 0);
+      } else {
+        camera.position.set(8.3, -11.8, 12.2);
+        camera.up.set(0, 0, 1);
+      }
+      controls.target.set(6.5, 0, 0);
+      controls.update();
+    }
+
+    noteFilter.addEventListener('change', refreshHighlights);
+    labelsToggle.addEventListener('change', refreshHighlights);
+    document.getElementById('resetCamera').addEventListener('click', () => setCamera('angle'));
+    document.getElementById('viewTop').addEventListener('click', () => setCamera('top'));
+    document.getElementById('viewAngle').addEventListener('click', () => setCamera('angle'));
+    document.getElementById('clearSelection').addEventListener('click', () => {
+      noteFilter.value = '-1';
+      selectedPitchClass = -1;
+      refreshHighlights();
+      infoKicker.textContent = 'Chưa chọn vị trí';
+      noteBig.textContent = '—';
+      noteMeta.textContent = 'Nhấn vào một điểm trên cần đàn để xem tên nốt, dây, ngăn và tần số.';
+    });
+
+    rebuildBoard();
+    loading.classList.add('hidden');
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      renderer.render(scene, camera);
+    });
+
+    // Report a friendly message if WebGL is unavailable or the CDN cannot be reached.
+    window.addEventListener('error', (event) => {
+      if (event.message && /WebGL|three|module|fetch/i.test(event.message)) {
+        loading.classList.remove('hidden');
+        loading.innerHTML = '<div class="error">Không tải được thư viện 3D. Hãy kiểm tra kết nối Internet và mở file bằng Chrome, Edge hoặc Firefox phiên bản mới.</div>';
+      }
+    });
+  </script>
+</body>
+</html>

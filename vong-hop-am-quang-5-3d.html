@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vòng Quãng 5 (Hợp âm) 3D - Warehouse 3D</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #050508; font-family: system-ui, sans-serif; color: #e5e7eb; }
+  canvas { display: block; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+
+  #info { position: absolute; top: 16px; left: 16px; right: 170px; color: #fff; z-index: 10; pointer-events: none; }
+  #info .title { font-size: 18px; font-weight: 600; line-height: 1.3; }
+  #info .sub { font-size: 13px; opacity: 0.7; margin-top: 4px; line-height: 1.4; }
+  #info .hint { font-size: 12px; opacity: 0.45; margin-top: 8px; }
+
+  #legend { position: absolute; top: 120px; left: 16px; z-index: 10; font-size: 12px; line-height: 1.7; pointer-events: none; }
+  #legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+
+  #back { position: absolute; top: 16px; right: 16px; z-index: 10; }
+  #back a {
+    display: inline-block; color: #22d3ee; text-decoration: none; font-size: 14px;
+    padding: 8px 14px; border: 1px solid rgba(34,211,238,0.4); border-radius: 8px; background: rgba(15,23,42,0.4);
+  }
+  #back a:hover, #back a:focus-visible { background: rgba(34,211,238,0.12); border-color: #22d3ee; outline: none; }
+
+  #controls {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center;
+    width: max-content; max-width: calc(100vw - 24px);
+  }
+  #controls button, #controls select {
+    font-family: inherit; font-size: 13px; color: #e5e7eb;
+    padding: 8px 12px; border-radius: 8px; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.15);
+  }
+  #controls button { cursor: pointer; }
+  #controls button:hover { background: rgba(255,255,255,0.08); }
+  #controls button:focus-visible, #controls select:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+  #controls button[aria-pressed="true"] { background: rgba(255,255,255,0.14); border-color: #22d3ee; color: #fff; }
+  #controls select { max-width: 52vw; }
+  #controls select option { background: #0f172a; }
+
+  #panel {
+    position: absolute; bottom: 70px; right: 16px; z-index: 11;
+    background: rgba(15,23,42,0.94); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+    padding: 14px 16px; width: 320px; max-height: 62vh; overflow: auto; display: none; font-size: 14px; line-height: 1.6;
+  }
+  #panel.show { display: block; }
+  #panel .kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
+  #panel .name { font-size: 24px; font-weight: 600; color: #fff; }
+  #panel .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.55; margin-top: 10px; }
+  #panel .val { margin-top: 2px; }
+  #panel table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 13px; }
+  #panel td { padding: 3px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  #panel td.r { opacity: 0.7; width: 42px; }
+  #panel td.c { font-weight: 600; color: #fff; }
+  #panel button.close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; }
+  #panel .src { font-size: 11px; opacity: 0.5; margin-top: 10px; }
+  #panel .src a { color: #7dd3fc; }
+
+  @media (max-width: 600px) {
+    #info { right: 16px; top: 64px; }
+    #info .title { font-size: 16px; }
+    #info .sub { font-size: 12px; }
+    #legend { top: auto; bottom: 150px; font-size: 11px; }
+    #back { top: 12px; right: 12px; }
+    #panel { bottom: 170px; left: 16px; right: 16px; width: auto; max-height: 45vh; }
+    #controls select { max-width: 90vw; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="info">
+  <div class="title">Vòng Quãng 5 &mdash; Vòng Hợp Âm</div>
+  <div class="sub">Vòng ngoài là 12 hợp âm trưởng, vòng trong là thứ tương đối. Mỗi bước theo chiều kim đồng hồ là quãng 5 đúng. Cột dấu bên ngoài cho biết số dấu thăng (cam) hoặc giáng (xanh).</div>
+  <div class="hint">Kéo để xoay &bull; Cuộn để zoom &bull; Nhấn một tông để xem thang âm và hợp âm &bull; Space: tạm dừng</div>
+</div>
+
+<div id="legend" aria-label="Chú giải">
+  <div><span class="dot" style="background:#f97316"></span>Dấu thăng (♯)</div>
+  <div><span class="dot" style="background:#38bdf8"></span>Dấu giáng (♭)</div>
+  <div><span class="dot" style="background:#e5e7eb"></span>Không dấu</div>
+</div>
+
+<div id="back"><a href="index.html">← Trở về menu</a></div>
+
+<div id="controls" role="toolbar" aria-label="Điều khiển">
+  <select id="pick" aria-label="Chọn tông"></select>
+  <button type="button" id="btnPause" aria-pressed="false">⏸ Tạm dừng</button>
+  <button type="button" id="btnReset">Đặt lại góc nhìn</button>
+</div>
+
+<div id="panel" role="dialog" aria-live="polite">
+  <button class="close" type="button" aria-label="Đóng">×</button>
+  <div class="kind" id="pKind"></div>
+  <div class="name" id="pName"></div>
+  <div class="label">Dấu hóa</div>
+  <div class="val" id="pSig"></div>
+  <div class="label">Thang âm</div>
+  <div class="val" id="pScale"></div>
+  <div class="label">Hợp âm trong tông</div>
+  <table id="pChords"></table>
+  <div class="label">Tông liên quan</div>
+  <div class="val" id="pRel"></div>
+  <div class="src">Dữ liệu tông và dấu hóa theo <a href="https://en.wikipedia.org/wiki/Circle_of_fifths" target="_blank" rel="noopener">Circle of fifths (Wikipedia)</a>. Hợp âm được tính từ thang âm bằng quy tắc tam hợp âm.</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// Dữ liệu: 12 tông trưởng theo chiều kim đồng hồ từ C
+// (thang âm, dấu hóa, thứ tương đối đã đối chiếu với Wikipedia)
+// ============================================================
+const MAJORS = [
+  { name: 'C',       scale: ['C','D','E','F','G','A','B'],            sig: 0,  rel: 'a'  },
+  { name: 'G',       scale: ['G','A','B','C','D','E','F#'],           sig: 1,  rel: 'e'  },
+  { name: 'D',       scale: ['D','E','F#','G','A','B','C#'],          sig: 2,  rel: 'b'  },
+  { name: 'A',       scale: ['A','B','C#','D','E','F#','G#'],         sig: 3,  rel: 'f#' },
+  { name: 'E',       scale: ['E','F#','G#','A','B','C#','D#'],        sig: 4,  rel: 'c#' },
+  { name: 'B',       scale: ['B','C#','D#','E','F#','G#','A#'],       sig: 5,  rel: 'g#' },
+  { name: 'F#/G♭',   scale: ['F#','G#','A#','B','C#','D#','E#'],      sig: 6,  rel: 'd#', alt: 'Gb' },
+  { name: 'D♭',      scale: ['Db','Eb','F','Gb','Ab','Bb','C'],       sig: -5, rel: 'bb' },
+  { name: 'A♭',      scale: ['Ab','Bb','C','Db','Eb','F','G'],        sig: -4, rel: 'f'  },
+  { name: 'E♭',      scale: ['Eb','F','G','Ab','Bb','C','D'],         sig: -3, rel: 'c'  },
+  { name: 'B♭',      scale: ['Bb','C','D','Eb','F','G','A'],          sig: -2, rel: 'g'  },
+  { name: 'F',       scale: ['F','G','A','Bb','C','D','E'],           sig: -1, rel: 'd'  }
+];
+
+// Thứ tương đối: thang âm bắt đầu từ bậc 6 của trưởng tương ứng
+const MINORS = MAJORS.map((m) => ({
+  name: m.rel,
+  scale: [...m.scale.slice(5), ...m.scale.slice(0, 5)],
+  sig: m.sig,
+  relMajorIdx: MAJORS.indexOf(m)
+}));
+
+const SHARP_ORDER = ['F','C','G','D','A','E','B'];
+const FLAT_ORDER  = ['B','E','A','D','G','C','F'];
+
+// Chuẩn hóa tên nốt và tính bán cung
+const PC = { C:0, 'B#':0, 'C#':1, Db:1, D:2, 'D#':3, Eb:3, E:4, Fb:4, F:5, 'E#':5, 'F#':6, Gb:6, G:7, 'G#':8, Ab:8, A:9, 'A#':10, Bb:10, B:11, Cb:11 };
+const pc = (n) => PC[n];
+
+function sigText(sig) {
+  if (sig === 0) return 'Không có dấu';
+  if (sig > 0) return `${sig} dấu thăng: ` + SHARP_ORDER.slice(0, sig).map((x) => x + '♯').join(', ');
+  return `${-sig} dấu giáng: ` + FLAT_ORDER.slice(0, -sig).map((x) => x + '♭').join(', ');
+}
+
+// Tam hợp âm trên từng bậc của thang
+function triadsOf(scale) {
+  const ROMAN = ['I','II','III','IV','V','VI','VII'];
+  return scale.map((root, d) => {
+    const third = scale[(d + 2) % 7];
+    const fifth = scale[(d + 4) % 7];
+    const i3 = (pc(third) - pc(root) + 12) % 12;
+    const i5 = (pc(fifth) - pc(root) + 12) % 12;
+    let q, suffix, roman;
+    if (i3 === 4 && i5 === 7)      { q = 'M';   suffix = '';   roman = ROMAN[d]; }
+    else if (i3 === 3 && i5 === 7) { q = 'm';   suffix = 'm';  roman = ROMAN[d].toLowerCase(); }
+    else if (i3 === 3 && i5 === 6) { q = 'dim'; suffix = '°';  roman = ROMAN[d].toLowerCase() + '°'; }
+    else if (i3 === 4 && i5 === 8) { q = 'aug'; suffix = '+';  roman = ROMAN[d] + '+'; }
+    else                           { q = '?';   suffix = '?';  roman = ROMAN[d]; }
+    return { roman, name: root + suffix, q };
+  });
+}
+
+// ============================================================
+// Scene
+// ============================================================
+const OMEGA = 0.1;
+const R_MAJ = 60;
+const R_MIN = 38;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050508);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
+const HOME_POS = new THREE.Vector3(0, 70, 170);
+camera.position.copy(HOME_POS);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 90;
+controls.maxDistance = 400;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.25;
+
+scene.add(new THREE.AmbientLight(0x505060, 1.0));
+const key = new THREE.DirectionalLight(0xffffff, 1.0);
+key.position.set(60, 100, 140);
+scene.add(key);
+const core = new THREE.PointLight(0xfff4d6, 1.2, 300);
+scene.add(core);
+
+// Lõi trung tâm
+const coreMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(6, 32, 32),
+  new THREE.MeshStandardMaterial({ color: 0xfef3c7, emissive: 0xf59e0b, emissiveIntensity: 0.9 })
+);
+scene.add(coreMesh);
+
+// ============================================================
+// Nhóm xoay chung: vòng trưởng, vòng thứ, dấu hóa và đường nối
+// Hai vòng xoay cùng tốc độ nên cặp trưởng–thứ luôn thẳng hàng.
+// ============================================================
+const ring = new THREE.Group();
+ring.userData.rate = OMEGA;
+const tilt = new THREE.Group();
+tilt.rotation.x = -0.35;
+tilt.add(ring);
+scene.add(tilt);
+
+const CLR_SHARP = 0xf97316;
+const CLR_FLAT  = 0x38bdf8;
+const CLR_NAT   = 0xe5e7eb;
+
+function hueColor(i, light) {
+  return new THREE.Color().setHSL(i / 12, 0.7, light);
+}
+
+const majorMeshes = [];
+const minorMeshes = [];
+const majorGeo = new THREE.OctahedronGeometry(4.6, 0);
+const minorGeo = new THREE.SphereGeometry(2.6, 20, 20);
+
+function makeLabel(text, color, size = 1) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 128;
+  const x = c.getContext('2d');
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.fillStyle = color;
+  x.font = `bold ${size * 44}px system-ui, sans-serif`;
+  x.fillText(text, 128, 64);
+  const tex = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.scale.set(16, 8, 1);
+  return sp;
+}
+
+MAJORS.forEach((m, i) => {
+  const a = Math.PI / 2 - i * (Math.PI * 2 / 12);
+  const cosA = Math.cos(a), sinA = Math.sin(a);
+
+  // Tông trưởng
+  const major = new THREE.Mesh(majorGeo, new THREE.MeshStandardMaterial({
+    color: hueColor(i, 0.55), emissive: hueColor(i, 0.5), emissiveIntensity: 0.45, metalness: 0.2, roughness: 0.35
+  }));
+  major.position.set(cosA * R_MAJ, sinA * R_MAJ, 0);
+  major.userData = { kind: 'major', idx: i };
+  ring.add(major);
+  majorMeshes.push(major);
+
+  const lbl = makeLabel(m.name, '#e5e7eb', 1);
+  lbl.position.set(cosA * (R_MAJ + 12), sinA * (R_MAJ + 12), 4);
+  ring.add(lbl);
+
+  // Thứ tương đối
+  const minor = new THREE.Mesh(minorGeo, new THREE.MeshStandardMaterial({
+    color: hueColor(i, 0.35), emissive: hueColor(i, 0.3), emissiveIntensity: 0.4, roughness: 0.4
+  }));
+  minor.position.set(cosA * R_MIN, sinA * R_MIN, 0);
+  minor.userData = { kind: 'minor', idx: i };
+  ring.add(minor);
+  minorMeshes.push(minor);
+
+  const mlbl = makeLabel(m.rel + 'm'.replace('mm', 'm'), '#94a3b8', 0.8);
+  mlbl.scale.set(12, 6, 1);
+  mlbl.position.set(cosA * (R_MIN - 8), sinA * (R_MIN - 8), 4);
+  ring.add(mlbl);
+
+  // Đường nối trưởng–thứ tương đối
+  const pts = [cosA * R_MAJ, sinA * R_MAJ, 0, cosA * R_MIN, sinA * R_MIN, 0];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  ring.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.6 })));
+
+  // Cột dấu hóa: dấu thăng (cam) hoặc giáng (xanh), xếp theo hướng tâm ra ngoài
+  const n = Math.abs(m.sig);
+  for (let k = 0; k < n; k++) {
+    const r = R_MAJ + 9 + k * 3.2;
+    const cube = new THREE.Mesh(
+      new THREE.BoxGeometry(2.0, 2.0, 2.0),
+      new THREE.MeshStandardMaterial({
+        color: m.sig > 0 ? CLR_SHARP : CLR_FLAT,
+        emissive: m.sig > 0 ? CLR_SHARP : CLR_FLAT,
+        emissiveIntensity: 0.5
+      })
+    );
+    cube.position.set(cosA * r, sinA * r, 0);
+    ring.add(cube);
+  }
+  if (m.sig === 0) {
+    const cube = new THREE.Mesh(
+      new THREE.BoxGeometry(2.0, 2.0, 2.0),
+      new THREE.MeshStandardMaterial({ color: CLR_NAT, emissive: CLR_NAT, emissiveIntensity: 0.4 })
+    );
+    cube.position.set(cosA * (R_MAJ + 9), sinA * (R_MAJ + 9), 0);
+    ring.add(cube);
+  }
+});
+
+// Vòng mảnh để nhìn rõ hai vòng tròn
+[R_MAJ, R_MIN].forEach((r) => {
+  ring.add(new THREE.Mesh(
+    new THREE.TorusGeometry(r, 0.25, 6, 220),
+    new THREE.MeshBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.7 })
+  ));
+});
+
+// ============================================================
+// Chọn tông
+// ============================================================
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let downAt = null;
+let sel = null;   // { type: 'major'|'minor', idx }
+
+const panel = document.getElementById('panel');
+const pKind = document.getElementById('pKind');
+const pName = document.getElementById('pName');
+const pSig = document.getElementById('pSig');
+const pScale = document.getElementById('pScale');
+const pChords = document.getElementById('pChords');
+const pRel = document.getElementById('pRel');
+const pick = document.getElementById('pick');
+
+const KEY_LIST = [];
+MAJORS.forEach((m, i) => KEY_LIST.push({ type: 'major', idx: i, label: `${m.name} trưởng (${m.scale[0]} major)` }));
+MINORS.forEach((m, i) => KEY_LIST.push({ type: 'minor', idx: i, label: `${m.name}m thứ (${m.name} minor)` }));
+KEY_LIST.forEach((k, j) => {
+  const opt = document.createElement('option');
+  opt.value = String(j);
+  opt.textContent = k.label;
+  pick.appendChild(opt);
+});
+
+function nameOfMajor(i) { return MAJORS[i].scale[0] + ' trưởng'; }
+
+function selectKey(s) {
+  sel = s;
+  if (!s) { panel.classList.remove('show'); pick.value = ''; return; }
+  const isMajor = s.type === 'major';
+  const data = isMajor ? MAJORS[s.idx] : MINORS[s.idx];
+  const maj = isMajor ? MAJORS[s.idx] : MAJORS[MINORS[s.idx].relMajorIdx];
+
+  pKind.textContent = isMajor ? 'Tông trưởng' : 'Tông thứ (tương đối)';
+  pName.textContent = isMajor
+    ? `${data.name} trưởng`
+    : `${MINORS[s.idx].name} thứ`;
+
+  pSig.textContent = sigText(data.sig);
+  pScale.textContent = data.scale.map((x) => x.replace('#', '♯').replace(/b$/, '♭').replace(/^([A-G])b/, '$1♭')).join('  ');
+
+  pChords.innerHTML = '';
+  triadsOf(data.scale).forEach((t) => {
+    const tr = document.createElement('tr');
+    const r = document.createElement('td'); r.className = 'r'; r.textContent = t.roman;
+    const c = document.createElement('td'); c.className = 'c'; c.textContent = t.name.replace('#', '♯').replace('b', '♭');
+    tr.append(r, c);
+    pChords.appendChild(tr);
+  });
+
+  const majIdx = isMajor ? s.idx : MINORS[s.idx].relMajorIdx;
+  const dom = (majIdx + 1) % 12;
+  const sub = (majIdx + 11) % 12;
+  pRel.innerHTML = '';
+  const lines = [
+    `Tương đối: ${isMajor ? MINORS[majIdx].name + ' thứ' : MAJORS[majIdx].scale[0] + ' trưởng'}`,
+    `Át (quãng 5 lên): ${MAJORS[dom].name} trưởng`,
+    `Hạ át (quãng 5 xuống): ${MAJORS[sub].name} trưởng`
+  ];
+  lines.forEach((t) => {
+    const d = document.createElement('div');
+    d.textContent = t;
+    pRel.appendChild(d);
+  });
+
+  panel.classList.add('show');
+  pick.value = String(KEY_LIST.findIndex((k) => k.type === s.type && k.idx === s.idx));
+}
+
+panel.querySelector('.close').addEventListener('click', () => selectKey(null));
+pick.addEventListener('change', () => {
+  if (pick.value === '') return;
+  const k = KEY_LIST[Number(pick.value)];
+  selectKey({ type: k.type, idx: k.idx });
+});
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  downAt = { x: e.clientX, y: e.clientY };
+});
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+  downAt = null;
+  if (moved > 5) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects([...majorMeshes, ...minorMeshes], false);
+  if (hits.length) {
+    const u = hits[0].object.userData;
+    selectKey({ type: u.kind, idx: u.idx });
+  } else {
+    selectKey(null);
+  }
+});
+
+// ============================================================
+// Điều khiển
+// ============================================================
+let paused = false;
+const btnPause = document.getElementById('btnPause');
+const btnReset = document.getElementById('btnReset');
+
+btnPause.addEventListener('click', () => {
+  paused = !paused;
+  controls.autoRotate = !paused;
+  btnPause.textContent = paused ? '▶ Tiếp tục' : '⏸ Tạm dừng';
+  btnPause.setAttribute('aria-pressed', String(paused));
+});
+btnReset.addEventListener('click', () => {
+  camera.position.copy(HOME_POS);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLButtonElement || e.target instanceof HTMLSelectElement) return;
+  if (e.code === 'Space') { e.preventDefault(); btnPause.click(); }
+  if (e.key === 'Escape') selectKey(null);
+});
+
+// ============================================================
+// Vòng lặp: cả vòng xoay một nhịp; tông đang chọn cùng các
+// tông liên quan (tương đối, át, hạ át) được làm nổi bật.
+// ============================================================
+const clock = new THREE.Clock();
+let elapsed = 0;
+const tmpS = new THREE.Vector3();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  if (!paused) {
+    elapsed += dt;
+    ring.rotation.z = elapsed * ring.userData.rate;
+    coreMesh.scale.setScalar(1 + 0.05 * Math.sin(elapsed * 1.6));
+  }
+
+  let hiMajor = null, hiMinor = null;
+  if (sel) {
+    const majIdx = sel.type === 'major' ? sel.idx : MINORS[sel.idx].relMajorIdx;
+    hiMajor = majIdx;
+    hiMinor = majIdx;
+  }
+
+  majorMeshes.forEach((m, i) => {
+    const isSel = sel && sel.type === 'major' && sel.idx === i;
+    const isRel = hiMajor !== null && (i === (hiMajor + 1) % 12 || i === (hiMajor + 11) % 12);
+    const s = isSel ? 1.6 : (isRel ? 1.25 : 1.0);
+    m.scale.lerp(tmpS.set(s, s, s), 0.15);
+    m.rotation.y = elapsed * 0.6;
+  });
+  minorMeshes.forEach((m, i) => {
+    const isSel = sel && sel.type === 'minor' && sel.idx === i;
+    const isRel = hiMinor !== null && i === hiMinor;
+    const s = isSel ? 1.8 : (isRel ? 1.3 : 1.0);
+    m.scale.lerp(tmpS.set(s, s, s), 0.15);
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>

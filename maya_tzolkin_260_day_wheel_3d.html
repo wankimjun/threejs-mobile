@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#090d12" />
+  <title>Tzolk'in — Vòng Chiêm Tinh Maya 3D</title>
+  <style>
+    :root{
+      --bg:#080c11;--panel:#101820;--panel2:#141f29;--line:rgba(219,190,132,.18);
+      --gold:#d6b46d;--gold2:#f0d79a;--text:#f2eadb;--muted:#9a9b98;
+      --east:#c65348;--north:#e8e6d8;--west:#526b85;--south:#d8ae4d;
+      --good:#8ec7aa;--bad:#d88678;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    body{overflow:hidden;background-image:radial-gradient(ellipse at 45% 42%,rgba(47,60,68,.25),transparent 58%),linear-gradient(145deg,#0b1118,#070a0f 72%)}
+    button,input{font:inherit}
+    button{cursor:pointer}
+    .app{height:100%;display:grid;grid-template-rows:70px minmax(0,1fr) 34px;min-height:0}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(7,11,16,.82);backdrop-filter:blur(14px);z-index:3}
+    .brand{display:flex;align-items:center;gap:13px;min-width:0}
+    .brand-mark{width:38px;height:38px;border:1px solid #9c7a42;border-radius:50%;display:grid;place-items:center;color:var(--gold2);font:22px Georgia,serif;box-shadow:0 0 22px rgba(214,180,109,.12),inset 0 0 12px rgba(214,180,109,.12)}
+    .eyebrow{font-size:9px;letter-spacing:.24em;color:#bd9d61;font-weight:700;text-transform:uppercase}
+    h1{font:600 17px/1.1 Georgia,"Times New Roman",serif;letter-spacing:.09em;margin:3px 0 0;color:#f5e8cd}
+    .top-meta{display:flex;align-items:center;gap:9px;color:#a7a7a0;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+    .pill{border:1px solid var(--line);border-radius:999px;padding:7px 10px;background:rgba(214,180,109,.06);white-space:nowrap}
+    .main{display:grid;grid-template-columns:minmax(0,1fr) 360px;min-height:0;gap:0}
+    .stage-wrap{position:relative;min-width:0;min-height:0;overflow:hidden;border-right:1px solid var(--line)}
+    #stage{width:100%;height:100%;display:block;touch-action:none;outline:none}
+    .stage-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%,rgba(4,7,11,.23) 75%,rgba(4,7,11,.7));}
+    .scene-title{position:absolute;left:24px;top:22px;pointer-events:none}
+    .scene-title strong{display:block;font:13px Georgia,serif;letter-spacing:.18em;color:#e6cc95}
+    .scene-title span{display:block;font-size:10px;color:#89939a;letter-spacing:.14em;margin-top:5px;text-transform:uppercase}
+    .scene-bottom{position:absolute;left:22px;bottom:18px;display:flex;gap:7px;flex-wrap:wrap;pointer-events:none}
+    .scene-bottom span{font-size:10px;color:#b6b0a2;background:rgba(10,15,20,.66);border:1px solid rgba(214,180,109,.2);border-radius:999px;padding:6px 9px;backdrop-filter:blur(8px)}
+    .rotate-hint{position:absolute;right:20px;top:20px;color:#9da5a8;background:rgba(8,13,18,.62);border:1px solid var(--line);padding:8px 11px;border-radius:8px;font-size:10px;pointer-events:none}
+    .panel{min-height:0;overflow:auto;background:linear-gradient(180deg,rgba(18,27,36,.98),rgba(10,16,22,.98));padding:17px 17px 22px;scrollbar-width:thin;scrollbar-color:#4b4b42 transparent}
+    .section-label{font-size:9px;color:#bd9b5e;letter-spacing:.2em;text-transform:uppercase;font-weight:800;margin:0 0 10px}
+    .current-card{border:1px solid rgba(214,180,109,.3);border-radius:13px;background:linear-gradient(145deg,rgba(40,48,47,.85),rgba(17,25,32,.9));padding:14px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+    .current-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .day-number{font:38px/1 Georgia,serif;color:var(--gold2);text-shadow:0 0 20px rgba(214,180,109,.25)}
+    .day-label{font:600 21px/1.15 Georgia,serif;color:#f5e8cd;margin-top:5px}
+    .day-sub{font-size:11px;color:#a8aaa5;margin-top:5px}
+    .direction-tag{border:1px solid var(--tag-color);color:var(--tag-color);background:color-mix(in srgb,var(--tag-color) 12%,transparent);padding:6px 8px;border-radius:999px;font-size:9px;white-space:nowrap;letter-spacing:.08em}
+    .current-desc{font-size:12px;line-height:1.55;color:#c3c0b7;margin:13px 0 0}
+    .step-controls{display:grid;grid-template-columns:40px 1fr 40px;gap:7px;align-items:center;margin-top:14px}
+    .icon-btn,.action-btn{border:1px solid rgba(214,180,109,.24);border-radius:8px;background:#1a252d;color:#e7d4ac;min-height:36px}
+    .icon-btn{font-size:18px}
+    .step-info{text-align:center;font-size:10px;color:#9ea3a2;letter-spacing:.09em}
+    .range{width:100%;accent-color:#c8a25f;margin:11px 0 0;cursor:pointer}
+    .button-row{display:flex;gap:7px;margin-top:9px}
+    .action-btn{padding:8px 10px;font-size:10px;flex:1;letter-spacing:.06em}
+    .action-btn.primary{background:linear-gradient(135deg,#9b773f,#6e522c);border-color:#c6a15e;color:#fff4d9;font-weight:700}
+    .subsection{border-top:1px solid var(--line);padding-top:14px;margin-top:15px}
+    .tone-grid{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px}
+    .tone{height:32px;border:1px solid rgba(214,180,109,.18);border-radius:5px;background:#17212a;color:#b9b7ae;font-size:10px;padding:0}
+    .tone.active{color:#17140e;background:#e1bd72;border-color:#f5d99f;box-shadow:0 0 15px rgba(214,180,109,.22);font-weight:800}
+    .tone-caption{font-size:10px;color:#919b9e;line-height:1.45;margin:8px 0 0}
+    .search{width:100%;border:1px solid rgba(214,180,109,.2);background:#0c141b;color:#eee3ce;border-radius:8px;padding:9px 10px;font-size:11px;outline:none;margin-bottom:8px}
+    .search:focus{border-color:#b89255}
+    .sign-list{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+    .sign-item{display:flex;align-items:center;gap:7px;min-width:0;text-align:left;padding:7px 8px;border:1px solid rgba(214,180,109,.12);border-radius:7px;background:#121c24;color:#d6d1c6;font-size:10px}
+    .sign-item:hover{border-color:rgba(214,180,109,.5);background:#1a2730}
+    .sign-item.active{border-color:#d5b36f;background:rgba(214,180,109,.12);color:#f7e3b6}
+    .sign-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--sign-color)}
+    .sign-item span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .profile-block{font-size:11px;line-height:1.55;color:#c4c2b9}
+    .profile-block p{margin:6px 0 0}
+    .profile-block strong{color:#e8d3a5;font-weight:650}
+    .relation{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+    .relation button{border:1px solid rgba(142,199,170,.25);background:rgba(54,91,75,.2);color:#b9dbc8;border-radius:999px;padding:5px 8px;font-size:10px}
+    .relation.bad button{border-color:rgba(216,134,120,.25);background:rgba(100,47,41,.2);color:#e2aaa0}
+    .direction-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .direction-card{border:1px solid rgba(214,180,109,.13);border-radius:8px;padding:8px;background:#121c24;min-height:65px}
+    .direction-card b{font-size:10px;letter-spacing:.08em}
+    .direction-card p{font-size:9px;line-height:1.4;color:#a6aaa7;margin:5px 0 0}
+    .legend-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--legend)}
+    .note{font-size:9px;line-height:1.5;color:#838e91;margin-top:13px;border-left:2px solid #81683d;padding-left:9px}
+    .footer{border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:#68747a;font-size:9px;letter-spacing:.09em;text-transform:uppercase;background:#080d12;gap:8px}
+    .footer a{color:#b89b68;text-decoration:none}
+    .loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(8,12,17,.88);z-index:2;color:#d7c08f;font:13px Georgia,serif;letter-spacing:.12em;text-align:center;padding:20px}
+    .loading small{display:block;font:10px system-ui;color:#99a0a0;letter-spacing:0;margin-top:9px}
+    @media(max-width:950px){.main{grid-template-columns:minmax(0,1fr) 320px}.panel{padding:13px}}
+    @media(max-width:720px){
+      body{overflow:auto}.app{height:100dvh;grid-template-rows:60px minmax(0,1fr) 28px}
+      .topbar{padding:0 12px}.brand-mark{width:32px;height:32px}.eyebrow{font-size:8px}h1{font-size:14px}.top-meta .pill:last-child{display:none}
+      .main{grid-template-columns:1fr;grid-template-rows:minmax(280px,48vh) minmax(0,1fr)}.stage-wrap{border-right:0;border-bottom:1px solid var(--line)}
+      .panel{padding:12px 13px}.scene-title{left:13px;top:13px}.rotate-hint{right:10px;top:10px;font-size:9px}.scene-bottom{left:11px;bottom:9px}.scene-bottom span{font-size:9px;padding:5px 7px}
+      .footer{padding:0 10px;font-size:8px}.footer span:last-child{display:none}
+    }
+    @media(max-width:390px){.sign-list{grid-template-columns:1fr 1fr}.tone-grid{gap:2px}.tone{height:28px;font-size:9px}}
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">☼</div>
+      <div><div class="eyebrow">MAYA · SACRED TIME</div><h1>VÒNG TZOLK'IN 3D</h1></div>
+    </div>
+    <div class="top-meta"><span class="pill">20 Nawales</span><span class="pill">13 số · 260 ngày</span></div>
+  </header>
+  <main class="main">
+    <section class="stage-wrap">
+      <canvas id="stage" aria-label="Mô hình vòng lịch Tzolk'in Maya 3D"></canvas>
+      <div class="loading" id="loading">ĐANG DỰNG VÒNG THIÊNG TZOLK'IN<small>Đang tải Three.js và khởi tạo mô hình 3D…</small></div>
+      <div class="stage-vignette"></div>
+      <div class="scene-title"><strong>THE 260-DAY COUNT</strong><span>20 day signs × 13 numbers</span></div>
+      <div class="rotate-hint">Kéo để xoay · Cuộn để zoom · Chạm dấu hiệu để chọn</div>
+      <div class="scene-bottom"><span>ĐÔNG · ĐỎ</span><span>BẮC · TRẮNG</span><span>TÂY · CHÀM ĐẬM</span><span>NAM · VÀNG</span></div>
+    </section>
+    <aside class="panel">
+      <div class="section-label">Ngày đang chọn · Mốc mô phỏng 1 Imix</div>
+      <section class="current-card">
+        <div class="current-top">
+          <div><div class="day-number" id="currentNumber">1</div><div class="day-label" id="currentName">Imix</div><div class="day-sub" id="currentTranslation">Cá Sấu / Nguồn Cội</div></div>
+          <div class="direction-tag" id="currentDirection" style="--tag-color:#c65348">ĐÔNG · KHỞI SINH</div>
+        </div>
+        <p class="current-desc" id="currentTrait">Năng động, thông minh, giàu lòng bảo bọc, trực giác cao.</p>
+        <div class="step-controls">
+          <button class="icon-btn" id="prevStep" title="Ngày trước">‹</button>
+          <div class="step-info"><span id="stepCount">NGÀY 001 / 260</span><br><span id="stepCombo">1 Imix</span></div>
+          <button class="icon-btn" id="nextStep" title="Ngày tiếp theo">›</button>
+        </div>
+        <input class="range" id="stepSlider" type="range" min="0" max="259" value="0" aria-label="Chọn ngày trong chu kỳ Tzolk'in" />
+        <div class="button-row">
+          <button class="action-btn primary" id="playCycle">▶ CHẠY CHU KỲ</button>
+          <button class="action-btn" id="resetCycle">↺ VỀ 1 IMIX</button>
+        </div>
+      </section>
+
+      <div class="section-label">13 tông số · vòng số đếm</div>
+      <div class="tone-grid" id="toneGrid"></div>
+      <p class="tone-caption">Các số 1–13 luân phiên cùng 20 tên ngày. Chọn một số để xem lần xuất hiện đầu tiên của nó trong vòng mô phỏng.</p>
+
+      <section class="subsection">
+        <div class="section-label">20 dấu hiệu ngày · Nawales</div>
+        <input class="search" id="signSearch" type="search" placeholder="Tìm tên bản địa hoặc tiếng Việt…" />
+        <div class="sign-list" id="signList"></div>
+      </section>
+
+      <section class="subsection">
+        <div class="section-label">Hồ sơ dấu hiệu đang chọn</div>
+        <div class="profile-block" id="profileBlock"></div>
+      </section>
+
+      <section class="subsection">
+        <div class="section-label">Bốn hướng vũ trụ · bốn màu</div>
+        <div class="direction-grid">
+          <div class="direction-card"><b><i class="legend-dot" style="--legend:var(--east)"></i>ĐÔNG · ĐỎ</b><p>Khởi sinh, sáng tạo, đổi mới, nguồn lực tinh thần.</p></div>
+          <div class="direction-card"><b><i class="legend-dot" style="--legend:var(--north)"></i>BẮC · TRẮNG</b><p>Trí tuệ, kỷ luật, thanh lọc, thử thách tinh thần.</p></div>
+          <div class="direction-card"><b><i class="legend-dot" style="--legend:var(--west)"></i>TÂY · ĐEN / XANH ĐẬM</b><p>Chuyển hóa nội tâm, quan hệ, thấu cảm, trực giác.</p></div>
+          <div class="direction-card"><b><i class="legend-dot" style="--legend:var(--south)"></i>NAM · VÀNG</b><p>Kết quả, thu hoạch, cảm xúc, hành động thực tế.</p></div>
+        </div>
+      </section>
+      <div class="note">Dữ liệu tính cách và các cặp tương hợp/tương khắc được giữ theo tài liệu chiêm tinh Maya bạn cung cấp. Những diễn giải này không phải một chuẩn thống nhất của khảo cổ học Maya. Mốc 1 Imix là điểm bắt đầu mô phỏng vòng, không phải phép đổi ngày sinh Dương lịch.</div>
+      <div class="note">Các họa tiết trên mô hình là đồ họa minh họa lấy cảm hứng hình học Maya, không phải bản sao chính xác của văn tự tượng hình khảo cổ. Tài liệu đính kèm không liệt kê ý nghĩa riêng cho từng tông số nên giao diện chỉ hiển thị số 1–13.</div>
+    </aside>
+  </main>
+  <footer class="footer"><span>TZOLK'IN · 260 DAY CYCLE</span><span>Three.js r187 · OrbitControls</span><span><a href="https://maya.nmai.si.edu/calendar/calendar-system" target="_blank" rel="noopener">Smithsonian · The Maya Calendar System ↗</a></span></footer>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const SIGNS = [
+ {name:"Imix",alias:"Imox",vi:"Cá Sấu / Nguồn Cội",dir:"Đông",dirKey:"east",trait:"Năng động, thông minh, giàu lòng bảo bọc, trực giác cao.",best:["Chuwen","B'en"],conflict:["Etz'nab'"],code:"IM"},
+ {name:"Ik'",alias:"Iq",vi:"Gió / Hơi Thở",dir:"Bắc",dirKey:"north",trait:"Giao tiếp giỏi, yêu công lý, nội tâm nhưng đôi khi do dự.",best:["Ix","Kawoq"],conflict:["Eb'"],code:"IK"},
+ {name:"Ak'b'al",alias:"Aq'ab'al",vi:"Đêm / Ngôi Nhà",dir:"Tây",dirKey:"west",trait:"Hướng nội, coi trọng truyền thống, kiên định, thích sự ổn định.",best:["Men","Ajpu"],conflict:["Ajmaq"],code:"AK"},
+ {name:"K'an",alias:"Q'anil",vi:"Hạt Giống / Thằn Lằn",dir:"Nam",dirKey:"south",trait:"Đầy hoài bão, tự tin, độc lập, có phần bướng bỉnh.",best:["K'ib'","Kab'an"],conflict:["Kimi"],code:"KN"},
+ {name:"Chikchan",alias:"Kan",vi:"Rắn Lông Vũ",dir:"Đông",dirKey:"east",trait:"Sức hút lớn, tràn đầy năng lượng, nhạy cảm nhưng dễ nổi nóng.",best:["Etz'nab'","Chuwen"],conflict:["K'an"],code:"CH"},
+ {name:"Kimi",alias:"Kame",vi:"Thần Chết / Biến Đổi",dir:"Bắc",dirKey:"north",trait:"Sâu sắc, có khả năng chữa lành, vị tha nhưng dễ cực đoan.",best:["Kawoq","Ix"],conflict:["Chikchan"],code:"KI"},
+ {name:"Manik'",alias:"Kej",vi:"Nai / Hươu",dir:"Tây",dirKey:"west",trait:"Sáng tạo, độc lập về tâm linh, thích xê dịch, kiên định.",best:["Ajpu","Men"],conflict:["Ak'b'al"],code:"MA"},
+ {name:"Lamat",alias:"Q'anil",vi:"Thỏ / Ngôi Sao",dir:"Nam",dirKey:"south",trait:"Tinh nghịch, thích tranh luận, khát khao sự chú ý, cạnh tranh cao.",best:["Kab'an","K'ib'"],conflict:["Ik'"],code:"LA"},
+ {name:"Muluk",alias:"Toj",vi:"Nước / Vật Hiến Tế",dir:"Đông",dirKey:"east",trait:"Sống theo cảm xúc, trực giác nhạy bén, thích giúp đỡ nhưng dễ thao túng.",best:["B'en","Etz'nab'"],conflict:["Imix"],code:"MU"},
+ {name:"Ok",alias:"T'zi",vi:"Chó / Lòng Thành",dir:"Bắc",dirKey:"north",trait:"Trung thành, thích làm việc nhóm, chăm chỉ nhưng đôi khi bốc đồng.",best:["Eb'","Kawoq"],conflict:["Manik'"],code:"OK"},
+ {name:"Chuwen",alias:"B'atz",vi:"Khỉ / Nghệ Sĩ",dir:"Tây",dirKey:"west",trait:"Sáng tạo vượt bậc, vui vẻ, thích làm trung tâm vũ trụ, khéo tay.",best:["Imix","Chuwen"],conflict:["K'an"],code:"CW"},
+ {name:"Eb'",alias:"E",vi:"Con Đường / Cỏ",dir:"Nam",dirKey:"south",trait:"Chu đáo, thích cống hiến xã hội, dễ thích nghi nhưng hay lo âu.",best:["K'an","Kab'an"],conflict:["Ik'"],code:"EB"},
+ {name:"B'en",alias:"Aj",vi:"Cây Lau / Mía",dir:"Đông",dirKey:"east",trait:"Quyền lực, có tố chất lãnh đạo, hiểu biết sâu rộng nhưng cứng nhắc.",best:["Chikchan","Chuwen"],conflict:["Kimi"],code:"BE"},
+ {name:"Ix",alias:"",vi:"Báo Gấm / Phù Thủy",dir:"Bắc",dirKey:"north",trait:"Bí ẩn, dũng cảm, yêu hòa bình nhưng cái tôi rất cao.",best:["Ik'","Kawoq"],conflict:["Eb'"],code:"IX"},
+ {name:"Men",alias:"Tz'ikin",vi:"Đại Bàng / Tầm Nhìn",dir:"Tây",dirKey:"west",trait:"Có tầm nhìn xa, độc lập, cầu toàn, đôi khi sống hơi tách biệt.",best:["Ak'b'al","Ajpu"],conflict:["Ajmaq"],code:"ME"},
+ {name:"K'ib'",alias:"Ajmaq",vi:"Kền Kền / Con Cú",dir:"Nam",dirKey:"south",trait:"Khôn ngoan, thực tế, nghiêm túc, là sứ giả hòa giải tốt.",best:["Lamat","Kab'an"],conflict:["Manik'"],code:"KB"},
+ {name:"Kab'an",alias:"Noj",vi:"Trái Đất / Trí Tuệ",dir:"Đông",dirKey:"east",trait:"Thực tế, có tư duy cách mạng, lý trí mạnh mẽ, kiên nhẫn.",best:["K'an","K'ib'"],conflict:["Chuwen"],code:"KA"},
+ {name:"Etz'nab'",alias:"Tijax",vi:"Dao Ghăm / Đá Lửa",dir:"Bắc",dirKey:"north",trait:"Thẳng thắn, sắc bén, dũng cảm, yêu sự thật nhưng dễ làm tổn thương người khác.",best:["Chikchan","B'en"],conflict:["Imix"],code:"ET"},
+ {name:"Kawoq",alias:"",vi:"Bão Tố / Gia Đình",dir:"Tây",dirKey:"west",trait:"Giàu lòng trắc ẩn, che chở gia đình tốt, dễ bị kiệt sức vì người khác.",best:["Ik'","Ix"],conflict:["Lamat"],code:"KW"},
+ {name:"Ajpu",alias:"",vi:"Mặt Trời / Ánh Sáng",dir:"Nam",dirKey:"south",trait:"Tâm linh, lý tưởng hóa cuộc sống, đa tài nhưng đôi khi thiếu thực tế.",best:["Ak'b'al","Men"],conflict:["Ok"],code:"AJ"}
+];
+const DIR = {
+ east:{label:"ĐÔNG · KHỞI SINH",color:0xc65348,css:"#c65348"},
+ north:{label:"BẮC · TRÍ TUỆ",color:0xe8e6d8,css:"#e8e6d8"},
+ west:{label:"TÂY · QUAN HỆ",color:0x526b85,css:"#7189a2"},
+ south:{label:"NAM · CẢM XÚC",color:0xd8ae4d,css:"#d8ae4d"}
+};
+const $ = id => document.getElementById(id);
+const toneGrid = $('toneGrid'), signList = $('signList');
+let currentStep = 0, selectedSign = 0, isPlaying = false, playTimer = null;
+let renderer, scene, camera, controls, wheelGroup, activeSignMeshes=[], activeToneMeshes=[], rayTargets=[];
+const matGold = new THREE.MeshStandardMaterial({color:0xb98b48,metalness:.82,roughness:.28});
+
+function signIndexByName(name){
+ const n = name.toLowerCase().replace(/[’‘]/g,"'");
+ return SIGNS.findIndex(s => s.name.toLowerCase().replace(/[’‘]/g,"'")===n || s.alias.toLowerCase().replace(/[’‘]/g,"'")===n);
+}
+function createSignButtons(query=''){
+ const q=query.trim().toLowerCase();
+ signList.innerHTML='';
+ SIGNS.forEach((s,i)=>{
+   const hay=(s.name+' '+s.alias+' '+s.vi).toLowerCase(); if(q && !hay.includes(q)) return;
+   const b=document.createElement('button'); b.className='sign-item'+(i===selectedSign?' active':'');
+   b.innerHTML=`<i class="sign-dot" style="--sign-color:${DIR[s.dirKey].css}"></i><span>${s.name}</span>`;
+   b.title=s.vi; b.addEventListener('click',()=>{stopCycle();setStep(i);}); signList.appendChild(b);
+ });
+}
+function makeToneGlyph(n){
+ const c=document.createElement('canvas'); c.width=160;c.height=160;const x=c.getContext('2d');
+ x.fillStyle='#18232a';x.fillRect(0,0,160,160);
+ x.strokeStyle='#c8a05a';x.lineWidth=5;x.strokeRect(5,5,150,150);
+ const bars=Math.floor(n/5),dots=n%5;
+ const y0=106;
+ for(let b=0;b<bars;b++){x.fillStyle='#ead6aa';x.fillRect(36,y0-b*19,88,10);}
+ for(let d=0;d<dots;d++){x.beginPath();x.fillStyle='#f6e4bd';x.arc(42+d*19,y0-bars*19-22,6,0,Math.PI*2);x.fill();}
+ if(n===0){x.strokeStyle='#ead6aa';x.lineWidth=5;x.beginPath();x.arc(80,90,18,0,Math.PI*2);x.stroke();}
+ x.fillStyle='#d7b975';x.font='bold 24px Georgia';x.textAlign='center';x.fillText(String(n),80,33);
+ return new THREE.CanvasTexture(c);
+}
+function buildToneGrid(){
+ toneGrid.innerHTML='';
+ for(let n=1;n<=13;n++){
+  const b=document.createElement('button');b.className='tone';b.textContent=n;b.dataset.tone=n;
+  b.addEventListener('click',()=>{stopCycle();setStep(n-1);});toneGrid.appendChild(b);
+ }
+}
+function updateToneGrid(){
+ const tone=(currentStep%13)+1;
+ [...toneGrid.children].forEach(b=>b.classList.toggle('active',Number(b.dataset.tone)===tone));
+}
+function createPlaqueTexture(sign, index){
+ const c=document.createElement('canvas'); c.width=512;c.height=256;const ctx=c.getContext('2d');
+ const col=DIR[sign.dirKey].css;
+ ctx.fillStyle='#16222a';ctx.fillRect(0,0,512,256);
+ ctx.strokeStyle=col;ctx.lineWidth=9;ctx.strokeRect(8,8,496,240);
+ ctx.strokeStyle='rgba(230,203,150,.45)';ctx.lineWidth=2;ctx.strokeRect(20,20,472,216);
+ // Motif hình học Maya cách điệu, không phải bản sao văn tự khảo cổ.
+ ctx.save();ctx.translate(256,83);ctx.strokeStyle=col;ctx.lineWidth=8;ctx.lineCap='round';ctx.lineJoin='round';
+ const variant=index%5;
+ if(variant===0){ctx.beginPath();ctx.arc(0,0,29,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(-42,0);ctx.lineTo(42,0);ctx.moveTo(0,-42);ctx.lineTo(0,42);ctx.stroke();}
+ else if(variant===1){ctx.strokeRect(-32,-30,64,60);ctx.beginPath();ctx.moveTo(-43,-43);ctx.lineTo(43,43);ctx.moveTo(43,-43);ctx.lineTo(-43,43);ctx.stroke();}
+ else if(variant===2){ctx.beginPath();ctx.moveTo(0,-42);ctx.lineTo(39,28);ctx.lineTo(-39,28);ctx.closePath();ctx.stroke();ctx.beginPath();ctx.arc(0,3,11,0,Math.PI*2);ctx.stroke();}
+ else if(variant===3){for(let d=-1;d<=1;d++){ctx.beginPath();ctx.arc(d*24,0,13,0,Math.PI*2);ctx.stroke();}}
+ else{ctx.beginPath();ctx.moveTo(-40,-20);ctx.lineTo(0,-40);ctx.lineTo(40,-20);ctx.lineTo(40,20);ctx.lineTo(0,40);ctx.lineTo(-40,20);ctx.closePath();ctx.stroke();}
+ ctx.restore();
+ ctx.fillStyle='#f2dfb8';ctx.textAlign='center';ctx.font='bold 39px Georgia';ctx.fillText(sign.name,256,185);
+ ctx.fillStyle='#b9b6aa';ctx.font='22px Arial';ctx.fillText(sign.vi.split('/')[0].trim(),256,220);
+ return new THREE.CanvasTexture(c);
+}
+function addTopPlane(parent, width, depth, material, x, y, z){
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(width,depth),material);
+ m.rotation.x=-Math.PI/2;m.position.set(x,y,z);parent.add(m);return m;
+}
+function polar(radius, angle, y=0){return new THREE.Vector3(Math.cos(angle)*radius,y,-Math.sin(angle)*radius);}
+function makeSector(inner, outer, start, end){
+ const s=new THREE.Shape();
+ s.moveTo(Math.cos(start)*outer,Math.sin(start)*outer);
+ const steps=8;
+ for(let i=1;i<=steps;i++){const a=start+(end-start)*i/steps;s.lineTo(Math.cos(a)*outer,Math.sin(a)*outer);}
+ s.lineTo(Math.cos(end)*inner,Math.sin(end)*inner);
+ for(let i=steps-1;i>=0;i--){const a=start+(end-start)*i/steps;s.lineTo(Math.cos(a)*inner,Math.sin(a)*inner);}
+ s.closePath();const g=new THREE.ShapeGeometry(s,8);g.rotateX(-Math.PI/2);return g;
+}
+function addRing(radius,tube,material,parent=wheelGroup){
+ const m=new THREE.Mesh(new THREE.TorusGeometry(radius,tube,10,160),material);
+ m.rotation.x=Math.PI/2;m.position.y=.22;parent.add(m);return m;
+}
+function createScene(){
+ const canvas=$('stage');
+ renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);
+ renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x080d12);scene.fog=new THREE.FogExp2(0x080d12,.018);
+ camera=new THREE.PerspectiveCamera(42,canvas.clientWidth/canvas.clientHeight,.1,100);
+ camera.position.set(0,8.5,10.1);camera.lookAt(0,0,0);
+ controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.1,0);controls.enableDamping=true;controls.dampingFactor=.07;controls.enablePan=false;controls.minDistance=6;controls.maxDistance=17;controls.minPolarAngle=.18;controls.maxPolarAngle=1.42;controls.rotateSpeed=.65;controls.zoomSpeed=.8;controls.autoRotate=false;controls.autoRotateSpeed=.55;
+ scene.add(new THREE.HemisphereLight(0xc7d7e2,0x24180d,2.15));
+ const key=new THREE.DirectionalLight(0xffe3b0,3.3);key.position.set(-3,8,5);scene.add(key);
+ const rim=new THREE.DirectionalLight(0x7897b0,2.1);rim.position.set(5,5,-6);scene.add(rim);
+ const goldLight=new THREE.PointLight(0xc88a3d,35,14);goldLight.position.set(0,3,0);scene.add(goldLight);
+ // Sao nền
+ const starGeo=new THREE.BufferGeometry(), positions=[];
+ for(let i=0;i<650;i++){const r=18+Math.random()*22,a=Math.random()*Math.PI*2,y=(Math.random()-.5)*24;positions.push(Math.cos(a)*r,y,Math.sin(a)*r);}
+ starGeo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xcbb88f,size:.055,transparent:true,opacity:.75}));scene.add(stars);
+ wheelGroup=new THREE.Group();scene.add(wheelGroup);
+ // Bệ tròn và các tầng đĩa
+ const base=new THREE.Mesh(new THREE.CylinderGeometry(4.15,4.22,.34,128),new THREE.MeshStandardMaterial({color:0x32271b,metalness:.82,roughness:.34}));base.position.y=-.12;wheelGroup.add(base);
+ const top=new THREE.Mesh(new THREE.CylinderGeometry(4.03,4.03,.08,128),new THREE.MeshStandardMaterial({color:0x16212a,metalness:.68,roughness:.45}));top.position.y=.08;wheelGroup.add(top);
+ addRing(4.08,.035,matGold);addRing(3.92,.018,new THREE.MeshStandardMaterial({color:0x70542e,metalness:.85,roughness:.3}));
+ addRing(3.48,.025,matGold);addRing(2.43,.025,matGold);addRing(2.23,.014,new THREE.MeshStandardMaterial({color:0x866331,metalness:.8,roughness:.35}));
+ // Các múi 20 ngày
+ SIGNS.forEach((s,i)=>{
+  const a0=(i/20)*Math.PI*2-Math.PI/2, a1=((i+1)/20)*Math.PI*2-Math.PI/2;
+  const col=DIR[s.dirKey].color;
+  const sector=new THREE.Mesh(makeSector(2.42,3.85,a0+.008,a1-.008),new THREE.MeshStandardMaterial({color:col,metalness:.34,roughness:.65,transparent:true,opacity:.24,side:THREE.DoubleSide}));sector.position.y=.185;wheelGroup.add(sector);
+  const a=(a0+a1)/2,p=polar(3.12,a,.30);
+  const plaque=new THREE.Group();plaque.position.copy(p);plaque.rotation.y=a;
+  const box=new THREE.Mesh(new THREE.BoxGeometry(.88,.13,.58),new THREE.MeshStandardMaterial({color:0x17232b,metalness:.55,roughness:.42,emissive:col,emissiveIntensity:.05}));plaque.add(box);
+  const tex=new THREE.MeshBasicMaterial({map:createPlaqueTexture(s,i),transparent:false,side:THREE.DoubleSide});
+  const face=addTopPlane(plaque,.84,.54,tex,0,.071,0);face.userData={type:'sign',index:i};
+  box.userData={type:'sign',index:i};face.userData={type:'sign',index:i};
+  wheelGroup.add(plaque);rayTargets.push(box,face);activeSignMeshes.push({group:plaque,box,face,index:i});
+  // dấu chia nhỏ ở viền
+  const tick=new THREE.Mesh(new THREE.BoxGeometry(.025,.045,.2),new THREE.MeshStandardMaterial({color:col,metalness:.55,roughness:.35}));
+  tick.position.copy(polar(3.72,a,.25));tick.rotation.y=a;wheelGroup.add(tick);
+ });
+ // Vòng 13 tông số: số Maya dạng chấm-vạch minh họa bằng texture
+ const toneMaterial=new THREE.MeshStandardMaterial({color:0x26333b,metalness:.65,roughness:.4});
+ for(let n=1;n<=13;n++){
+  const a=((n-1)/13)*Math.PI*2-Math.PI/2,p=polar(1.83,a,.30);
+  const group=new THREE.Group();group.position.copy(p);group.rotation.y=a;
+  const box=new THREE.Mesh(new THREE.BoxGeometry(.47,.12,.48),toneMaterial.clone());group.add(box);
+  const tex=new THREE.MeshBasicMaterial({map:makeToneGlyph(n),side:THREE.DoubleSide});
+  const face=addTopPlane(group,.43,.44,tex,0,.066,0);
+  box.userData={type:'tone',index:n};face.userData={type:'tone',index:n};wheelGroup.add(group);rayTargets.push(box,face);activeToneMeshes.push({group,box,face,index:n});
+ }
+ // Đĩa tâm
+ const center=new THREE.Mesh(new THREE.CylinderGeometry(1.13,1.2,.22,96),new THREE.MeshStandardMaterial({color:0x5d4526,metalness:.9,roughness:.25}));center.position.y=.34;wheelGroup.add(center);
+ const centerTop=new THREE.Mesh(new THREE.CylinderGeometry(1.04,1.04,.08,96),new THREE.MeshStandardMaterial({color:0x1a252b,metalness:.7,roughness:.3,emissive:0x2d1c08,emissiveIntensity:.3}));centerTop.position.y=.49;wheelGroup.add(centerTop);
+ addRing(1.06,.035,new THREE.MeshStandardMaterial({color:0xd4ad64,metalness:.9,roughness:.2}),wheelGroup).position.y=.54;
+ // Mặt trời ở tâm bằng các vòng tròn đồng tâm và tia
+ const sunMat=new THREE.MeshStandardMaterial({color:0xd3a957,metalness:.75,roughness:.3,emissive:0x624015,emissiveIntensity:.3});
+ const sun=new THREE.Mesh(new THREE.TorusGeometry(.48,.075,12,64),sunMat);sun.rotation.x=Math.PI/2;sun.position.y=.57;wheelGroup.add(sun);
+ const orb=new THREE.Mesh(new THREE.SphereGeometry(.22,32,24),new THREE.MeshStandardMaterial({color:0xe6c87c,metalness:.55,roughness:.24,emissive:0x8d5b20,emissiveIntensity:.25}));orb.position.y=.58;wheelGroup.add(orb);
+ for(let k=0;k<12;k++){const a=k*Math.PI/6;const ray=new THREE.Mesh(new THREE.BoxGeometry(.055,.035,.23),sunMat);const pp=polar(.69,a,.55);ray.position.copy(pp);ray.rotation.y=a;wheelGroup.add(ray);}
+ // Chữ hướng đặt ngoài vành
+ const compass=[['BẮC',0,-4.35],['ĐÔNG',4.36,0],['NAM',0,4.35],['TÂY',-4.36,0]];
+ compass.forEach(([t,x,z])=>{
+  const c=document.createElement('canvas');c.width=256;c.height=80;const cx=c.getContext('2d');cx.fillStyle='#d9bd82';cx.font='bold 30px Georgia';cx.textAlign='center';cx.fillText(t,128,51);
+  const texture=new THREE.CanvasTexture(c);const m=new THREE.Mesh(new THREE.PlaneGeometry(.9,.28),new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.set(x,.28,z);wheelGroup.add(m);
+ });
+ // Trụ đỡ nổi nhẹ
+ const plinth=new THREE.Mesh(new THREE.CylinderGeometry(2.5,3.0,.22,96),new THREE.MeshStandardMaterial({color:0x241d16,metalness:.75,roughness:.38}));plinth.position.y=-.36;wheelGroup.add(plinth);
+ // Chỉ dấu chọn đang chạy
+ update3DSelection();
+ // Click chọn dấu hiệu/tông sau khi OrbitControls kết thúc thao tác
+ let down=null;renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};});
+ renderer.domElement.addEventListener('pointerup',e=>{
+  if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;down=null;if(Math.hypot(dx,dy)>5)return;
+  const rect=renderer.domElement.getBoundingClientRect(),mouse=new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
+  const ray=new THREE.Raycaster();ray.setFromCamera(mouse,camera);const hits=ray.intersectObjects(rayTargets,false);if(!hits.length)return;
+  const data=hits[0].object.userData;if(data.type==='sign'){stopCycle();setStep(data.index);}else if(data.type==='tone'){stopCycle();setStep(data.index-1);}
+ });
+ window.addEventListener('resize',onResize);
+ $('loading').style.display='none';
+ animate();
+}
+function update3DSelection(){
+ if(!activeSignMeshes.length)return;
+ selectedSign=currentStep%20;const selectedTone=(currentStep%13)+1;
+ activeSignMeshes.forEach(({box,group,index})=>{
+  const active=index===selectedSign;box.material.emissiveIntensity=active?.42:.05;box.material.color.set(active?0x3c3020:0x17232b);group.scale.setScalar(active?1.09:1);
+ });
+ activeToneMeshes.forEach(({box,group,index})=>{
+  const active=index===selectedTone;box.material.emissive=new THREE.Color(active?0x9a6c2b:0x000000);box.material.emissiveIntensity=active?.42:0;group.scale.setScalar(active?1.13:1);
+ });
+}
+function renderProfile(){
+ const s=SIGNS[selectedSign];const best=s.best.map(name=>{const i=signIndexByName(name);return i>=0?`<button data-sign="${i}">${SIGNS[i].name}</button>`:`<span>${name}</span>`;}).join('');
+ const bad=s.conflict.map(name=>{const i=signIndexByName(name);return i>=0?`<button data-sign="${i}">${SIGNS[i].name}</button>`:`<span>${name}</span>`;}).join('');
+ $('profileBlock').innerHTML=`<p><strong>Tên bản địa:</strong> ${s.name}${s.alias?` <span style="color:#8d9697">(${s.alias})</span>`:''}</p><p><strong>Tên tiếng Việt:</strong> ${s.vi}</p><p><strong>Hướng vũ trụ:</strong> ${s.dir} · ${DIR[s.dirKey].label.split(' · ')[1]}</p><p><strong>Tính cách:</strong> ${s.trait}</p><p style="margin-top:12px"><strong>Tương hợp tốt nhất · theo tài liệu</strong></p><div class="relation">${best}</div><p style="margin-top:12px"><strong>Tương khắc · theo tài liệu</strong></p><div class="relation bad">${bad}</div>`;
+ $('profileBlock').querySelectorAll('button[data-sign]').forEach(b=>b.addEventListener('click',()=>{stopCycle();setStep(Number(b.dataset.sign));}));
+}
+function updatePanel(){
+ const n=(currentStep%13)+1,s=SIGNS[selectedSign],d=DIR[s.dirKey];
+ $('currentNumber').textContent=n;$('currentName').textContent=s.name;$('currentTranslation').textContent=s.vi;
+ $('currentDirection').textContent=d.label;$('currentDirection').style.setProperty('--tag-color',d.css);
+ $('currentTrait').textContent=s.trait;$('stepCount').textContent=`NGÀY ${String(currentStep+1).padStart(3,'0')} / 260`;
+ $('stepCombo').textContent=`${n} ${s.name}`;$('stepSlider').value=currentStep;
+ updateToneGrid();createSignButtons($('signSearch').value);renderProfile();update3DSelection();
+}
+function setStep(step){currentStep=((step%260)+260)%260;selectedSign=currentStep%20;updatePanel();}
+function stopCycle(){isPlaying=false;if(playTimer){clearInterval(playTimer);playTimer=null;}$('playCycle').textContent='▶ CHẠY CHU KỲ';}
+function togglePlay(){
+ if(isPlaying){stopCycle();return;}isPlaying=true;$('playCycle').textContent='Ⅱ TẠM DỪNG';
+ playTimer=setInterval(()=>setStep(currentStep+1),650);
+}
+function onResize(){
+ if(!renderer||!camera)return;const c=$('stage');const w=Math.max(1,c.clientWidth),h=Math.max(1,c.clientHeight);
+ renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+function animate(){requestAnimationFrame(animate);if(controls)controls.update();if(renderer&&scene&&camera)renderer.render(scene,camera);}
+
+buildToneGrid();createSignButtons();updatePanel();
+$('prevStep').addEventListener('click',()=>{stopCycle();setStep(currentStep-1);});
+$('nextStep').addEventListener('click',()=>{stopCycle();setStep(currentStep+1);});
+$('stepSlider').addEventListener('input',e=>{stopCycle();setStep(Number(e.target.value));});
+$('playCycle').addEventListener('click',togglePlay);
+$('resetCycle').addEventListener('click',()=>{stopCycle();setStep(0);});
+$('signSearch').addEventListener('input',e=>createSignButtons(e.target.value));
+$('stage').addEventListener('webglcontextlost',e=>{e.preventDefault();$('loading').style.display='grid';$('loading').innerHTML='KẾT NỐI WEBGL BỊ GIÁN ĐOẠN<small>Hãy tải lại trang hoặc kiểm tra khả năng tăng tốc phần cứng của trình duyệt.</small>';});
+try{createScene();}catch(error){console.error(error);$('loading').style.display='grid';$('loading').innerHTML='KHÔNG THỂ KHỞI TẠO MÔ HÌNH 3D<small>Hãy dùng Chrome/Edge mới và mở file qua máy chủ HTTP. Kiểm tra Internet để tải Three.js.</small>';}
+</script>
+</body>
+</html>

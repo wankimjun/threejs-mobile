@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090d1d" />
+  <title>Bản đồ Chiêm tinh Phương Đông 3D</title>
+  <style>
+    :root {
+      --bg: #080d1d;
+      --panel: rgba(12, 19, 39, .88);
+      --panel2: rgba(19, 28, 52, .86);
+      --line: rgba(214, 185, 126, .22);
+      --gold: #e6c98e;
+      --gold2: #b89155;
+      --text: #f4eddf;
+      --muted: #a7b0c4;
+      --cyan: #83d8df;
+      --wood: #58c49a;
+      --fire: #f07f66;
+      --earth: #d7b36d;
+      --metal: #c5d1db;
+      --water: #65a9e7;
+    }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--bg); color:var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; background: radial-gradient(ellipse at 52% 42%, rgba(41,57,95,.22), transparent 56%), linear-gradient(135deg, rgba(12,22,47,.2), transparent 55%); z-index:0; }
+    #app { position:relative; z-index:1; width:100%; height:100%; }
+    #scene { position:absolute; inset:0; }
+    #scene canvas { display:block; width:100%; height:100%; outline:none; }
+    .topbar { position:absolute; top:18px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; pointer-events:none; }
+    .brand, .top-actions { pointer-events:auto; }
+    .brand { display:flex; align-items:center; gap:13px; max-width:min(620px, 66vw); }
+    .seal { width:44px; height:44px; flex:none; display:grid; place-items:center; border:1px solid rgba(230,201,142,.55); border-radius:50%; color:var(--gold); font-family:serif; font-size:24px; background:rgba(14,20,39,.65); box-shadow:0 0 24px rgba(217,179,112,.12), inset 0 0 15px rgba(217,179,112,.08); }
+    h1 { margin:0; font-size:clamp(17px,2vw,24px); letter-spacing:.09em; font-weight:650; line-height:1.25; }
+    .subtitle { margin-top:4px; color:var(--muted); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+    .top-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+    button, select, input { font:inherit; }
+    .btn { border:1px solid var(--line); color:var(--text); background:rgba(16,25,48,.82); border-radius:10px; padding:9px 12px; font-size:12px; cursor:pointer; transition:.2s ease; backdrop-filter:blur(12px); }
+    .btn:hover, .btn.active { border-color:rgba(230,201,142,.72); color:var(--gold); background:rgba(48,43,43,.76); }
+    .btn.primary { color:#1a1720; background:linear-gradient(135deg,#ead7aa,#b99155); border:0; font-weight:700; }
+    .panel { position:absolute; top:92px; bottom:18px; width:304px; overflow:auto; border:1px solid var(--line); border-radius:17px; background:var(--panel); backdrop-filter:blur(18px); box-shadow:0 18px 60px rgba(0,0,0,.28); scrollbar-width:thin; scrollbar-color:rgba(230,201,142,.4) transparent; }
+    #leftPanel { left:20px; padding:17px; }
+    #rightPanel { right:20px; padding:17px; width:330px; }
+    .section-title { font-size:10px; font-weight:750; color:var(--gold); letter-spacing:.16em; text-transform:uppercase; margin:0 0 11px; }
+    .intro { color:#c2cada; font-size:12px; line-height:1.6; margin:0 0 16px; }
+    .layer-list { display:grid; gap:7px; }
+    .layer-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 10px; border:1px solid rgba(174,188,215,.12); background:rgba(255,255,255,.025); border-radius:10px; font-size:12px; }
+    .layer-row span { display:flex; align-items:center; gap:9px; }
+    .dot { width:9px; height:9px; border-radius:50%; display:inline-block; box-shadow:0 0 10px currentColor; }
+    .switch { width:34px; height:19px; appearance:none; background:#384158; border-radius:20px; position:relative; cursor:pointer; outline:none; transition:.2s; flex:none; }
+    .switch::after { content:""; position:absolute; width:13px; height:13px; left:3px; top:3px; border-radius:50%; background:#e9edf3; transition:.2s; }
+    .switch:checked { background:#94784d; }
+    .switch:checked::after { transform:translateX(15px); background:#fff5dc; }
+    .divider { border:0; border-top:1px solid rgba(214,185,126,.15); margin:16px 0; }
+    .mini-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+    .mini-card { border:1px solid rgba(174,188,215,.12); border-radius:10px; padding:10px; background:rgba(255,255,255,.025); }
+    .mini-card strong { display:block; font-size:19px; color:var(--gold); font-family:Georgia,serif; font-weight:500; }
+    .mini-card small { color:var(--muted); font-size:10px; letter-spacing:.04em; }
+    .cycle-note { margin-top:11px; border-left:2px solid var(--gold2); padding:3px 0 3px 10px; color:#c0c8d7; font-size:11px; line-height:1.55; }
+    .detail-kicker { color:var(--cyan); letter-spacing:.14em; text-transform:uppercase; font-size:10px; font-weight:700; }
+    .detail-title { font-family:Georgia,serif; font-size:27px; color:var(--gold); margin:6px 0 2px; line-height:1.18; }
+    .detail-sub { color:var(--muted); font-size:11px; margin-bottom:15px; }
+    .detail-copy { color:#d1d7e4; font-size:12px; line-height:1.7; margin:0 0 13px; }
+    .data-list { display:grid; gap:7px; margin:12px 0 16px; }
+    .data-row { display:flex; justify-content:space-between; gap:14px; padding:8px 0; border-bottom:1px solid rgba(174,188,215,.1); font-size:11px; }
+    .data-row span:first-child { color:#9da9c0; }
+    .data-row span:last-child { color:#f0e8d8; text-align:right; }
+    .tag-wrap { display:flex; flex-wrap:wrap; gap:6px; }
+    .tag { font-size:10px; color:#e7d5ad; border:1px solid rgba(230,201,142,.28); padding:5px 8px; border-radius:20px; background:rgba(230,201,142,.06); }
+    .element-bar { display:flex; gap:5px; margin-top:10px; }
+    .element-bar span { flex:1; text-align:center; border-radius:6px; padding:7px 2px; color:#08101d; font-weight:750; font-size:10px; }
+    .element-bar small { display:block; font-weight:500; font-size:9px; opacity:.75; }
+    .bottom-hint { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); padding:8px 13px; border:1px solid rgba(214,185,126,.18); border-radius:20px; background:rgba(8,13,29,.72); backdrop-filter:blur(12px); font-size:10px; color:#aeb8cb; white-space:nowrap; pointer-events:none; }
+    .bottom-hint b { color:var(--gold); font-weight:600; }
+    .toast { position:absolute; left:50%; top:82px; transform:translate(-50%,-10px); opacity:0; pointer-events:none; background:rgba(20,29,50,.95); border:1px solid var(--line); border-radius:9px; padding:8px 12px; font-size:11px; color:var(--gold); transition:.25s; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    .footnote { color:#8995ac; font-size:10px; line-height:1.55; margin-top:15px; }
+    a { color:#e5c98f; text-decoration:none; border-bottom:1px dotted rgba(229,201,143,.45); }
+    a:hover { color:#fff0ca; }
+    #loading { position:absolute; inset:0; display:grid; place-items:center; background:#080d1d; color:var(--gold); z-index:5; letter-spacing:.15em; font-size:12px; transition:opacity .4s; }
+    #loading.hide { opacity:0; pointer-events:none; }
+    .mobile-panel-toggle { display:none; }
+    @media (max-width: 980px) {
+      .panel { width:270px; top:84px; bottom:70px; }
+      #rightPanel { width:280px; }
+    }
+    @media (max-width: 700px) {
+      .topbar { top:10px; left:10px; right:10px; }
+      .seal { width:36px; height:36px; font-size:20px; }
+      .subtitle { font-size:9px; }
+      .top-actions { gap:5px; }
+      .top-actions .btn { padding:8px 9px; font-size:10px; }
+      .panel { top:auto; bottom:58px; max-height:43vh; width:calc(100% - 20px) !important; left:10px !important; right:10px !important; border-radius:14px; }
+      #leftPanel { display:none; }
+      #leftPanel.open { display:block; }
+      #rightPanel { max-height:36vh; }
+      .bottom-hint { bottom:14px; font-size:9px; }
+      .mobile-panel-toggle { display:inline-block; }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+<div id="app">
+  <div id="scene" aria-label="Mô hình bản đồ chiêm tinh phương Đông 3D"></div>
+  <div id="loading">ĐANG KHAI MỞ THIÊN BÀN 3D…</div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="seal">易</div>
+      <div>
+        <h1>THIÊN BÀN PHƯƠNG ĐÔNG</h1>
+        <div class="subtitle">Can Chi · Ngũ Hành · Tứ Tượng · Nhị Thập Bát Tú</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn mobile-panel-toggle" id="toggleLayers">Lớp bản đồ</button>
+      <button class="btn" id="autoRotate">⟳ Tự xoay</button>
+      <button class="btn" id="resetView">⌖ Góc nhìn</button>
+      <button class="btn primary" id="showCycle">Vòng 60 Hoa Giáp</button>
+    </div>
+  </header>
+
+  <aside class="panel" id="leftPanel">
+    <div class="section-title">Cấu trúc thiên bàn</div>
+    <p class="intro">Một bản đồ tương tác tổng hợp các lớp biểu tượng trong lịch pháp và thiên văn học cổ phương Đông. Chọn từng điểm sáng trên mô hình để xem thông tin.</p>
+    <div class="section-title">Hiển thị các lớp</div>
+    <div class="layer-list">
+      <label class="layer-row"><span><i class="dot" style="background:#d8bd88;color:#d8bd88"></i>Nhị thập bát tú (28 Tú)</span><input class="switch layer-toggle" data-layer="mansions" type="checkbox" checked></label>
+      <label class="layer-row"><span><i class="dot" style="background:#89c9dc;color:#89c9dc"></i>Thập nhị Địa Chi</span><input class="switch layer-toggle" data-layer="branches" type="checkbox" checked></label>
+      <label class="layer-row"><span><i class="dot" style="background:#cf9ce7;color:#cf9ce7"></i>Thập Thiên Can</span><input class="switch layer-toggle" data-layer="stems" type="checkbox" checked></label>
+      <label class="layer-row"><span><i class="dot" style="background:#e5c98f;color:#e5c98f"></i>Ngũ Hành</span><input class="switch layer-toggle" data-layer="elements" type="checkbox" checked></label>
+      <label class="layer-row"><span><i class="dot" style="background:#f1eee8;color:#f1eee8"></i>Thái Cực Âm Dương</span><input class="switch layer-toggle" data-layer="taichi" type="checkbox" checked></label>
+      <label class="layer-row"><span><i class="dot" style="background:#8292b7;color:#8292b7"></i>Tứ Tượng / Tứ phương</span><input class="switch layer-toggle" data-layer="guardians" type="checkbox" checked></label>
+    </div>
+    <hr class="divider" />
+    <div class="section-title">Các chu kỳ cốt lõi</div>
+    <div class="mini-grid">
+      <div class="mini-card"><strong>10</strong><small>THIÊN CAN</small></div>
+      <div class="mini-card"><strong>12</strong><small>ĐỊA CHI</small></div>
+      <div class="mini-card"><strong>60</strong><small>HOA GIÁP</small></div>
+      <div class="mini-card"><strong>28</strong><small>LUNAR MANSIONS</small></div>
+    </div>
+    <div class="cycle-note">10 Thiên Can kết hợp 12 Địa Chi theo thứ tự âm/dương tương ứng, tạo chu kỳ 60 cặp Can–Chi rồi lặp lại.</div>
+    <hr class="divider" />
+    <div class="section-title">Ngũ hành tương quan</div>
+    <div class="element-bar">
+      <span style="background:var(--wood)">MỘC<small>Wood</small></span>
+      <span style="background:var(--fire)">HỎA<small>Fire</small></span>
+      <span style="background:var(--earth)">THỔ<small>Earth</small></span>
+      <span style="background:var(--metal)">KIM<small>Metal</small></span>
+      <span style="background:var(--water)">THỦY<small>Water</small></span>
+    </div>
+    <p class="footnote">Tương sinh: Mộc → Hỏa → Thổ → Kim → Thủy → Mộc. Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.</p>
+  </aside>
+
+  <aside class="panel" id="rightPanel">
+    <div class="detail-kicker" id="detailKicker">THÔNG TIN THIÊN BÀN</div>
+    <div class="detail-title" id="detailTitle">Thái Cực</div>
+    <div class="detail-sub" id="detailSub">太極 · Âm Dương</div>
+    <p class="detail-copy" id="detailCopy">Thái Cực tượng trưng cho trạng thái thống nhất, từ đó phân hóa thành Âm và Dương. Chọn một Thiên Can, Địa Chi, Tú hoặc Hành trên mô hình để xem nội dung tương ứng.</p>
+    <div class="data-list" id="detailData">
+      <div class="data-row"><span>Chủ đề</span><span>Vũ trụ quan cổ điển</span></div>
+      <div class="data-row"><span>Thành phần</span><span>Âm · Dương</span></div>
+      <div class="data-row"><span>Tương quan</span><span>Động và tĩnh</span></div>
+    </div>
+    <div class="tag-wrap" id="detailTags"><span class="tag">Biểu tượng truyền thống</span><span class="tag">Không phải dự báo khoa học</span></div>
+    <hr class="divider" />
+    <div class="section-title">Tham chiếu</div>
+    <p class="footnote">
+      <a href="https://www.hko.gov.hk/en/gts/time/stemsandbranches.htm" target="_blank" rel="noopener">Hong Kong Observatory – Heavenly Stems &amp; Earthly Branches</a><br><br>
+      <a href="https://english.scio.gov.cn/featured/chinakeywords/2024-08/30/content_117397320.htm" target="_blank" rel="noopener">China SCIO – Twenty-Eight Mansions</a><br><br>
+      <a href="https://iep.utm.edu/wuxing/" target="_blank" rel="noopener">Internet Encyclopedia of Philosophy – Wuxing</a><br><br>
+      <a href="https://www.masterseanchan.com/auspicious-28-mansions" target="_blank" rel="noopener">28 Lunar Mansions – reference list</a>
+    </p>
+    <p class="footnote">Lưu ý: Tên con giáp dùng cách gọi Việt Nam (Mão = Mèo); một số hệ Trung Hoa dùng Thỏ. Các diễn giải mang tính khái quát văn hóa, không phải lá số Bát Tự/Tử Vi cá nhân.</p>
+  </aside>
+
+  <div class="bottom-hint"><b>Kéo</b> để xoay · <b>Cuộn</b> để zoom · <b>Chạm</b> vào điểm sáng để khám phá</div>
+  <div class="toast" id="toast">Đã chọn lớp bản đồ</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const COLORS = {
+  gold: 0xe6c98e, goldDark: 0x8e7045, cyan: 0x83d8df,
+  wood: 0x58c49a, fire: 0xf07f66, earth: 0xd7b36d, metal: 0xc5d1db, water: 0x65a9e7,
+  mansion: 0xd8bd88, branch: 0x89c9dc, stem: 0xcf9ce7, white: 0xf1eee8
+};
+const phaseColors = { 'Mộc': COLORS.wood, 'Hỏa': COLORS.fire, 'Thổ': COLORS.earth, 'Kim': COLORS.metal, 'Thủy': COLORS.water };
+
+const stems = [
+  {name:'Giáp',hanzi:'甲',pinyin:'Jiǎ',phase:'Mộc',yinYang:'Dương',symbol:'Dương Mộc',meaning:'Thiên Can thứ nhất. Trong hệ quy nạp Ngũ hành, Giáp thuộc Mộc và mang tính Dương; thường được diễn giải bằng hình tượng cây lớn, sự khởi đầu và sức vươn lên.'},
+  {name:'Ất',hanzi:'乙',pinyin:'Yǐ',phase:'Mộc',yinYang:'Âm',symbol:'Âm Mộc',meaning:'Thiên Can thứ hai. Ất thuộc Mộc và mang tính Âm; hình tượng truyền thống thường gợi cành non, dây leo và khả năng thích nghi.'},
+  {name:'Bính',hanzi:'丙',pinyin:'Bǐng',phase:'Hỏa',yinYang:'Dương',symbol:'Dương Hỏa',meaning:'Thiên Can thứ ba. Bính thuộc Hỏa và mang tính Dương; gợi ánh sáng mạnh, sự hiển lộ và nhiệt năng.'},
+  {name:'Đinh',hanzi:'丁',pinyin:'Dīng',phase:'Hỏa',yinYang:'Âm',symbol:'Âm Hỏa',meaning:'Thiên Can thứ tư. Đinh thuộc Hỏa và mang tính Âm; thường được ví với ngọn đèn, ánh lửa tập trung và sự tinh tế.'},
+  {name:'Mậu',hanzi:'戊',pinyin:'Wù',phase:'Thổ',yinYang:'Dương',symbol:'Dương Thổ',meaning:'Thiên Can thứ năm. Mậu thuộc Thổ và mang tính Dương; hình tượng đất rộng, nền tảng và tính ổn định.'},
+  {name:'Kỷ',hanzi:'己',pinyin:'Jǐ',phase:'Thổ',yinYang:'Âm',symbol:'Âm Thổ',meaning:'Thiên Can thứ sáu. Kỷ thuộc Thổ và mang tính Âm; gợi đất canh tác, sự nuôi dưỡng và khả năng tiếp nhận.'},
+  {name:'Canh',hanzi:'庚',pinyin:'Gēng',phase:'Kim',yinYang:'Dương',symbol:'Dương Kim',meaning:'Thiên Can thứ bảy. Canh thuộc Kim và mang tính Dương; hình tượng kim loại cứng, sự quyết đoán và tính cải biến.'},
+  {name:'Tân',hanzi:'辛',pinyin:'Xīn',phase:'Kim',yinYang:'Âm',symbol:'Âm Kim',meaning:'Thiên Can thứ tám. Tân thuộc Kim và mang tính Âm; thường gợi kim loại tinh luyện, đồ trang sức và sự chính xác.'},
+  {name:'Nhâm',hanzi:'壬',pinyin:'Rén',phase:'Thủy',yinYang:'Dương',symbol:'Dương Thủy',meaning:'Thiên Can thứ chín. Nhâm thuộc Thủy và mang tính Dương; biểu tượng dòng nước lớn, sự lưu chuyển và bao quát.'},
+  {name:'Quý',hanzi:'癸',pinyin:'Guǐ',phase:'Thủy',yinYang:'Âm',symbol:'Âm Thủy',meaning:'Thiên Can thứ mười. Quý thuộc Thủy và mang tính Âm; gợi mưa, sương, nước thấm và sự nuôi dưỡng âm thầm.'}
+];
+const branches = [
+  {name:'Tý',hanzi:'子',pinyin:'Zǐ',animal:'Chuột',phase:'Thủy',yinYang:'Dương',hour:'23:00 – 01:00',direction:'Bắc',meaning:'Địa Chi thứ nhất, gắn với giờ Tý (23:00–01:00), phương Bắc và hành Thủy trong bảng quy nạp thông dụng.'},
+  {name:'Sửu',hanzi:'丑',pinyin:'Chǒu',animal:'Trâu',phase:'Thổ',yinYang:'Âm',hour:'01:00 – 03:00',direction:'Đông Bắc',meaning:'Địa Chi thứ hai, gắn với giờ Sửu (01:00–03:00), thuộc Thổ và mang tính Âm.'},
+  {name:'Dần',hanzi:'寅',pinyin:'Yín',animal:'Hổ',phase:'Mộc',yinYang:'Dương',hour:'03:00 – 05:00',direction:'Đông Bắc',meaning:'Địa Chi thứ ba, gắn với giờ Dần (03:00–05:00), thuộc Mộc và mang tính Dương.'},
+  {name:'Mão',hanzi:'卯',pinyin:'Mǎo',animal:'Mèo',phase:'Mộc',yinYang:'Âm',hour:'05:00 – 07:00',direction:'Đông',meaning:'Địa Chi thứ tư, gắn với giờ Mão (05:00–07:00), thuộc Mộc và mang tính Âm. Trong cách gọi con giáp Việt Nam, Mão là Mèo; nhiều hệ Trung Hoa dùng Thỏ.'},
+  {name:'Thìn',hanzi:'辰',pinyin:'Chén',animal:'Rồng',phase:'Thổ',yinYang:'Dương',hour:'07:00 – 09:00',direction:'Đông Nam',meaning:'Địa Chi thứ năm, gắn với giờ Thìn (07:00–09:00), thuộc Thổ và mang tính Dương.'},
+  {name:'Tỵ',hanzi:'巳',pinyin:'Sì',animal:'Rắn',phase:'Hỏa',yinYang:'Âm',hour:'09:00 – 11:00',direction:'Đông Nam',meaning:'Địa Chi thứ sáu, gắn với giờ Tỵ (09:00–11:00), thuộc Hỏa và mang tính Âm.'},
+  {name:'Ngọ',hanzi:'午',pinyin:'Wǔ',animal:'Ngựa',phase:'Hỏa',yinYang:'Dương',hour:'11:00 – 13:00',direction:'Nam',meaning:'Địa Chi thứ bảy, gắn với giờ Ngọ (11:00–13:00), thuộc Hỏa và mang tính Dương.'},
+  {name:'Mùi',hanzi:'未',pinyin:'Wèi',animal:'Dê',phase:'Thổ',yinYang:'Âm',hour:'13:00 – 15:00',direction:'Tây Nam',meaning:'Địa Chi thứ tám, gắn với giờ Mùi (13:00–15:00), thuộc Thổ và mang tính Âm.'},
+  {name:'Thân',hanzi:'申',pinyin:'Shēn',animal:'Khỉ',phase:'Kim',yinYang:'Dương',hour:'15:00 – 17:00',direction:'Tây Nam',meaning:'Địa Chi thứ chín, gắn với giờ Thân (15:00–17:00), thuộc Kim và mang tính Dương.'},
+  {name:'Dậu',hanzi:'酉',pinyin:'Yǒu',animal:'Gà',phase:'Kim',yinYang:'Âm',hour:'17:00 – 19:00',direction:'Tây',meaning:'Địa Chi thứ mười, gắn với giờ Dậu (17:00–19:00), thuộc Kim và mang tính Âm.'},
+  {name:'Tuất',hanzi:'戌',pinyin:'Xū',animal:'Chó',phase:'Thổ',yinYang:'Dương',hour:'19:00 – 21:00',direction:'Tây Bắc',meaning:'Địa Chi thứ mười một, gắn với giờ Tuất (19:00–21:00), thuộc Thổ và mang tính Dương.'},
+  {name:'Hợi',hanzi:'亥',pinyin:'Hài',animal:'Lợn',phase:'Thủy',yinYang:'Âm',hour:'21:00 – 23:00',direction:'Tây Bắc',meaning:'Địa Chi thứ mười hai, gắn với giờ Hợi (21:00–23:00), thuộc Thủy và mang tính Âm.'}
+];
+const elements = [
+  {name:'Mộc',hanzi:'木',english:'Wood',color:COLORS.wood,meaning:'Mộc tượng trưng cho sinh trưởng, nảy nở và sự phát triển. Trong chu trình tương sinh, Mộc sinh Hỏa; trong chu trình tương khắc, Mộc khắc Thổ.',generates:'Hỏa',controls:'Thổ',season:'Xuân',direction:'Đông'},
+  {name:'Hỏa',hanzi:'火',english:'Fire',color:COLORS.fire,meaning:'Hỏa tượng trưng cho nhiệt, ánh sáng và sự bùng phát. Hỏa sinh Thổ; Hỏa khắc Kim.',generates:'Thổ',controls:'Kim',season:'Hạ',direction:'Nam'},
+  {name:'Thổ',hanzi:'土',english:'Earth',color:COLORS.earth,meaning:'Thổ tượng trưng cho đất, trung tâm, sự chuyển hóa và nuôi dưỡng. Thổ sinh Kim; Thổ khắc Thủy.',generates:'Kim',controls:'Thủy',season:'Cuối các mùa',direction:'Trung ương'},
+  {name:'Kim',hanzi:'金',english:'Metal',color:COLORS.metal,meaning:'Kim tượng trưng cho kim loại, sự thu liễm và tính cấu trúc. Kim sinh Thủy; Kim khắc Mộc.',generates:'Thủy',controls:'Mộc',season:'Thu',direction:'Tây'},
+  {name:'Thủy',hanzi:'水',english:'Water',color:COLORS.water,meaning:'Thủy tượng trưng cho nước, sự lưu chuyển và tàng trữ. Thủy sinh Mộc; Thủy khắc Hỏa.',generates:'Mộc',controls:'Hỏa',season:'Đông',direction:'Bắc'}
+];
+const guardians = [
+  {name:'Thanh Long',hanzi:'青龍',direction:'Đông',season:'Xuân',phase:'Mộc',symbol:'Rồng xanh',mansions:'Giác · Cang · Đê · Phòng · Tâm · Vĩ · Cơ',color:0x58c49a,angle:90},
+  {name:'Chu Tước',hanzi:'朱雀',direction:'Nam',season:'Hạ',phase:'Hỏa',symbol:'Chim đỏ',mansions:'Tỉnh · Quỷ · Liễu · Tinh · Trương · Dực · Chẩn',color:0xf07f66,angle:180},
+  {name:'Bạch Hổ',hanzi:'白虎',direction:'Tây',season:'Thu',phase:'Kim',symbol:'Hổ trắng',mansions:'Khuê · Lâu · Vị · Mão · Tất · Chủy · Sâm',color:0xc5d1db,angle:270},
+  {name:'Huyền Vũ',hanzi:'玄武',direction:'Bắc',season:'Đông',phase:'Thủy',symbol:'Rùa rắn',mansions:'Đẩu · Ngưu · Nữ · Hư · Nguy · Thất · Bích',color:0x65a9e7,angle:0}
+];
+const mansionGroups = [
+  {guardian:'Thanh Long',direction:'Đông',season:'Xuân',phase:'Mộc',color:0x58c49a,items:[['Giác','角','Jiǎo'],['Cang','亢','Kàng'],['Đê','氐','Dǐ'],['Phòng','房','Fáng'],['Tâm','心','Xīn'],['Vĩ','尾','Wěi'],['Cơ','箕','Jī']]},
+  {guardian:'Chu Tước',direction:'Nam',season:'Hạ',phase:'Hỏa',color:0xf07f66,items:[['Tỉnh','井','Jǐng'],['Quỷ','鬼','Guǐ'],['Liễu','柳','Liǔ'],['Tinh','星','Xīng'],['Trương','張','Zhāng'],['Dực','翼','Yì'],['Chẩn','軫','Zhěn']]},
+  {guardian:'Bạch Hổ',direction:'Tây',season:'Thu',phase:'Kim',color:0xc5d1db,items:[['Khuê','奎','Kuí'],['Lâu','婁','Lóu'],['Vị','胃','Wèi'],['Mão','昴','Mǎo'],['Tất','畢','Bì'],['Chủy','觜','Zī'],['Sâm','參','Shēn']]},
+  {guardian:'Huyền Vũ',direction:'Bắc',season:'Đông',phase:'Thủy',color:0x65a9e7,items:[['Đẩu','斗','Dǒu'],['Ngưu','牛','Niú'],['Nữ','女','Nǚ'],['Hư','虛','Xū'],['Nguy','危','Wēi'],['Thất','室','Shì'],['Bích','壁','Bì']]}
+];
+
+// Scene setup
+const mount = document.getElementById('scene');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080d1d);
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth/window.innerHeight, .1, 500);
+camera.position.set(0, 27, 31);
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.22;
+mount.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0,0,0); controls.enableDamping = true; controls.dampingFactor=.06;
+controls.minDistance=14; controls.maxDistance=65; controls.maxPolarAngle=Math.PI*.48;
+scene.add(new THREE.AmbientLight(0x9aabc9, 1.15));
+const keyLight = new THREE.PointLight(0xffdca6, 170, 90); keyLight.position.set(-8,18,11); scene.add(keyLight);
+const rimLight = new THREE.PointLight(0x548cce, 110, 90); rimLight.position.set(12,8,-14); scene.add(rimLight);
+const mapGroup = new THREE.Group(); scene.add(mapGroup);
+const layers = {mansions:new THREE.Group(),branches:new THREE.Group(),stems:new THREE.Group(),elements:new THREE.Group(),taichi:new THREE.Group(),guardians:new THREE.Group()};
+Object.values(layers).forEach(g=>mapGroup.add(g));
+const clickable = [];
+const selectable = new Map();
+
+function anglePosition(deg, radius, y=0.35) {
+  const a=THREE.MathUtils.degToRad(deg);
+  return new THREE.Vector3(Math.sin(a)*radius, y, Math.cos(a)*radius);
+}
+function addTorus(radius, tube, color, opacity=.65, y=.08) {
+  const geo=new THREE.TorusGeometry(radius,tube,8,240);
+  const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity});
+  const obj=new THREE.Mesh(geo,mat); obj.rotation.x=Math.PI/2; obj.position.y=y; mapGroup.add(obj); return obj;
+}
+function makeTextTexture(lines, options={}) {
+  const width=options.width||512, height=options.height||256;
+  const canvas=document.createElement('canvas'); canvas.width=width; canvas.height=height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,width,height);
+  if(options.back){
+    ctx.fillStyle=options.back; ctx.beginPath(); ctx.roundRect(8,8,width-16,height-16,24); ctx.fill();
+    ctx.strokeStyle=options.stroke||'rgba(230,201,142,.45)'; ctx.lineWidth=3; ctx.stroke();
+  }
+  const arr=Array.isArray(lines)?lines:[lines];
+  const main=options.mainSize||70, sub=options.subSize||30;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(arr.length===1){ ctx.font=`600 ${main}px ${options.font||'Georgia, serif'}`; ctx.fillStyle=options.color||'#f1dfb8'; ctx.shadowColor=options.glow||'rgba(230,201,142,.45)'; ctx.shadowBlur=14; ctx.fillText(arr[0],width/2,height/2); }
+  else {
+    ctx.font=`600 ${main}px ${options.font||'Georgia, serif'}`; ctx.fillStyle=options.color||'#f1dfb8'; ctx.shadowColor=options.glow||'rgba(230,201,142,.35)'; ctx.shadowBlur=10; ctx.fillText(arr[0],width/2,height*.38);
+    ctx.shadowBlur=0; ctx.font=`500 ${sub}px ${options.subFont||'Arial, sans-serif'}`; ctx.fillStyle=options.subColor||'#b9c5d8'; ctx.fillText(arr[1],width/2,height*.75);
+  }
+  const tex=new THREE.CanvasTexture(canvas); tex.colorSpace=THREE.SRGBColorSpace; tex.minFilter=THREE.LinearFilter; return tex;
+}
+function makeSprite(lines, pos, scale, options={}) {
+  const material=new THREE.SpriteMaterial({map:makeTextTexture(lines,options),transparent:true,depthWrite:false,opacity:options.opacity??1});
+  const sprite=new THREE.Sprite(material); sprite.position.copy(pos); sprite.scale.set(scale[0],scale[1],1); return sprite;
+}
+function createNode({group, layer, angle, radius, color, label, sub='', info, size=.32, kind='node'}) {
+  const pos=anglePosition(angle,radius,.45);
+  const geo=new THREE.SphereGeometry(size,24,18);
+  const mat=new THREE.MeshStandardMaterial({color,metalness:.38,roughness:.3,emissive:color,emissiveIntensity:.34});
+  const mesh=new THREE.Mesh(geo,mat); mesh.position.copy(pos); mesh.userData={info,layer,kind,baseColor:color,baseScale:1}; group.add(mesh); clickable.push(mesh);
+  const haloGeo=new THREE.TorusGeometry(size*1.5,.025,6,32);
+  const haloMat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.7});
+  const halo=new THREE.Mesh(haloGeo,haloMat); halo.rotation.x=Math.PI/2; halo.position.copy(pos); group.add(halo);
+  const text=makeSprite(sub?[label,sub]:label,new THREE.Vector3(pos.x,pos.y+.8,pos.z),sub?[2.25,1.05]:[1.65,.88],{mainSize:sub?62:75,subSize:27,color:'#f3e8d1',subColor:'#afbdd1'});
+  group.add(text);
+  mesh.userData.halo=halo; mesh.userData.label=text;
+  selectable.set(`${layer}:${info.id}`,mesh);
+  return mesh;
+}
+
+// Subtle celestial platform and rings
+const disk=new THREE.Mesh(new THREE.CircleGeometry(16.3,160),new THREE.MeshStandardMaterial({color:0x101a32,metalness:.25,roughness:.72,transparent:true,opacity:.94}));
+disk.rotation.x=-Math.PI/2; disk.position.y=-.16; mapGroup.add(disk);
+addTorus(16.0,.055,COLORS.gold,.55,.02);
+addTorus(14.0,.035,0x63799f,.48,.03);
+addTorus(11.15,.045,COLORS.branch,.58,.04);
+addTorus(8.2,.04,0xb68acb,.58,.05);
+addTorus(5.0,.05,COLORS.gold,.55,.06);
+addTorus(2.2,.035,0xe9dfc5,.48,.08);
+
+// Fine radial divisions
+for(let i=0;i<60;i++){
+  const a=i*6, p1=anglePosition(a,15.3,.03), p2=anglePosition(a,(i%5===0?16.0:15.65),.03);
+  const geom=new THREE.BufferGeometry().setFromPoints([p1,p2]);
+  const line=new THREE.Line(geom,new THREE.LineBasicMaterial({color:i%5===0?0xd2b57d:0x62718b,transparent:true,opacity:i%5===0?.55:.23})); mapGroup.add(line);
+}
+
+// Star field
+const starPositions=[];
+for(let i=0;i<1700;i++){
+  const r=35+Math.random()*100, theta=Math.random()*Math.PI*2, phi=Math.acos(2*Math.random()-1);
+  starPositions.push(r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+}
+const starGeo=new THREE.BufferGeometry(); starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPositions,3));
+const starMat=new THREE.PointsMaterial({color:0xbac9e7,size:.12,transparent:true,opacity:.75,sizeAttenuation:true});
+scene.add(new THREE.Points(starGeo,starMat));
+
+// Tai Chi symbol canvas and raised coin
+function yinYangTexture(){
+  const c=document.createElement('canvas'); c.width=512;c.height=512;const x=c.getContext('2d');
+  x.clearRect(0,0,512,512); x.save();x.translate(256,256);
+  x.beginPath();x.arc(0,0,220,0,Math.PI*2);x.fillStyle='#eee5d1';x.fill();
+  x.beginPath();x.arc(0,-110,110,Math.PI/2,-Math.PI/2,true);x.arc(0,110,110,-Math.PI/2,Math.PI/2,true);x.fillStyle='#18223a';x.fill();
+  x.beginPath();x.arc(0,-110,110,-Math.PI/2,Math.PI/2);x.fillStyle='#eee5d1';x.fill();
+  x.beginPath();x.arc(0,-110,28,0,Math.PI*2);x.fillStyle='#18223a';x.fill();
+  x.beginPath();x.arc(0,110,28,0,Math.PI*2);x.fillStyle='#eee5d1';x.fill();
+  x.restore(); return new THREE.CanvasTexture(c);
+}
+const coin=new THREE.Mesh(new THREE.CylinderGeometry(2.15,2.15,.28,96),new THREE.MeshStandardMaterial({color:0xb18b53,metalness:.8,roughness:.28}));coin.rotation.x=Math.PI/2;coin.position.y=.13;layers.taichi.add(coin);
+const symbol=new THREE.Mesh(new THREE.CircleGeometry(1.92,96),new THREE.MeshBasicMaterial({map:yinYangTexture(),transparent:true}));symbol.rotation.x=-Math.PI/2;symbol.position.y=.31;layers.taichi.add(symbol);
+const centerLabel=makeSprite(['太極','THÁI CỰC'],new THREE.Vector3(0,.72,0),[4.1,1.5],{mainSize:46,subSize:23,color:'#e6c98e',subColor:'#aab5c9'});layers.taichi.add(centerLabel);
+coin.userData={info:{id:'taichi',type:'Thái Cực',title:'Thái Cực',subtitle:'太極 · Âm Dương',description:'Thái Cực là biểu tượng triết học về tính thống nhất và sự vận động. Từ Thái Cực phân hóa thành Âm và Dương; hai mặt đối đãi nhưng nương tựa, chuyển hóa lẫn nhau trong tư tưởng cổ điển.',rows:[['Khái niệm','Thống nhất và vận động'],['Hai mặt','Âm · Dương'],['Quan hệ','Đối đãi · Nương tựa · Chuyển hóa']],tags:['Triết học phương Đông','Biểu tượng truyền thống']}};clickable.push(coin);
+
+// Five phases: nodes around a small circle, with generating and controlling lines
+const phaseAngles=[0,72,144,216,288];
+elements.forEach((e,i)=>{
+  const angle=phaseAngles[i], pos=anglePosition(angle,4.35,.62);
+  const mesh=createNode({group:layers.elements,layer:'elements',angle,radius:4.35,color:e.color,label:e.name,sub:e.hanzi,info:{id:e.name,type:'Ngũ Hành',title:`${e.name} · ${e.english}`,subtitle:`${e.hanzi} · Ngũ hành`,description:e.meaning,rows:[['Tương sinh',`${e.name} sinh ${e.generates}`],['Tương khắc',`${e.name} khắc ${e.controls}`],['Mùa / phương',`${e.season} · ${e.direction}`]],tags:['Ngũ hành','Tương sinh – tương khắc']},size:.43});
+  mesh.userData.phase=e.name;
+});
+// Generating-cycle polygon; nodes arranged in generating order
+for(let i=0;i<5;i++){
+  const a=anglePosition(phaseAngles[i],3.43,.23), b=anglePosition(phaseAngles[(i+1)%5],3.43,.23);
+  const curve=new THREE.QuadraticBezierCurve3(a,new THREE.Vector3((a.x+b.x)/2,.35,(a.z+b.z)/2),b);
+  const line=new THREE.Mesh(new THREE.TubeGeometry(curve,24,.018,5,false),new THREE.MeshBasicMaterial({color:COLORS.gold,transparent:true,opacity:.48}));layers.elements.add(line);
+}
+
+// Ten Heavenly Stems
+stems.forEach((s,i)=>{
+  const angle=i*36;
+  createNode({group:layers.stems,layer:'stems',angle,radius:7.65,color:phaseColors[s.phase],label:s.name,sub:s.hanzi,info:{id:s.name,type:'Thiên Can',title:`${s.name} · ${s.symbol}`,subtitle:`${s.hanzi} · ${s.pinyin}`,description:s.meaning,rows:[['Thứ tự',`${i+1} / 10`],['Ngũ hành',s.phase],['Âm Dương',s.yinYang]],tags:['Thiên Can','Can – Chi']},size:.29});
+});
+
+// Twelve Earthly Branches
+branches.forEach((b,i)=>{
+  const angle=i*30;
+  createNode({group:layers.branches,layer:'branches',angle,radius:10.65,color:COLORS.branch,label:b.name,sub:`${b.hanzi} · ${b.animal}`,info:{id:b.name,type:'Địa Chi',title:`${b.name} · ${b.animal}`,subtitle:`${b.hanzi} · ${b.pinyin}`,description:b.meaning,rows:[['Thứ tự',`${i+1} / 12`],['Giờ địa chi',b.hour],['Ngũ hành',b.phase],['Âm Dương',b.yinYang],['Phương vị',b.direction]],tags:['Địa Chi','12 con giáp','Giờ truyền thống']},size:.34});
+});
+
+// 28 lunar mansions in four directional quadrants. Sector center is the guardian direction.
+let mansionIndex=0;
+mansionGroups.forEach((g,gi)=>{
+  const center=gi===0?90:gi===1?180:gi===2?270:0;
+  g.items.forEach((it,j)=>{
+    const angle=center+(j-3)*8.5;
+    const [name,hanzi,pinyin]=it;
+    createNode({group:layers.mansions,layer:'mansions',angle,radius:14.25,color:g.color,label:name,sub:hanzi,info:{id:name,type:'Nhị thập bát tú',title:`${name} · ${hanzi}`,subtitle:`${pinyin} · Tú thứ ${j+1} của ${g.guardian}`,description:`${name} (${hanzi}, ${pinyin}) là một trong bảy Tú thuộc phương ${g.direction}, nhóm ${g.guardian}. Trong thiên văn học cổ Trung Hoa, 28 Tú là các khu vực sao dùng để định vị và theo dõi thiên thể; hệ thống được chia thành bốn nhóm phương vị, mỗi nhóm bảy Tú.`,rows:[['Tứ Tượng',g.guardian],['Phương vị',g.direction],['Mùa',g.season],['Ngũ hành biểu trưng',g.phase],['Vị trí trong nhóm',`${j+1} / 7`]],tags:['Nhị thập bát tú','Thiên văn học cổ','Tứ Tượng']},size:.22});
+    mansionIndex++;
+  });
+});
+
+// Four symbols on the cardinal directions
+const directionLabels=[
+  {name:'BẮC',hanzi:'玄武',sub:'HUYỀN VŨ',angle:0,color:0x65a9e7},
+  {name:'ĐÔNG',hanzi:'青龍',sub:'THANH LONG',angle:90,color:0x58c49a},
+  {name:'NAM',hanzi:'朱雀',sub:'CHU TƯỚC',angle:180,color:0xf07f66},
+  {name:'TÂY',hanzi:'白虎',sub:'BẠCH HỔ',angle:270,color:0xc5d1db}
+];
+directionLabels.forEach(d=>{
+  const p=anglePosition(d.angle,17.2,.3);
+  const sp=makeSprite([d.hanzi,`${d.name} · ${d.sub}`],new THREE.Vector3(p.x,.5,p.z),[3.2,1.2],{mainSize:42,subSize:20,color:'#e7d2a8',subColor:'#aebbd0'});
+  layers.guardians.add(sp);
+});
+// Small cardinal compass labels placed a little outside the boundary
+[['BẮC',0],['ĐÔNG',90],['NAM',180],['TÂY',270]].forEach(([n,a])=>{
+  const p=anglePosition(a,18.8,.2); layers.guardians.add(makeSprite(n,p,[1.4,.55],{mainSize:36,color:'#8e9cb6'}));
+});
+
+// Grouped mansion arc decorations and guardian hit targets
+const guardianInfo={
+  'Thanh Long':guardians[0], 'Chu Tước':guardians[1], 'Bạch Hổ':guardians[2], 'Huyền Vũ':guardians[3]
+};
+guardians.forEach(g=>{
+  const p=anglePosition(g.angle,12.7,.35);
+  const halo=new THREE.Mesh(new THREE.TorusGeometry(1.05,.035,8,64),new THREE.MeshBasicMaterial({color:g.color,transparent:true,opacity:.55}));
+  halo.rotation.x=Math.PI/2;halo.position.copy(p);layers.guardians.add(halo);
+  const node=new THREE.Mesh(new THREE.IcosahedronGeometry(.5,1),new THREE.MeshStandardMaterial({color:g.color,metalness:.32,roughness:.3,emissive:g.color,emissiveIntensity:.3}));node.position.copy(p);node.userData={layer:'guardians',info:{id:g.name,type:'Tứ Tượng',title:g.name,subtitle:`${g.hanzi} · ${g.symbol}`,description:`${g.name} là một trong Tứ Tượng, tượng trưng cho phương ${g.direction}, mùa ${g.season} và hành ${g.phase} trong hệ biểu tượng thiên văn cổ. Nhóm này quản lĩnh bảy Tú: ${g.mansions}.`,rows:[['Phương vị',g.direction],['Mùa',g.season],['Ngũ hành',g.phase],['Bảy Tú',g.mansions]],tags:['Tứ Tượng','Tứ phương','Nhị thập bát tú']}};layers.guardians.add(node);clickable.push(node);
+});
+
+// Clickable info helpers
+const detailKicker=document.getElementById('detailKicker'), detailTitle=document.getElementById('detailTitle'), detailSub=document.getElementById('detailSub'), detailCopy=document.getElementById('detailCopy'), detailData=document.getElementById('detailData'), detailTags=document.getElementById('detailTags');
+function showInfo(info){
+  detailKicker.textContent=info.type||'THÔNG TIN THIÊN BÀN'; detailTitle.textContent=info.title||'Thông tin'; detailSub.textContent=info.subtitle||''; detailCopy.textContent=info.description||'';
+  detailData.replaceChildren();
+  (info.rows||[]).forEach(([k,v])=>{const row=document.createElement('div');row.className='data-row';const a=document.createElement('span'),b=document.createElement('span');a.textContent=k;b.textContent=v;row.append(a,b);detailData.append(row);});
+  detailTags.replaceChildren();
+  (info.tags||[]).forEach(t=>{const tag=document.createElement('span');tag.className='tag';tag.textContent=t;detailTags.append(tag);});
+  clickable.forEach(o=>{if(o.material && o.material.emissive){o.material.emissiveIntensity=o === activeObject ? 0.9 : 0.34;}});
+}
+let activeObject=null;
+const raycaster=new THREE.Raycaster();raycaster.params.Points.threshold=.5;
+const pointer=new THREE.Vector2();
+function onPointerDown(event){
+  if(event.target.closest('.panel,.topbar,button,a,input')) return;
+  const rect=renderer.domElement.getBoundingClientRect();
+  pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+  pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const hits=raycaster.intersectObjects(clickable,false);
+  if(hits.length){
+    const obj=hits[0].object; if(activeObject && activeObject.material?.emissive)activeObject.material.emissiveIntensity=.34;
+    activeObject=obj; if(obj.material?.emissive)obj.material.emissiveIntensity=.95;
+    if(obj.userData.info)showInfo(obj.userData.info);
+  }
+}
+renderer.domElement.addEventListener('pointerdown',onPointerDown);
+
+// Visibility toggles
+const toast=document.getElementById('toast');let toastTimer;
+function notify(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),1600);}
+document.querySelectorAll('.layer-toggle').forEach(input=>{
+  input.addEventListener('change',()=>{layers[input.dataset.layer].visible=input.checked;notify(`${input.checked?'Đã bật':'Đã tắt'} lớp ${input.parentElement.querySelector('span').textContent.trim()}`);});
+});
+
+// Auto rotation
+let autoRotate=false;
+const rotateBtn=document.getElementById('autoRotate');
+rotateBtn.addEventListener('click',()=>{autoRotate=!autoRotate;controls.autoRotate=autoRotate;controls.autoRotateSpeed=.45;rotateBtn.classList.toggle('active',autoRotate);notify(autoRotate?'Đã bật tự xoay':'Đã tắt tự xoay');});
+document.getElementById('resetView').addEventListener('click',()=>{
+  camera.position.set(0,27,31);controls.target.set(0,0,0);controls.update();mapGroup.rotation.y=0;notify('Đã khôi phục góc nhìn');
+});
+document.getElementById('toggleLayers').addEventListener('click',()=>document.getElementById('leftPanel').classList.toggle('open'));
+document.getElementById('showCycle').addEventListener('click',()=>{
+  const cycle=[];
+  for(let i=0;i<60;i++) cycle.push(`${stems[i%10].name} ${branches[i%12].name}`);
+  const info={type:'LỤC THẬP HOA GIÁP',title:'Vòng 60 Hoa Giáp',subtitle:'六十甲子 · Chu kỳ Can–Chi',description:'Hoa Giáp là chu kỳ 60 tổ hợp tạo bởi việc ghép tuần tự 10 Thiên Can với 12 Địa Chi. Do chỉ những cặp cùng tính âm/dương được ghép với nhau, chu kỳ hoàn tất sau 60 vị trí rồi lặp lại. Dưới đây là toàn bộ thứ tự 60 tổ hợp.',rows:[['Bắt đầu','Giáp Tý'],['Kết thúc','Quý Hợi'],['Độ dài chu kỳ','60 tổ hợp']],tags:['10 Thiên Can','12 Địa Chi','Chu kỳ lục thập']};
+  detailKicker.textContent=info.type;detailTitle.textContent=info.title;detailSub.textContent=info.subtitle;detailCopy.textContent=info.description;detailData.replaceChildren();
+  info.rows.forEach(([k,v])=>{const row=document.createElement('div');row.className='data-row';row.innerHTML=`<span>${k}</span><span>${v}</span>`;detailData.append(row);});
+  const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:10px;';
+  cycle.forEach((v,i)=>{const cell=document.createElement('div');cell.style.cssText='border:1px solid rgba(214,185,126,.16);border-radius:6px;padding:6px 3px;text-align:center;color:#e7d5ad;font-size:10px;background:rgba(255,255,255,.025)';cell.textContent=`${String(i+1).padStart(2,'0')} · ${v}`;grid.append(cell);});
+  detailData.append(grid);detailTags.replaceChildren();['Hoa Giáp','Lịch pháp','Biểu tượng truyền thống'].forEach(t=>{const tag=document.createElement('span');tag.className='tag';tag.textContent=t;detailTags.append(tag);});
+});
+
+// Resize + animation loop
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const delta=clock.getDelta();controls.update();if(autoRotate){mapGroup.rotation.y+=delta*.055;}renderer.render(scene,camera);}
+animate();
+document.getElementById('loading').classList.add('hide');setTimeout(()=>document.getElementById('loading').remove(),500);
+</script>
+</body>
+</html>

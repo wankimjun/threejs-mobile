@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080d18">
+<meta name="description" content="Bản đồ 3D 12 cung chiêm tinh Ai Cập: ngày sinh, tính cách, tương hợp và tương khắc.">
+<title>12 Cung Chiêm Tinh Ai Cập Cổ Đại · 3D</title>
+<style>
+:root{--bg:#080d18;--panel:rgba(13,21,35,.94);--line:rgba(220,185,112,.25);--gold:#d6b36d;--gold2:#f2d99b;--muted:#a7b0bf;--ink:#f5ecd9;--cyan:#85c7c7;--green:#8fc7a0;--red:#d58e81}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",Arial,sans-serif}
+body{background:radial-gradient(ellipse at 48% 42%,#1b2b40 0%,#0b1322 51%,#050811 100%)}
+#app{height:100%;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+header{z-index:3;padding:12px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(5,9,17,.97),rgba(5,9,17,.76));display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}.brand-mark{width:43px;height:43px;flex:0 0 43px;border:1px solid var(--gold);border-radius:50%;display:grid;place-items:center;color:var(--gold2);font-size:25px;box-shadow:0 0 24px #d6b36d22,inset 0 0 16px #d6b36d18}
+h1{font:500 clamp(15px,2vw,22px) Georgia,serif;letter-spacing:.08em;margin:0;color:#f0d9a5}.subtitle{font-size:9px;letter-spacing:.18em;color:#a9a18f;margin-top:4px;text-transform:uppercase}
+.top-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.btn{background:#101a2a;border:1px solid #806943;color:#e7d3a6;border-radius:7px;padding:8px 10px;font-size:10px;letter-spacing:.05em;cursor:pointer;transition:.18s}.btn:hover,.btn.active{background:#493923;border-color:#e0bd75;color:#fff1cf;box-shadow:0 0 14px #d6b36d22}.btn.ghost{border-color:#354259;color:#c0c9d6}
+main{display:grid;grid-template-columns:minmax(0,1fr) 365px;gap:13px;padding:13px;min-height:0;overflow:hidden}
+#stage-wrap{position:relative;min-height:0;min-width:0;border:1px solid var(--line);border-radius:13px;overflow:hidden;background:radial-gradient(ellipse at 50% 46%,#1d2c41 0%,#0c1423 57%,#070c16 100%);box-shadow:inset 0 0 70px #0009,0 12px 35px #0005}
+#scene{width:100%;height:100%;display:block;outline:none;touch-action:none;cursor:grab}#scene:active{cursor:grabbing}.stage-vignette{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 90px #02050b99}.stage-caption{position:absolute;left:18px;top:16px;pointer-events:none}.eyebrow{font-size:9px;letter-spacing:.23em;color:#c9a968;text-transform:uppercase}.stage-title{font:19px Georgia,serif;color:#f0d9a5;margin-top:5px}.hint{position:absolute;bottom:14px;left:18px;right:18px;color:#9da9b8;font-size:10px;letter-spacing:.035em;pointer-events:none}.compass{position:absolute;right:17px;top:16px;color:#c9a968;font:10px Georgia,serif;letter-spacing:.18em;pointer-events:none;text-align:center}.compass b{font-size:17px;display:block;font-weight:400;margin-bottom:2px}
+#webglFallback{display:none;position:absolute;inset:0;place-items:center;text-align:center;padding:28px;color:#e6d6b5;background:rgba(5,10,18,.92);font-size:13px;line-height:1.65}#webglFallback.show{display:grid}
+aside{min-height:0;overflow:auto;border:1px solid var(--line);border-radius:13px;background:var(--panel);backdrop-filter:blur(12px);padding:15px;scrollbar-width:thin;scrollbar-color:#675333 #111827}
+.section-label{font-size:9px;letter-spacing:.19em;text-transform:uppercase;color:#c9a968;margin:0 0 9px}.selected-head{display:flex;align-items:center;gap:11px;padding-bottom:12px;border-bottom:1px solid var(--line)}.sign-symbol{width:55px;height:55px;flex:0 0 55px;border:1px solid #a8874d;border-radius:50%;display:grid;place-items:center;color:#f2d99b;font-size:27px;background:radial-gradient(circle,#493b27,#151b27 72%);box-shadow:0 0 20px #d6b36d20}.sign-name{font:22px Georgia,serif;color:#f2d99b;line-height:1.15}.sign-date{font-size:10px;color:#a9b1bd;margin-top:5px;line-height:1.4}.description{font-size:12px;line-height:1.68;color:#d0d3d8;margin:12px 0}
+.date-lookup{margin:12px 0;padding:10px;border:1px solid #354154;border-radius:9px;background:#0b1422}.date-lookup .row{display:flex;align-items:center;gap:7px}.date-lookup input{min-width:0;flex:1;background:#111d2d;border:1px solid #46536a;border-radius:6px;padding:8px;color:#e9dfc9;font:11px "Segoe UI",Arial}.date-lookup button{white-space:nowrap}.lookup-message{font-size:10px;line-height:1.45;color:#aeb9c8;margin-top:7px;min-height:14px}
+.match-block{margin-top:13px}.match-title{font-size:9px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:7px}.match-title.best{color:#e4c27e}.match-title.good{color:var(--green)}.match-title.bad{color:var(--red)}.matches{display:flex;gap:6px;flex-wrap:wrap}.match-chip{border:1px solid #455064;background:#111b2a;color:#d9dfeb;border-radius:20px;padding:5px 8px;font-size:10px;cursor:pointer;transition:.17s}.match-chip:hover{border-color:var(--gold);color:#fff0c9}.match-chip.best{border-color:#826b43;color:#f0d69c}.match-chip.good{border-color:#456b55;color:#b7dfc2}.match-chip.bad{border-color:#704d4c;color:#e3aaa0}
+.sign-list{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}.sign-chip{border:1px solid #354154;background:#0d1624;color:#cbd2dc;border-radius:7px;padding:7px 4px;cursor:pointer;text-align:center;font-size:10px;transition:.18s;min-height:56px}.sign-chip span{display:block;font-size:18px;color:#d5b574;margin-bottom:4px}.sign-chip:hover,.sign-chip.active{border-color:#d6b36d;background:#3a3022;color:#fff0c9}
+.note{font-size:10px;line-height:1.6;color:#aeb8c7;margin-top:13px;padding:10px;border-left:2px solid #9e804d;background:#111a28}.history{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.history p{font-size:10px;line-height:1.6;color:#aab4c1;margin:0}
+footer{padding:7px 16px;border-top:1px solid #283448;background:#070c15;color:#7e8999;font-size:9px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;letter-spacing:.035em}
+#toast{position:absolute;bottom:43px;left:50%;transform:translateX(-50%);padding:8px 12px;border:1px solid #8c7144;background:#111a29;color:#f0d9a5;border-radius:20px;font-size:10px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:5;max-width:90%;overflow:hidden;text-overflow:ellipsis}#toast.show{opacity:1}
+@media(max-width:980px){main{grid-template-columns:minmax(0,1fr) 330px}.subtitle{letter-spacing:.1em}}
+@media(max-width:740px){html,body{height:100%;overflow:auto}#app{height:auto;min-height:100%;grid-template-rows:auto 1fr auto}header{padding:9px 11px;align-items:flex-start}.brand-mark{width:35px;height:35px;flex-basis:35px;font-size:20px}.subtitle{font-size:8px;letter-spacing:.07em}.top-actions{max-width:48%}.top-actions .btn{padding:7px 8px;font-size:9px}main{grid-template-columns:1fr;grid-template-rows:minmax(290px,49vh) auto;padding:8px;gap:8px;overflow:visible}#stage-wrap{min-height:290px}aside{padding:12px;overflow:visible}.sign-list{grid-template-columns:repeat(4,1fr)}footer{display:none}.stage-caption{left:12px;top:12px}.hint{left:12px;bottom:10px;font-size:9px}}
+@media(max-width:430px){header{display:block}.top-actions{max-width:none;justify-content:flex-start;margin-top:9px}.sign-list{grid-template-columns:repeat(3,1fr)}.date-lookup .row{flex-wrap:wrap}.date-lookup input{flex-basis:100%}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand"><div class="brand-mark">☥</div><div><h1>EGYPTIAN ZODIAC · 12 SIGNS</h1><div class="subtitle">Bản đồ chiêm tinh Ai Cập · vòng thiên giới 3D</div></div></div>
+  <div class="top-actions">
+    <button class="btn active" id="autoRotate" type="button">⟳ TỰ XOAY</button>
+    <button class="btn active" id="toggleLabels" type="button">TÊN CUNG</button>
+    <button class="btn active" id="toggleOrnaments" type="button">PHÙ ĐIÊU</button>
+    <button class="btn ghost" id="resetView" type="button">↺ GÓC NHÌN</button>
+  </div>
+</header>
+<main>
+  <section id="stage-wrap" aria-label="Bản đồ 12 cung chiêm tinh Ai Cập 3D">
+    <canvas id="scene" aria-label="Mô hình vòng thiên giới 12 cung Ai Cập 3D"></canvas>
+    <div class="stage-vignette"></div>
+    <div class="stage-caption"><div class="eyebrow">Twelve guardian signs · Egyptian-inspired</div><div class="stage-title">Vòng tròn 12 vị thần hộ mệnh</div></div>
+    <div class="compass"><b>✧</b> N · E · S · W</div>
+    <div class="hint">KÉO NGANG để xoay vòng đĩa · KÉO DỌC để nghiêng góc nhìn · LĂN / CHỤM để zoom · CHỌN một cung để xem chi tiết</div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="webglFallback"><div><strong>Không thể khởi tạo WebGL.</strong><br>Hãy bật tăng tốc phần cứng trong trình duyệt hoặc dùng Chrome / Edge phiên bản mới. Phần tra cứu 12 cung ở bảng bên cạnh vẫn có thể xem khi trang hỗ trợ JavaScript.</div></div>
+  </section>
+  <aside>
+    <div class="section-label">Khám phá cung chiêm tinh</div>
+    <div class="selected-head">
+      <div class="sign-symbol" id="selectedSymbol">🌊</div>
+      <div><div class="sign-name" id="selectedName">Sông Nin</div><div class="sign-date" id="selectedDate">1–7 tháng 1 · 19–28 tháng 6 · 1–7 tháng 9 · 18–26 tháng 11</div></div>
+    </div>
+    <p class="description" id="selectedDescription"></p>
+    <div class="date-lookup">
+      <div class="section-label">Tra cứu theo ngày sinh</div>
+      <div class="row"><input id="birthDate" type="date" aria-label="Chọn ngày sinh"><button class="btn" id="findBirthSign" type="button">TÌM CUNG</button><button class="btn ghost" id="clearBirthDate" type="button">XÓA</button></div>
+      <div class="lookup-message" id="lookupMessage">Chọn ngày sinh để tìm cung tương ứng theo các khoảng ngày trong tài liệu.</div>
+    </div>
+    <div class="match-block"><div class="match-title best">✦ Tương hợp nhất</div><div class="matches" id="bestMatches"></div></div>
+    <div class="match-block"><div class="match-title good">◆ Tương hợp</div><div class="matches" id="goodMatches"></div></div>
+    <div class="match-block"><div class="match-title bad">◇ Tương khắc</div><div class="matches" id="badMatches"></div></div>
+    <div class="section-label" style="margin-top:18px">Danh sách 12 cung</div>
+    <div class="sign-list" id="signList"></div>
+    <div class="note"><b>Quy ước dữ liệu:</b> Ngày sinh, mô tả tính cách và nhóm tương hợp / tương khắc được nhập theo tài liệu <i>12_cung_hoang_dao_ai_cap.md</i> bạn cung cấp. Tên “Set” trong một số dòng tương hợp được liên kết tới hồ sơ “Seth” (mục 10). Nội dung chiêm tinh mang tính tham khảo văn hóa / giải trí, không phải kết luận khoa học.</div>
+    <div class="history"><div class="section-label">Về mô hình 3D</div><p>Vòng tròn 12 cung là cách trình bày trực quan dữ liệu 12 vị thần / biểu tượng trong tài liệu. Hình khối, màu sắc, vòng đồng và họa tiết Ai Cập là yếu tố tạo hình minh họa, không hàm ý đây là phục dựng khảo cổ chính xác của một hiện vật cổ.</p></div>
+  </aside>
+</main>
+<footer><span>DỮ LIỆU: 12_CUNG_HOANG_DAO_AI_CAP.MD · NGÀY SINH / TÍNH CÁCH / TƯƠNG HỢP</span><span>THREE.JS r187 · MÔ HÌNH TƯƠNG TÁC 3D</span></footer>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// Dữ liệu bám theo tài liệu Markdown người dùng cung cấp.
+const signs = [
+  {id:'nile',name:'Sông Nin',english:'The Nile',short:'SÔNG NIN',symbol:'🌊',color:0x4d9ca8,date:'1–7 tháng 1, 19–28 tháng 6, 1–7 tháng 9, 18–26 tháng 11',ranges:[[1,1,7],[6,19,28],[9,1,7],[11,18,26]],personality:'Cởi mở, tràn đầy năng lượng sống, đam mê và dễ thích nghi. Tuy nhiên, đôi khi cảm xúc có thể thay đổi thất thường như dòng nước.',best:['Amon-Ra','Set'],good:['Thoth','Isis','Osiris'],bad:['Sekhmet','Anubis']},
+  {id:'amon-ra',name:'Thần Amon-Ra',english:'Amon-Ra · Thần Mặt Trời',short:'AMON-RA',symbol:'☀️',color:0xd9a84e,date:'8–21 tháng 1, 1–11 tháng 2',ranges:[[1,8,21],[2,1,11]],personality:'Sở hữu tố chất lãnh đạo bẩm sinh, lạc quan, tự tin và có tầm nhìn xa trông rộng. Rất kiên định nhưng đôi khi có phần độc đoán.',best:['Sông Nin','Horus'],good:['Geb','Mut','Bastet'],bad:['Thoth','Sekhmet']},
+  {id:'mut',name:'Nữ thần Mut',english:'Mut · Nữ thần Mẹ',short:'MUT',symbol:'👑',color:0xb48cba,date:'22–31 tháng 1, 8–22 tháng 9',ranges:[[1,22,31],[9,8,22]],personality:'Giàu tình cảm, trung thành, có tính bảo bọc và che chở cao. Thường hướng nội, suy nghĩ sâu sắc và sống thực tế.',best:['Amon-Ra','Thoth'],good:['Isis','Osiris','Geb'],bad:['Seth','Anubis']},
+  {id:'geb',name:'Thần Geb',english:'Geb · Thần Đất',short:'GEB',symbol:'🌍',color:0x8b9862,date:'12–29 tháng 2, 20–31 tháng 8',ranges:[[2,12,29],[8,20,31]],personality:'Nhạy cảm, tốt bụng, có trực giác cực kỳ sắc bén và đáng tin cậy. Đôi khi quá nhút nhát hoặc dễ bị tổn thương bởi người khác.',best:['Set','Horus'],good:['Amon-Ra','Mut','Osiris'],bad:['Sekhmet','Bastet']},
+  {id:'osiris',name:'Thần Osiris',english:'Osiris · Thần Âm Phủ',short:'OSIRIS',symbol:'⚱️',color:0x5c9b83,date:'1–10 tháng 3, 27 tháng 11 – 18 tháng 12',ranges:[[3,1,10],[11,27,30],[12,1,18]],personality:'Lôi cuốn, tràn đầy nhiệt huyết, kiên cường và có khả năng tái sinh mạnh mẽ sau thất bại. Tuy nhiên, cái tôi lớn và dễ nổi nóng.',best:['Isis','Thoth'],good:['Sông Nin','Geb','Mut'],bad:['Seth','Anubis']},
+  {id:'isis',name:'Nữ thần Isis',english:'Isis · Nữ thần Tình Mẫu Tử',short:'ISIS',symbol:'🪽',color:0x75a7b6,date:'11–31 tháng 3, 18–29 tháng 10, 19–31 tháng 12',ranges:[[3,11,31],[10,18,29],[12,19,31]],personality:'Thẳng thắn, tự tin, độc lập và vô cùng hào phóng. Mang năng lượng bảo bọc mạnh mẽ nhưng không thích sự ràng buộc hay giả dối.',best:['Osiris','Thoth'],good:['Sông Nin','Mut','Horus'],bad:['Anubis','Seth']},
+  {id:'thoth',name:'Thần Thoth',english:'Thoth · Thần Trí Tuệ',short:'THOTH',symbol:'📜',color:0x7e91bd,date:'1–19 tháng 4, 8–17 tháng 11',ranges:[[4,1,19],[11,8,17]],personality:'Thông thái, sáng tạo, có tư duy logic và khả năng giao tiếp xuất sắc. Rất chung thủy trong tình cảm nhưng đôi khi quá lý trí.',best:['Bastet','Isis'],good:['Sông Nin','Mut','Osiris'],bad:['Amon-Ra','Sekhmet']},
+  {id:'horus',name:'Thần Horus',english:'Horus · Thần Bầu Trời',short:'HORUS',symbol:'🦅',color:0x4c9caa,date:'20 tháng 4 – 7 tháng 5, 12–19 tháng 8',ranges:[[4,20,30],[5,1,7],[8,12,19]],personality:'Dũng cảm, chăm chỉ, có ý chí kiên định và sống có nguyên tắc. Luôn sẵn sàng đấu tranh vì công lý nhưng có thể hơi bướng bỉnh.',best:['Bastet','Geb'],good:['Amon-Ra','Isis','Sekhmet'],bad:['Seth','Anubis']},
+  {id:'anubis',name:'Thần Anubis',english:'Anubis · Thần Chết',short:'ANUBIS',symbol:'🐺',color:0x8b806e,date:'8–27 tháng 5, 29 tháng 6 – 13 tháng 7',ranges:[[5,8,27],[6,29,30],[7,1,13]],personality:'Hướng nội, bí ẩn, kiên định và có khả năng tự lập cao. Sở hữu trực giác tâm linh mạnh mẽ nhưng đôi khi quá khép kín và đa nghi.',best:['Bastet','Isis'],good:['Sekhmet','Thoth','Seth'],bad:['Sông Nin','Osiris','Horus']},
+  {id:'seth',name:'Thần Seth',english:'Seth · Thần Hỗn Mang',short:'SETH',symbol:'🌪️',color:0xb17c56,date:'28 tháng 5 – 18 tháng 6, 28 tháng 9 – 2 tháng 10',ranges:[[5,28,31],[6,1,18],[9,28,30],[10,1,2]],personality:'Thích phiêu lưu, hướng ngoại, luôn tìm kiếm sự đổi mới và theo đuổi sự hoàn hảo. Dễ nổi loạn và không chịu khuất phục.',best:['Sông Nin','Geb'],good:['Anubis','Horus','Bastet'],bad:['Osiris','Isis','Mut']},
+  {id:'bastet',name:'Nữ thần Bastet',english:'Bastet · Nữ thần Mèo',short:'BASTET',symbol:'🐈',color:0xb58a54,date:'14–28 tháng 7, 23–27 tháng 9, 3–17 tháng 10',ranges:[[7,14,28],[9,23,27],[10,3,17]],personality:'Yêu chuộng hòa bình, quyến rũ, có trực giác nhạy bén và luôn tìm kiếm sự cân bằng. Thích tận hưởng cuộc sống nhưng rất bảo vệ người thân.',best:['Sekhmet','Horus'],good:['Amon-Ra','Thoth','Anubis'],bad:['Geb','Seth']},
+  {id:'sekhmet',name:'Nữ thần Sekhmet',english:'Sekhmet · Nữ thần Chiến Binh',short:'SEKHMET',symbol:'🦁',color:0xc46e4c,date:'29 tháng 7 – 11 tháng 8, 30 tháng 10 – 7 tháng 11',ranges:[[7,29,31],[8,1,11],[10,30,31],[11,1,7]],personality:'Mạnh mẽ, cầu toàn, kỷ luật cao và có lòng tự tôn lớn. Luôn tràn đầy năng lượng nhưng dễ trở nên nóng nảy, hung dữ khi bị khiêu khích.',best:['Bastet','Geb'],good:['Horus','Anubis','Thoth'],bad:['Sông Nin','Amon-Ra']}
+];
+
+const canvas=document.getElementById('scene');
+const wrap=document.getElementById('stage-wrap');
+const fallback=document.getElementById('webglFallback');
+const list=document.getElementById('signList');
+const aliasName = name => name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').trim();
+function findSignByName(name){
+  const key=aliasName(name);
+  if(key==='set') return signs.find(s=>s.id==='seth');
+  return signs.find(s=>aliasName(s.name.replace(/^(Thần|Nữ thần)\s+/i,''))===key || aliasName(s.name)===key || aliasName(s.short)===key);
+}
+let selectedIndex=0;
+let toastTimer;
+// Khai báo trước khi selectSign() được gọi lần đầu.
+let renderer,controls,scene,camera,zodiacGroup,ornamentGroup,signMeshes=[],signGlyphs=[],pickables=[];
+function showToast(message){const el=document.getElementById('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1900);}
+function renderMatches(targetId,names,kind){
+  const host=document.getElementById(targetId);host.replaceChildren();
+  names.forEach(name=>{
+    const target=findSignByName(name);
+    const b=document.createElement('button');b.type='button';b.className=`match-chip ${kind}`;b.textContent=name;
+    if(target){b.title=`Mở ${target.name}`;b.addEventListener('click',()=>selectSign(signs.indexOf(target)));}
+    else{b.disabled=true;b.title='Chưa tìm thấy hồ sơ tương ứng';}
+    host.appendChild(b);
+  });
+}
+function selectSign(index,notify=true){
+  selectedIndex=(index+signs.length)%signs.length;
+  const s=signs[selectedIndex];
+  document.getElementById('selectedSymbol').textContent=s.symbol;
+  document.getElementById('selectedName').textContent=s.name;
+  document.getElementById('selectedDate').textContent=s.date;
+  document.getElementById('selectedDescription').textContent=s.personality;
+  renderMatches('bestMatches',s.best,'best');
+  renderMatches('goodMatches',s.good,'good');
+  renderMatches('badMatches',s.bad,'bad');
+  [...list.querySelectorAll('.sign-chip')].forEach((b,i)=>{const active=i===selectedIndex;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+  if(typeof signMeshes!=='undefined'){
+    signMeshes.forEach((mesh,i)=>{mesh.material.emissiveIntensity=i===selectedIndex?.28:.045;mesh.material.color.setHex(i===selectedIndex?0xb08b4e:signs[i].color);});
+    signGlyphs.forEach((sprite,i)=>{const k=i===selectedIndex?1.2:1;sprite.scale.set(1.02*k,.78*k,1);});
+  }
+  if(notify)showToast(`${s.symbol} ${s.name}`);
+}
+
+signs.forEach((s,i)=>{
+  const b=document.createElement('button');b.type='button';b.className='sign-chip';b.innerHTML=`<span aria-hidden="true">${s.symbol}</span>${s.name}`;
+  b.addEventListener('click',()=>selectSign(i));list.appendChild(b);
+});
+
+function dateBelongsToSign(month,day,sign){
+  const value=month*100+day;
+  return sign.ranges.some(([m,start,end])=>month===m && day>=start && day<=end);
+}
+function findBirthSign(){
+  const value=document.getElementById('birthDate').value;
+  const msg=document.getElementById('lookupMessage');
+  if(!value){msg.textContent='Vui lòng chọn ngày sinh trước khi tra cứu.';return;}
+  const parts=value.split('-').map(Number);const month=parts[1],day=parts[2];
+  const result=signs.find(s=>dateBelongsToSign(month,day,s));
+  if(result){selectSign(signs.indexOf(result));msg.textContent=`Ngày ${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')} thuộc cung ${result.name} theo các khoảng ngày trong tài liệu.`;}
+  else{msg.textContent='Không tìm thấy cung phù hợp với ngày đã chọn trong dữ liệu hiện có.';}
+}
+document.getElementById('findBirthSign').addEventListener('click',findBirthSign);
+document.getElementById('birthDate').addEventListener('keydown',e=>{if(e.key==='Enter')findBirthSign();});
+document.getElementById('clearBirthDate').addEventListener('click',()=>{document.getElementById('birthDate').value='';document.getElementById('lookupMessage').textContent='Chọn ngày sinh để tìm cung tương ứng theo các khoảng ngày trong tài liệu.';});
+selectSign(0,false);
+
+// Dựng mô hình Three.js; nếu WebGL không sẵn sàng, bảng thông tin vẫn dùng được.
+try{
+  scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x080d18,.0085);
+  camera=new THREE.PerspectiveCamera(39,1,.1,140);
+  // Bản đồ nằm trên mặt phẳng XY, vì vậy dùng trục Z làm hướng 'lên'.
+  // OrbitControls sẽ xoay quanh mặt đĩa thay vì lật camera quanh trục Y như trước.
+  camera.up.set(0,0,1);
+  camera.position.set(0,9.2,26);
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
+  controls=new OrbitControls(camera,renderer.domElement);
+  controls.target.set(0,0,0);
+  controls.enableRotate=true;controls.enableZoom=true;controls.enablePan=false;
+  controls.enableDamping=true;controls.dampingFactor=.075;
+  controls.rotateSpeed=.9;controls.zoomSpeed=.85;
+  controls.minDistance=14;controls.maxDistance=38;
+  // Chỉ cho phép quan sát nửa mặt trước, tránh lật xuyên qua mặt phẳng đĩa.
+  controls.minPolarAngle=.10;controls.maxPolarAngle=Math.PI*.47;
+  controls.autoRotate=true;controls.autoRotateSpeed=.9;
+  controls.update();
+
+  scene.add(new THREE.AmbientLight(0xb9c6dc,1.45));
+  const warm=new THREE.PointLight(0xffd79a,210,48);warm.position.set(-5,8,13);scene.add(warm);
+  const cool=new THREE.PointLight(0x668bd3,105,44);cool.position.set(8,-6,4);scene.add(cool);
+  const goldMat=new THREE.MeshStandardMaterial({color:0xcaa45e,metalness:.84,roughness:.26});
+  const paleGold=new THREE.MeshStandardMaterial({color:0xf0d59a,metalness:.72,roughness:.24,emissive:0x3b2608,emissiveIntensity:.2});
+  const darkMat=new THREE.MeshStandardMaterial({color:0x17243a,metalness:.68,roughness:.34});
+  const tealMat=new THREE.MeshStandardMaterial({color:0x5eaaa9,metalness:.6,roughness:.27,emissive:0x092d35,emissiveIntensity:.22});
+  zodiacGroup=new THREE.Group();scene.add(zodiacGroup);ornamentGroup=new THREE.Group();zodiacGroup.add(ornamentGroup);
+
+  function torus(radius,tube,z,material,group=zodiacGroup){const mesh=new THREE.Mesh(new THREE.TorusGeometry(radius,tube,12,190),material);mesh.position.z=z;group.add(mesh);return mesh;}
+  torus(3.42,.09,.34,goldMat);torus(3.7,.035,.31,paleGold);torus(7.43,.13,.16,goldMat);torus(7.72,.04,.16,paleGold);torus(8.23,.075,.04,goldMat);torus(8.48,.027,.04,paleGold);
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(8.14,8.32,.58,180,1),darkMat);base.rotation.x=Math.PI/2;base.position.z=-.19;zodiacGroup.add(base);
+  const innerDisk=new THREE.Mesh(new THREE.CircleGeometry(3.35,120),new THREE.MeshStandardMaterial({color:0x101b2b,metalness:.56,roughness:.48}));innerDisk.position.z=.27;zodiacGroup.add(innerDisk);
+  function sectorGeometry(inner,outer,a0,a1){const shape=new THREE.Shape();shape.moveTo(outer*Math.cos(a0),outer*Math.sin(a0));shape.absarc(0,0,outer,a0,a1,false);shape.lineTo(inner*Math.cos(a1),inner*Math.sin(a1));shape.absarc(0,0,inner,a1,a0,true);shape.closePath();return new THREE.ExtrudeGeometry(shape,{depth:.2,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:.04,bevelThickness:.03,curveSegments:16});}
+  function makeTextSprite(text,{size=90,color='#f0d59a',font='Arial',shadow=true}={}){
+    const c=document.createElement('canvas');c.width=768;c.height=256;const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.font=`600 ${size}px ${font}`;if(shadow){ctx.shadowColor=color;ctx.shadowBlur=12;}ctx.fillText(text,c.width/2,c.height/2);
+    const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false}));return sprite;
+  }
+  function addArc(radius,a0,a1,z,color=0xd1ad6d){const points=[];for(let k=0;k<=36;k++){const a=a0+(a1-a0)*k/36;points.push(new THREE.Vector3(radius*Math.cos(a),radius*Math.sin(a),z));}const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color,transparent:true,opacity:.55}));zodiacGroup.add(line);}
+
+  const signLabelGroup=new THREE.Group();zodiacGroup.add(signLabelGroup);
+  for(let i=0;i<12;i++){
+    const s=signs[i];const a0=-Math.PI/2+i*Math.PI/6+.009;const a1=-Math.PI/2+(i+1)*Math.PI/6-.009;const mid=(a0+a1)/2;
+    const mat=new THREE.MeshStandardMaterial({color:s.color,metalness:.7,roughness:.36,emissive:s.color,emissiveIntensity:.045,side:THREE.DoubleSide});
+    const wedge=new THREE.Mesh(sectorGeometry(3.78,7.28,a0,a1),mat);wedge.position.z=.09;wedge.userData.signIndex=i;zodiacGroup.add(wedge);signMeshes.push(wedge);pickables.push(wedge);
+    addArc(3.82,a0,a1,.34);addArc(7.24,a0,a1,.32,0x92784d);
+    const glyph=makeTextSprite(s.symbol,{size:145,color:'#ffe4aa',font:'Segoe UI Emoji'});glyph.position.set(5.12*Math.cos(mid),5.12*Math.sin(mid),.66);glyph.scale.set(1.05,.78,1);glyph.userData.signIndex=i;signLabelGroup.add(glyph);signGlyphs.push(glyph);pickables.push(glyph);
+    const label=makeTextSprite(s.short,{size:35,color:'#e4d2aa',font:'Arial'});label.position.set(6.34*Math.cos(mid),6.34*Math.sin(mid),.67);label.scale.set(1.42,.34,1);signLabelGroup.add(label);
+    const bead=new THREE.Mesh(new THREE.SphereGeometry(.09,16,12),paleGold);bead.position.set(7.55*Math.cos(a0),7.55*Math.sin(a0),.42);ornamentGroup.add(bead);
+  }
+
+  // Trung tâm mặt trời và bọ hung cách điệu, dùng làm họa tiết trang trí.
+  const sunRim=new THREE.Mesh(new THREE.CylinderGeometry(1.55,1.68,.27,90),paleGold);sunRim.rotation.x=Math.PI/2;sunRim.position.z=.62;zodiacGroup.add(sunRim);
+  const sunFace=new THREE.Mesh(new THREE.CircleGeometry(1.3,90),new THREE.MeshStandardMaterial({color:0x8c6634,metalness:.65,roughness:.3,emissive:0x2b1d0a,emissiveIntensity:.32}));sunFace.position.z=.78;zodiacGroup.add(sunFace);
+  const scarab=new THREE.Mesh(new THREE.SphereGeometry(.43,32,22),new THREE.MeshStandardMaterial({color:0x4e938d,metalness:.72,roughness:.24,emissive:0x102c30,emissiveIntensity:.28}));scarab.scale.set(.86,1.25,.65);scarab.position.set(0,0,1.02);zodiacGroup.add(scarab);
+  const wingShape=new THREE.Shape();wingShape.moveTo(0,0);wingShape.quadraticCurveTo(-.3,.62,-1.28,.98);wingShape.quadraticCurveTo(-1.12,.35,-.52,-.1);wingShape.quadraticCurveTo(-.22,-.17,0,0);
+  const wingGeo=new THREE.ExtrudeGeometry(wingShape,{depth:.065,bevelEnabled:true,bevelSize:.03,bevelThickness:.02,bevelSegments:2});
+  const wingMat=new THREE.MeshStandardMaterial({color:0xb28c50,metalness:.76,roughness:.3,side:THREE.DoubleSide});
+  const leftWing=new THREE.Mesh(wingGeo,wingMat);leftWing.position.set(-.32,0,.82);zodiacGroup.add(leftWing);const rightWing=new THREE.Mesh(wingGeo,wingMat);rightWing.scale.x=-1;rightWing.position.set(.32,0,.82);zodiacGroup.add(rightWing);
+  for(let i=0;i<24;i++){const a=i*Math.PI/12;const p1=new THREE.Vector3(1.72*Math.cos(a),1.72*Math.sin(a),.73),p2=new THREE.Vector3(1.95*Math.cos(a),1.95*Math.sin(a),.73);zodiacGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([p1,p2]),new THREE.LineBasicMaterial({color:0xd7b66f,transparent:true,opacity:.75})));}
+  const ankh=makeTextSprite('☥',{size:190,color:'#f2d99b',font:'Georgia'});ankh.position.set(0,-2.35,.46);ankh.scale.set(.75,.75,1);zodiacGroup.add(ankh);
+  const centerTitle=makeTextSprite('12 GUARDIAN SIGNS',{size:31,color:'#d9c18f',font:'Arial'});centerTitle.position.set(0,2.42,.45);centerTitle.scale.set(2.6,.45,1);zodiacGroup.add(centerTitle);
+
+  // Hạt sao nền và vòng chấm trang trí quanh đĩa.
+  const starCount=1150;const positions=new Float32Array(starCount*3);const colors=new Float32Array(starCount*3);
+  for(let i=0;i<starCount;i++){const radius=12+Math.random()*42;const a=Math.random()*Math.PI*2;const z=(Math.random()-.5)*23;positions[i*3]=radius*Math.cos(a);positions[i*3+1]=radius*Math.sin(a);positions[i*3+2]=z;const v=.45+Math.random()*.5;colors.set([v*.78,v*.86,v],i*3);}
+  const starGeometry=new THREE.BufferGeometry();starGeometry.setAttribute('position',new THREE.BufferAttribute(positions,3));starGeometry.setAttribute('color',new THREE.BufferAttribute(colors,3));scene.add(new THREE.Points(starGeometry,new THREE.PointsMaterial({size:.055,vertexColors:true,transparent:true,opacity:.78,sizeAttenuation:true})));
+  for(let i=0;i<48;i++){const a=i*Math.PI/24;const r=8.67;const mark=new THREE.Mesh(new THREE.SphereGeometry(i%4===0?.055:.032,8,8),i%4===0?paleGold:tealMat);mark.position.set(r*Math.cos(a),r*Math.sin(a),.03);ornamentGroup.add(mark);}
+
+  const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();let downX=0,downY=0;
+  canvas.addEventListener('pointerdown',e=>{downX=e.clientX;downY=e.clientY;});
+  canvas.addEventListener('pointerup',e=>{
+    if(Math.hypot(e.clientX-downX,e.clientY-downY)>6)return;
+    const rect=canvas.getBoundingClientRect();pointer.x=((e.clientX-rect.left)/rect.width)*2-1;pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;
+    raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(pickables,false);
+    if(hits.length){const idx=hits[0].object.userData.signIndex;if(Number.isInteger(idx))selectSign(idx);}
+  });
+
+  const autoBtn=document.getElementById('autoRotate');autoBtn.addEventListener('click',()=>{controls.autoRotate=!controls.autoRotate;autoBtn.classList.toggle('active',controls.autoRotate);});
+  const labelBtn=document.getElementById('toggleLabels');labelBtn.addEventListener('click',()=>{signLabelGroup.visible=!signLabelGroup.visible;labelBtn.classList.toggle('active',signLabelGroup.visible);});
+  const ornamentBtn=document.getElementById('toggleOrnaments');ornamentBtn.addEventListener('click',()=>{ornamentGroup.visible=!ornamentGroup.visible;ornamentBtn.classList.toggle('active',ornamentGroup.visible);});
+  document.getElementById('resetView').addEventListener('click',()=>{camera.up.set(0,0,1);camera.position.set(0,9.2,26);controls.target.set(0,0,0);controls.minPolarAngle=.10;controls.maxPolarAngle=Math.PI*.47;controls.update();controls.autoRotate=true;autoBtn.classList.add('active');});
+  function resize(){const w=wrap.clientWidth,h=wrap.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(wrap);window.addEventListener('resize',resize);resize();
+  const clock=new THREE.Clock();
+  function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);}
+  animate();
+}catch(error){
+  console.error('Không thể khởi tạo mô hình Three.js:',error);fallback.classList.add('show');
+}
+</script>
+</body>
+</html>
