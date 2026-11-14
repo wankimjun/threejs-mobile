@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sách Đỏ (Liber Novus) - Carl Jung 3D</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      background-color: #0b0706;
+      font-family: "Georgia", "Times New Roman", serif;
+      color: #f3e5c8;
+      user-select: none;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: grab;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+
+    /* Tiêu đề góc trên trái */
+    .hud-top {
+      position: fixed;
+      top: 22px;
+      left: 24px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud-top h1 {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: #e5b85c;
+      text-shadow: 0 2px 14px rgba(229, 184, 92, 0.45);
+      text-transform: uppercase;
+    }
+    .hud-top p {
+      font-size: 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: rgba(243, 229, 200, 0.72);
+      margin-top: 4px;
+    }
+
+    /* Bảng giải mã chương & nguyên mẫu */
+    .lore-panel {
+      position: fixed;
+      top: 22px;
+      right: 24px;
+      width: 350px;
+      max-width: calc(100vw - 48px);
+      background: rgba(24, 14, 12, 0.86);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(229, 184, 92, 0.38);
+      border-radius: 14px;
+      padding: 20px 22px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
+      z-index: 10;
+    }
+    .lore-badge {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(168, 32, 26, 0.45);
+      border: 1px solid rgba(229, 184, 92, 0.4);
+      color: #f3c86b;
+      margin-bottom: 10px;
+    }
+    .lore-panel h2 {
+      font-size: 20px;
+      color: #ffffff;
+      margin-bottom: 4px;
+      letter-spacing: 0.4px;
+    }
+    .lore-latin {
+      font-size: 13px;
+      font-style: italic;
+      color: #d4a359;
+      margin-bottom: 12px;
+    }
+    .lore-quote {
+      font-size: 13.5px;
+      font-style: italic;
+      line-height: 1.55;
+      color: #f7ebd2;
+      background: rgba(229, 184, 92, 0.08);
+      border-left: 3px solid #c93b2b;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      border-radius: 0 8px 8px 0;
+    }
+    .lore-desc {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      line-height: 1.58;
+      color: rgba(243, 229, 200, 0.88);
+    }
+
+    /* Thanh nút điều khiển bên dưới */
+    .control-bar {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(24, 14, 12, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(229, 184, 92, 0.32);
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.6);
+      z-index: 10;
+      max-width: 95vw;
+    }
+    button {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(243, 229, 200, 0.9);
+      border: 1px solid rgba(229, 184, 92, 0.25);
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      background: rgba(168, 32, 26, 0.45);
+      border-color: #e5b85c;
+      color: #ffffff;
+    }
+    button.active {
+      background: linear-gradient(135deg, #a8201a, #7a1410);
+      color: #f8d47c;
+      border-color: #e5b85c;
+      font-weight: 700;
+      box-shadow: 0 0 14px rgba(229, 184, 92, 0.35);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div class="hud-top">
+    <h1>LIBER NOVUS • SÁCH ĐỎ CARL JUNG 3D</h1>
+    <p>Nhấp vào sách để mở/đóng • Lật trang khám phá các nguyên mẫu vô thức • Kéo chuột: xoay • Cuộn: zoom</p>
+  </div>
+
+  <!-- Bảng nội dung chi tiết -->
+  <div class="lore-panel">
+    <span class="lore-badge" id="lore-badge">Bìa Da Đỏ • 1914 – 1930</span>
+    <h2 id="lore-title">Liber Novus (Sách Mới)</h2>
+    <div class="lore-latin" id="lore-latin">Bản thảo viết tay & họa phẩm của Carl Gustav Jung</div>
+    <div class="lore-quote" id="lore-quote">
+      "Ai nhìn ra bên ngoài thì mơ mộng; ai nhìn vào bên trong thì thức tỉnh."
+    </div>
+    <p class="lore-desc" id="lore-desc">
+      Được bọc bằng da dê màu đỏ thẫm với hoa văn vàng kim, cuốn sách ghi lại hành trình đối diện với vô thức tập thể (1913–1916) thông qua kỹ thuật Tưởng tượng Chủ động (Active Imagination).
+    </p>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <!-- Thanh điều khiển -->
+  <div class="control-bar">
+    <button id="btn-toggle-book" class="active">Mở Sách</button>
+    <button id="btn-prev-page">◀ Trang Trước</button>
+    <button id="btn-next-page">Lật Trang ▶</button>
+    <button id="btn-mandala">Hào Quang Mandala</button>
+    <button id="btn-reset-cam">Góc Nhìn Chuẩn</button>
+  </div>
+
+  <script>
+    // Dữ liệu các trang minh họa & nguyên mẫu trong Sách Đỏ
+    const PAGES_DATA = [
+      {
+        badge: "Bìa Sách • Liber Novus",
+        title: "Liber Novus (Sách Mới)",
+        latin: "Bản thảo viết tay & họa phẩm của Carl Gustav Jung (1914–1930)",
+        quote: "“Ai nhìn ra bên ngoài thì mơ mộng; ai nhìn vào bên trong thì thức tỉnh.”",
+        desc: "Cuốn sách khổ lớn bọc da đỏ thẫm ghi lại cuộc thám hiểm nội tâm sâu thẳm của Carl Jung, đặt nền móng cho Tâm lý học Phân tích, khái niệm Nguyên mẫu (Archetypes) và Vô thức Tập thể.",
+        leftTitle: "LIBER PRIMUS",
+        leftSub: "Con Đường Của Kẻ Sắp Tới",
+        leftBody: "Trong những năm 1913–1914, giữa những linh cảm về chiến tranh châu Âu, Jung dấn thân vào vực sâu tâm hồn để lắng nghe tiếng nói của linh hồn bị đánh mất.",
+        rightTitle: "THÁM HIỂM VÔ THỨC",
+        rightSub: "Tưởng Tượng Chủ Động",
+        rightBody: "Thay vì kìm nén các ảo ảnh, Jung đối thoại trực tiếp với các nhân vật nội tâm, vẽ lại từng biểu tượng bằng mực thư pháp trung cổ và màu bột khoáng.",
+        symbolType: "sun"
+      },
+      {
+        badge: "Chương I • Khai Mở",
+        title: "Tinh Thần Của Thời Đại & Chiều Sâu",
+        latin: "Der Geist dieser Zeit und der Geist der Tiefe",
+        quote: "“Tinh thần của chiều sâu đã tước đoạt tri thức và lý trí của tôi để phục vụ cho những điều không thể lý giải.”",
+        desc: "Jung nhận ra sự giằng xé giữa 'Tinh thần của thời đại' (lý trí, khoa học, thực dụng) và 'Tinh thần của chiều sâu' (biểu tượng, huyền thoại, linh hồn cổ xưa).",
+        leftTitle: "TINH THẦN THỜI ĐẠI",
+        leftSub: "Lý Trí & Ý Thức",
+        leftBody: "Thước đo của thế giới hiện đại chỉ tin vào những gì cân đo đong đếm được, khiến con người hiện đại đánh mất kết nối với cội rễ tâm linh.",
+        rightTitle: "TINH THẦN CHIỀU SÂU",
+        rightSub: "Vô Thức Tập Thể",
+        rightBody: "Muốn tìm lại linh hồn, cái Tôi (Ego) phải hạ mình khỏi ngai vàng lý trí để bước xuống sa mạc của vô thức.",
+        symbolType: "duality"
+      },
+      {
+        badge: "Chương II • Nguyên Mẫu",
+        title: "Philemon & Bóng Tối (Shadow)",
+        latin: "Hình tượng Người Khôn Ngoan Già Cả & Anima",
+        quote: "“Philemon dạy tôi về tính khách quan của tâm hồn: có những thứ trong tâm trí không do tôi tạo ra.”",
+        desc: "Trong hành trình nội tâm, Jung gặp gỡ nhà tiên tri Elijah, cô gái mù Salome (biểu tượng Anima) và bậc thầy có đôi cánh chim bói cá Philemon.",
+        leftTitle: "PHILEMON",
+        leftSub: "Người Dẫn Đường Nội Tâm",
+        leftBody: "Một ông lão có đôi cánh bói cá đại diện cho trí tuệ vượt trên cái Tôi ý thức, giúp Jung hiểu rằng suy nghĩ cũng sống động như sinh vật trong rừng.",
+        rightTitle: "ĐỐI DIỆN BÓNG TỐI",
+        rightSub: "Tích Hợp Mặt Tối",
+        leftSub2: "",
+        rightBody: "Chỉ khi chấp nhận cả phần tối (Shadow) và tính nữ nội tâm (Anima), con người mới bước vào tiến trình Cá nhân hóa (Individuation).",
+        symbolType: "wings"
+      },
+      {
+        badge: "Chương III • Biểu Tượng",
+        title: "Mandala & Hệ Thống Vạn Vật",
+        latin: "Systema Munditotius • Trật tự của Bản Ngã (Self)",
+        quote: "“Mandala là biểu tượng của sự toàn vẹn tâm linh, nơi mọi đối cực được hòa giải tại trung tâm.”",
+        desc: "Vào cuối hành trình Sách Đỏ, Jung vẽ các đồ hình Mandala đối xứng tuyệt mỹ để biểu đạt 'Self' (Bản Ngã Toàn Vẹn) — trung tâm điều hòa cả ý thức lẫn vô thức.",
+        leftTitle: "MANDALA VŨ TRỤ",
+        leftSub: "Cấu Trúc Tứ Nguyên",
+        leftBody: "Vòng tròn thiêng liêng chia thành bốn hướng tượng trưng cho bốn chức năng tâm lý: Tư duy, Cảm xúc, Cảm giác và Trực giác.",
+        rightTitle: "CÁ NHÂN HÓA",
+        rightSub: "Individuation",
+        rightBody: "Mục đích tối hậu của đời người không phải là sự hoàn hảo phiến diện, mà là sự trọn vẹn khi ánh sáng và bóng tối cùng hội tụ.",
+        symbolType: "mandala"
+      }
+    ];
+
+    // 1. Khởi tạo Scene, Camera, Renderer
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0b0706, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // 2. Hệ thống ánh sáng ấm áp kiểu thư phòng cổ
+    const ambientLight = new THREE.AmbientLight(0xffe8c8, 0.45);
+    scene.add(ambientLight);
+
+    const candleLight = new THREE.PointLight(0xffb74d, 2.2, 65);
+    candleLight.position.set(8, 14, 10);
+    candleLight.castShadow = true;
+    scene.add(candleLight);
+
+    const rimLight = new THREE.PointLight(0xc93b2b, 1.5, 65);
+    rimLight.position.set(-12, 8, -10);
+    scene.add(rimLight);
+
+    const topSpot = new THREE.DirectionalLight(0xfff1d6, 0.9);
+    topSpot.position.set(0, 20, 8);
+    scene.add(topSpot);
+
+    // 3. Tạo Texture Bìa Da Đỏ Chạm Vàng (Canvas Texture)
+    function createLeatherCoverTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 1400;
+      const ctx = canvas.getContext('2d');
+
+      // Nền da đỏ thẫm (Crimson Leather)
+      const grad = ctx.createRadialGradient(512, 700, 80, 512, 700, 820);
+      grad.addColorStop(0, '#8f1914');
+      grad.addColorStop(0.65, '#68100c');
+      grad.addColorStop(1, '#3d0806');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 1400);
+
+      // Tạo vân sần da thuộc
+      for (let i = 0; i < 18000; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,220,180,0.03)' : 'rgba(0,0,0,0.06)';
+        ctx.fillRect(Math.random() * 1024, Math.random() * 1400, 3, 3);
+      }
+
+      // Khung viền mạ vàng kép
+      ctx.strokeStyle = '#d9a74a';
+      ctx.lineWidth = 14;
+      ctx.strokeRect(56, 56, 912, 1288);
+
+      ctx.lineWidth = 5;
+      ctx.strokeRect(84, 84, 856, 1232);
+
+      // Hoa văn góc mạ vàng
+      const corners = [
+        [84, 84], [940, 84], [84, 1316], [940, 1316]
+      ];
+      ctx.fillStyle = '#e5b85c';
+      corners.forEach(([cx, cy]) => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Vòng tròn Mandala biểu tượng trung tâm bìa
+      ctx.save();
+      ctx.translate(512, 660);
+      ctx.strokeStyle = '#e5b85c';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(0, 0, 210, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, 175, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Ngôi sao 8 cánh & họa tiết mặt trời bên trong
+      for (let i = 0; i < 16; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI) / 8);
+        ctx.beginPath();
+        ctx.moveTo(0, -175);
+        ctx.lineTo(14, -70);
+        ctx.lineTo(0, -45);
+        ctx.lineTo(-14, -70);
+        ctx.closePath();
+        ctx.strokeStyle = '#e5b85c';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 42, 0, Math.PI * 2);
+      ctx.fillStyle = '#e5b85c';
+      ctx.fill();
+      ctx.restore();
+
+      // Chữ dập vàng LIBER NOVUS
+      ctx.fillStyle = '#f0c665';
+      ctx.font = 'bold 74px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('LIBER NOVUS', 512, 260);
+
+      ctx.font = 'italic 36px Georgia, serif';
+      ctx.fillStyle = '#e2b659';
+      ctx.fillText('CARL GUSTAV JUNG', 512, 1140);
+
+      ctx.font = '26px Georgia, serif';
+      ctx.fillText('MCMXIV • MCMXXX', 512, 1200);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    // 4. Tạo Texture Trang Giấy Cổ & Họa Phẩm Minh Họa
+    function createPageTexture(pageData, side) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 1400;
+      const ctx = canvas.getContext('2d');
+
+      // Nền giấy da cừu cổ (Parchment)
+      const grad = ctx.createLinearGradient(0, 0, 1024, 1400);
+      grad.addColorStop(0, '#f3e4c3');
+      grad.addColorStop(0.5, '#ead5ab');
+      grad.addColorStop(1, '#dec28d');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 1400);
+
+      // Bóng đổ gáy sách
+      const spineGrad = side === 'left'
+        ? ctx.createLinearGradient(920, 0, 1024, 0)
+        : ctx.createLinearGradient(0, 0, 104, 0);
+      if (side === 'left') {
+        spineGrad.addColorStop(0, 'rgba(60,35,15,0)');
+        spineGrad.addColorStop(1, 'rgba(45,25,10,0.32)');
+        ctx.fillStyle = spineGrad;
+        ctx.fillRect(920, 0, 104, 1400);
+      } else {
+        spineGrad.addColorStop(0, 'rgba(45,25,10,0.32)');
+        spineGrad.addColorStop(1, 'rgba(60,35,15,0)');
+        ctx.fillStyle = spineGrad;
+        ctx.fillRect(0, 0, 104, 1400);
+      }
+
+      // Khung viền thư pháp đỏ & vàng
+      ctx.strokeStyle = '#9e231b';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(70, 70, 884, 1260);
+      ctx.strokeStyle = '#c49236';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(84, 84, 856, 1232);
+
+      // Nội dung chữ thư pháp
+      const title = side === 'left' ? pageData.leftTitle : pageData.rightTitle;
+      const sub = side === 'left' ? pageData.leftSub : pageData.rightSub;
+      const body = side === 'left' ? pageData.leftBody : pageData.rightBody;
+
+      // Chữ cái đầu trang trí lớn (Illuminated Drop Cap)
+      ctx.fillStyle = '#9e231b';
+      ctx.fillRect(120, 130, 110, 110);
+      ctx.strokeStyle = '#e5b85c';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(120, 130, 110, 110);
+
+      ctx.fillStyle = '#f8d77e';
+      ctx.font = 'bold 74px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(title.charAt(0), 175, 212);
+
+      // Tiêu đề trang
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#7c1812';
+      ctx.font = 'bold 42px Georgia, serif';
+      ctx.fillText(title, 255, 178);
+
+      ctx.fillStyle = '#5c4328';
+      ctx.font = 'italic 28px Georgia, serif';
+      ctx.fillText(sub, 255, 222);
+
+      // Vẽ hình minh họa biểu tượng ở trung tâm trang
+      ctx.save();
+      ctx.translate(512, 620);
+
+      if (side === 'left') {
+        // Trang trái: Biểu tượng giả kim & hình học thiêng
+        ctx.strokeStyle = '#9e231b';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 210, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(158, 35, 27, 0.12)';
+        ctx.fill();
+
+        // Họa tiết theo từng chương
+        if (pageData.symbolType === 'mandala') {
+          for (let r = 40; r <= 190; r += 38) {
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.strokeStyle = r % 76 === 0 ? '#1f4e78' : '#9e231b';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+          }
+          for (let i = 0; i < 12; i++) {
+            ctx.rotate(Math.PI / 6);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, 210);
+            ctx.strokeStyle = '#c49236';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+          }
+        } else if (pageData.symbolType === 'duality') {
+          // Mặt trời đỏ & Mặt trăng xanh đối cực
+          ctx.beginPath();
+          ctx.arc(-65, 0, 85, 0, Math.PI * 2);
+          ctx.fillStyle = '#b52b21';
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(65, 0, 85, 0, Math.PI * 2);
+          ctx.fillStyle = '#1f4e78';
+          ctx.fill();
+        } else if (pageData.symbolType === 'wings') {
+          // Đôi cánh Philemon
+          for (let s of [-1, 1]) {
+            ctx.save();
+            ctx.scale(s, 1);
+            ctx.beginPath();
+            ctx.moveTo(15, 0);
+            ctx.bezierCurveTo(90, -140, 210, -110, 220, -10);
+            ctx.bezierCurveTo(170, 40, 90, 50, 15, 20);
+            ctx.fillStyle = '#1e5f74';
+            ctx.fill();
+            ctx.strokeStyle = '#d4a345';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.restore();
+          }
+          ctx.beginPath();
+          ctx.arc(0, -15, 34, 0, Math.PI * 2);
+          ctx.fillStyle = '#d4a345';
+          ctx.fill();
+        } else {
+          // Mặt trời đỏ Liber Novus
+          for (let i = 0; i < 24; i++) {
+            ctx.rotate(Math.PI / 12);
+            ctx.beginPath();
+            ctx.moveTo(0, 65);
+            ctx.lineTo(0, 195);
+            ctx.strokeStyle = i % 2 === 0 ? '#b52b21' : '#c98e27';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+          }
+          ctx.beginPath();
+          ctx.arc(0, 0, 62, 0, Math.PI * 2);
+          ctx.fillStyle = '#b52b21';
+          ctx.fill();
+        }
+      } else {
+        // Trang phải: Bùa chú & ngôi sao bát giác
+        ctx.strokeStyle = '#1f4e78';
+        ctx.lineWidth = 5;
+        for (let i = 0; i < 2; i++) {
+          ctx.save();
+          ctx.rotate((i * Math.PI) / 4);
+          ctx.strokeRect(-135, -135, 270, 270);
+          ctx.restore();
+        }
+        ctx.beginPath();
+        ctx.arc(0, 0, 95, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(201, 142, 39, 0.25)';
+        ctx.fill();
+        ctx.strokeStyle = '#9e231b';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        ctx.fillStyle = '#7c1812';
+        ctx.font = 'bold 34px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('SELF', 0, 12);
+      }
+      ctx.restore();
+
+      // Đoạn văn bản giải nghĩa phía dưới trang
+      ctx.fillStyle = '#2b1b10';
+      ctx.font = '32px Georgia, serif';
+      ctx.textAlign = 'left';
+      wrapText(ctx, body, 120, 950, 784, 46);
+
+      // Số trang cổ điển
+      ctx.fillStyle = '#7c1812';
+      ctx.font = 'italic 26px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(side === 'left' ? '— Folio I —' : '— Folio II —', 512, 1285);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          ctx.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, y);
+    }
+
+    // 5. Dựng Mô Hình Cuốn Sách Đỏ 3D Có Bản Lề Mở/Đóng
+    const bookRoot = new THREE.Group();
+    scene.add(bookRoot);
+
+    const BOOK_W = 8.2;
+    const BOOK_H = 11.2;
+    const COVER_THICK = 0.28;
+    const PAGE_THICK = 0.65;
+
+    const leatherTex = createLeatherCoverTexture();
+    const leatherMat = new THREE.MeshStandardMaterial({
+      map: leatherTex,
+      roughness: 0.45,
+      metalness: 0.2
+    });
+    const plainLeatherMat = new THREE.MeshStandardMaterial({
+      color: 0x68100c,
+      roughness: 0.5,
+      metalness: 0.15
+    });
+    const goldEdgeMat = new THREE.MeshStandardMaterial({
+      color: 0xd9a74a,
+      roughness: 0.3,
+      metalness: 0.85
+    });
+
+    // Gáy sách trung tâm
+    const spineGeo = new THREE.BoxGeometry(0.9, BOOK_H + 0.2, 1.8);
+    const spineMesh = new THREE.Mesh(spineGeo, plainLeatherMat);
+    spineMesh.position.set(0, 0, 0);
+    spineMesh.castShadow = true;
+    bookRoot.add(spineMesh);
+
+    // Các đường gân mạ vàng trên gáy sách
+    for (let y = -4.2; y <= 4.2; y += 2.1) {
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.18, 1.86), goldEdgeMat);
+      rib.position.set(0, y, 0);
+      bookRoot.add(rib);
+    }
+
+    // Nửa sách bên phải (Cố định làm đế)
+    const rightHalfGroup = new THREE.Group();
+    rightHalfGroup.position.set(0.35, 0, 0);
+    bookRoot.add(rightHalfGroup);
+
+    const backCover = new THREE.Mesh(
+      new THREE.BoxGeometry(BOOK_W, BOOK_H, COVER_THICK),
+      [plainLeatherMat, plainLeatherMat, plainLeatherMat, plainLeatherMat, plainLeatherMat, leatherMat]
+    );
+    backCover.position.set(BOOK_W / 2, 0, -0.75);
+    backCover.castShadow = true;
+    backCover.receiveShadow = true;
+    rightHalfGroup.add(backCover);
+
+    let rightPageTex = createPageTexture(PAGES_DATA[0], 'right');
+    const rightPageMat = new THREE.MeshStandardMaterial({ map: rightPageTex, roughness: 0.75 });
+    const rightPageBlock = new THREE.Mesh(
+      new THREE.BoxGeometry(BOOK_W - 0.3, BOOK_H - 0.4, PAGE_THICK),
+      [goldEdgeMat, goldEdgeMat, goldEdgeMat, goldEdgeMat, rightPageMat, goldEdgeMat]
+    );
+    rightPageBlock.position.set((BOOK_W - 0.3) / 2, 0, -0.28);
+    rightPageBlock.receiveShadow = true;
+    rightHalfGroup.add(rightPageBlock);
+
+    // Nửa sách bên trái (Có bản lề xoay mở/đóng)
+    const leftPivot = new THREE.Group();
+    leftPivot.position.set(-0.35, 0, 0);
+    bookRoot.add(leftPivot);
+
+    const frontCover = new THREE.Mesh(
+      new THREE.BoxGeometry(BOOK_W, BOOK_H, COVER_THICK),
+      [plainLeatherMat, plainLeatherMat, plainLeatherMat, plainLeatherMat, leatherMat, plainLeatherMat]
+    );
+    frontCover.position.set(BOOK_W / 2, 0, 0.75);
+    frontCover.castShadow = true;
+    frontCover.receiveShadow = true;
+    leftPivot.add(frontCover);
+
+    let leftPageTex = createPageTexture(PAGES_DATA[0], 'left');
+    const leftPageMat = new THREE.MeshStandardMaterial({ map: leftPageTex, roughness: 0.75 });
+    const leftPageBlock = new THREE.Mesh(
+      new THREE.BoxGeometry(BOOK_W - 0.3, BOOK_H - 0.4, PAGE_THICK),
+      [goldEdgeMat, goldEdgeMat, goldEdgeMat, goldEdgeMat, goldEdgeMat, leftPageMat]
+    );
+    leftPageBlock.position.set((BOOK_W - 0.3) / 2, 0, 0.28);
+    leftPageBlock.receiveShadow = true;
+    leftPivot.add(leftPageBlock);
+
+    // 6. Vòng hào quang Mandala 3D xoay phía sau sách
+    const mandalaGroup = new THREE.Group();
+    mandalaGroup.position.set(0, 0, -4.5);
+    scene.add(mandalaGroup);
+
+    const ringRadii = [9.5, 12.2, 15.0];
+    ringRadii.forEach((r, idx) => {
+      const ringGeo = new THREE.TorusGeometry(r, 0.06, 12, 96);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: idx === 1 ? 0xc93b2b : 0xe5b85c,
+        transparent: true,
+        opacity: 0.38
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      mandalaGroup.add(ring);
+    });
+
+    // Các hạt bụi vàng huyền bí bay lơ lửng
+    const dustGeo = new THREE.BufferGeometry();
+    const dustCount = 500;
+    const dustPos = new Float32Array(dustCount * 3);
+    for (let i = 0; i < dustCount * 3; i++) {
+      dustPos[i] = (Math.random() - 0.5) * 48;
+    }
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+    const dustMat = new THREE.PointsMaterial({
+      color: 0xf3c86b,
+      size: 0.16,
+      transparent: true,
+      opacity: 0.65
+    });
+    const dustParticles = new THREE.Points(dustGeo, dustMat);
+    scene.add(dustParticles);
+
+    // 7. Trạng thái tương tác & Lật trang
+    let isBookOpen = false;
+    let currentPageIndex = 0;
+    let showMandala = true;
+
+    const loreBadge = document.getElementById('lore-badge');
+    const loreTitle = document.getElementById('lore-title');
+    const loreLatin = document.getElementById('lore-latin');
+    const loreQuote = document.getElementById('lore-quote');
+    const loreDesc = document.getElementById('lore-desc');
+    const btnToggleBook = document.getElementById('btn-toggle-book');
+
+    function updateBookContent(index) {
+      currentPageIndex = (index + PAGES_DATA.length) % PAGES_DATA.length;
+      const data = PAGES_DATA[currentPageIndex];
+
+      loreBadge.textContent = data.badge;
+      loreTitle.textContent = data.title;
+      loreLatin.textContent = data.latin;
+      loreQuote.textContent = data.quote;
+      loreDesc.textContent = data.desc;
+
+      leftPageMat.map = createPageTexture(data, 'left');
+      leftPageMat.needsUpdate = true;
+
+      rightPageMat.map = createPageTexture(data, 'right');
+      rightPageMat.needsUpdate = true;
+    }
+
+    function setBookOpen(openState) {
+      isBookOpen = openState;
+      btnToggleBook.textContent = isBookOpen ? 'Đóng Sách' : 'Mở Sách';
+      btnToggleBook.classList.toggle('active', isBookOpen);
+    }
+
+    btnToggleBook.addEventListener('click', () => setBookOpen(!isBookOpen));
+
+    document.getElementById('btn-next-page').addEventListener('click', () => {
+      if (!isBookOpen) setBookOpen(true);
+      updateBookContent(currentPageIndex + 1);
+    });
+
+    document.getElementById('btn-prev-page').addEventListener('click', () => {
+      if (!isBookOpen) setBookOpen(true);
+      updateBookContent(currentPageIndex - 1);
+    });
+
+    const btnMandala = document.getElementById('btn-mandala');
+    btnMandala.classList.add('active');
+    btnMandala.addEventListener('click', () => {
+      showMandala = !showMandala;
+      mandalaGroup.visible = showMandala;
+      btnMandala.classList.toggle('active', showMandala);
+    });
+
+    // 8. Điều khiển Camera chuột & Click trực tiếp vào sách
+    let isDragging = false;
+    let dragDist = 0;
+    let prevX = 0;
+    let prevY = 0;
+    let targetRotY = -0.25;
+    let targetRotX = 0.25;
+    let currentRotY = -0.25;
+    let currentRotX = 0.25;
+    let targetZoom = 23;
+    let currentZoom = 23;
+
+    document.getElementById('btn-reset-cam').addEventListener('click', () => {
+      targetRotY = isBookOpen ? 0 : -0.25;
+      targetRotX = isBookOpen ? 0.35 : 0.25;
+      targetZoom = isBookOpen ? 21 : 23;
+    });
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragDist = 0;
+      prevX = e.clientX;
+      prevY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevX;
+      const dy = e.clientY - prevY;
+      dragDist += Math.abs(dx) + Math.abs(dy);
+      prevX = e.clientX;
+      prevY = e.clientY;
+
+      targetRotY -= dx * 0.007;
+      targetRotX += dy * 0.007;
+      targetRotX = Math.max(-Math.PI / 2.3, Math.min(Math.PI / 2.3, targetRotX));
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (isDragging && dragDist < 6) {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects([frontCover, backCover, leftPageBlock, rightPageBlock]);
+        if (hits.length > 0) {
+          setBookOpen(!isBookOpen);
+        }
+      }
+      isDragging = false;
+    });
+
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      targetZoom += e.deltaY * 0.015;
+      targetZoom = Math.max(11, Math.min(42, targetZoom));
+    }, { passive: false });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 9. Vòng lặp Animation
+    let currentHingeAngle = 0;
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+
+      // Nội suy góc mở bìa sách (0 = đóng, -Math.PI * 0.92 = mở phẳng)
+      const targetHinge = isBookOpen ? -Math.PI * 0.92 : 0;
+      currentHingeAngle += (targetHinge - currentHingeAngle) * 0.08;
+      leftPivot.rotation.y = currentHingeAngle;
+
+      // Căn chỉnh tâm sách khi mở ra
+      const targetBookX = isBookOpen ? 0 : -3.8;
+      bookRoot.position.x += (targetBookX - bookRoot.position.x) * 0.08;
+      bookRoot.position.y = Math.sin(t * 1.4) * 0.18;
+
+      // Xoay vòng Mandala phía sau
+      mandalaGroup.rotation.z = t * 0.12;
+      dustParticles.rotation.y = t * 0.03;
+
+      // Nội suy camera
+      currentRotX += (targetRotX - currentRotX) * 0.08;
+      currentRotY += (targetRotY - currentRotY) * 0.08;
+      currentZoom += (targetZoom - currentZoom) * 0.08;
+
+      camera.position.x = currentZoom * Math.sin(currentRotY) * Math.cos(currentRotX);
+      camera.position.y = currentZoom * Math.sin(currentRotX);
+      camera.position.z = currentZoom * Math.cos(currentRotY) * Math.cos(currentRotX);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

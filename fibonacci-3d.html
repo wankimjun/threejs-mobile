@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Màn Hình Xoắn Ốc Fibonacci 3D - Three.js</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      background-color: #05050a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: grab;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+    .hud-top {
+      position: fixed;
+      top: 20px;
+      left: 24px;
+      color: #ffffff;
+      pointer-events: none;
+    }
+    .hud-top h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      color: #64ffda;
+      text-shadow: 0 0 12px rgba(100, 255, 218, 0.4);
+    }
+    .hud-bottom {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.88);
+      background: rgba(15, 18, 30, 0.72);
+      backdrop-filter: blur(10px);
+      padding: 12px 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      font-size: 13px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .controls {
+      position: fixed;
+      top: 20px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: rgba(15, 18, 30, 0.72);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 8px;
+    }
+    .control-group label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-right: 6px;
+      align-self: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn {
+      min-width: 32px;
+      height: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.15s;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.45);
+    }
+    .btn.active {
+      background: #64ffda;
+      color: #05050a;
+      border-color: #64ffda;
+      box-shadow: 0 0 14px rgba(100, 255, 218, 0.35);
+    }
+    .btn:active {
+      transform: scale(0.95);
+    }
+  </style>
+  <!-- Chỉ nạp 1 thư viện Three.js core từ cdnjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div class="hud-top">
+    <h1>XOẮN ỐC FIBONACCI 3D</h1>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Cấu trúc</label>
+      <button class="btn active" data-mode="1">1</button>
+      <button class="btn" data-mode="2">2</button>
+      <button class="btn" data-mode="3">3</button>
+      <button class="btn" data-mode="4">4</button>
+      <button class="btn" data-mode="5">5</button>
+      <button class="btn" data-mode="6">6</button>
+    </div>
+    <div class="control-group shape-group">
+      <label>Hình hạt</label>
+      <button class="btn active" data-shape="sphere">Cầu</button>
+      <button class="btn" data-shape="box">Lập Phương</button>
+      <button class="btn" data-shape="pyramid">Kim Tự Tháp</button>
+      <button class="btn" data-shape="octahedron">Bát Diện</button>
+    </div>
+    <button class="btn" id="btn-pause">Tạm dừng</button>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <div class="hud-bottom">
+    Chuột trái / vuốt: xoay • Cuộn / chạm hai ngón: zoom • Phím 1–6: cấu trúc • Phím 7–0: hình hạt • Space: tạm dừng
+  </div>
+
+  <script>
+    // 1. Khởi tạo Scene, Camera, Renderer
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x05050a, 0.0075);
+
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // 2. Hệ thống ánh sáng
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+    scene.add(ambientLight);
+
+    const light1 = new THREE.PointLight(0x00f2fe, 2.8, 160);
+    light1.position.set(25, 35, 25);
+    scene.add(light1);
+
+    const light2 = new THREE.PointLight(0xff007f, 2.8, 160);
+    light2.position.set(-25, -25, -25);
+    scene.add(light2);
+
+    // 3. Cấu trúc Xoắn ốc Fibonacci 3D (InstancedMesh)
+    const COUNT = 2000;
+    const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+    const geometry = new THREE.SphereGeometry(0.42, 16, 16);
+    const material = new THREE.MeshStandardMaterial({
+      roughness: 0.22,
+      metalness: 0.78
+    });
+
+    const shapeGeometries = {
+      sphere: new THREE.SphereGeometry(0.42, 16, 16),
+      box: new THREE.BoxGeometry(0.5, 0.5, 0.5),
+      pyramid: new THREE.ConeGeometry(0.45, 0.75, 4, 1),
+      octahedron: new THREE.OctahedronGeometry(0.42, 0)
+    };
+    let particleShape = 'sphere';
+
+    function setParticleShape(shape) {
+      particleShape = shape;
+      instancedMesh.geometry = shapeGeometries[shape];
+    }
+
+    const instancedMesh = new THREE.InstancedMesh(geometry, material, COUNT);
+    scene.add(instancedMesh);
+
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+    const particles = [];
+
+    for (let i = 0; i < COUNT; i++) {
+      const ratio = i / COUNT;
+      const angle = i * GOLDEN_ANGLE;
+      const radius = Math.sqrt(i) * 1.15;
+      const yBase = (ratio - 0.5) * 40;
+
+      particles.push({ index: i, ratio, angle, radius, yBase, spin: Math.random() * Math.PI * 2 });
+    }
+
+    // 4. Hạt sao nền tạo chiều sâu
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 1600;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i++) {
+      starPos[i] = (Math.random() - 0.5) * 320;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0.6 });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
+
+    // 5. Bộ điều khiển Camera mượt mà (Tự viết - không cần file ngoài)
+    let isDragging = false;
+    let prevMouseX = 0;
+    let prevMouseY = 0;
+    let targetRotY = 0.5;
+    let targetRotX = 0.45;
+    let currentRotY = 0.5;
+    let currentRotX = 0.45;
+    let targetDistance = 82;
+    let currentDistance = 82;
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - prevMouseX;
+      const deltaY = e.clientY - prevMouseY;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+
+      targetRotY -= deltaX * 0.006;
+      targetRotX += deltaY * 0.006;
+      targetRotX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, targetRotX));
+    });
+
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      targetDistance += e.deltaY * 0.05;
+      targetDistance = Math.max(20, Math.min(180, targetDistance));
+    }, { passive: false });
+
+    // 6. Tương tác bàn phím (Phím 1-4 đổi phong cách, Space tạm dừng)
+    let styleMode = 1;
+    let isPaused = false;
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        isPaused = !isPaused;
+      } else if (e.key === '1') {
+        styleMode = 1; // Nón xoắn sóng quang phổ
+      } else if (e.key === '2') {
+        styleMode = 2; // Đĩa hoa hướng dương phẳng
+      } else if (e.key === '3') {
+        styleMode = 3; // Quả cầu Fibonacci (Fibonacci Sphere)
+      } else if (e.key === '4') {
+        styleMode = 4; // Cơn lốc xoáy cao
+      } else if (e.key === '5') {
+        styleMode = 5; // Vòng xuyến Torus
+      } else if (e.key === '6') {
+        styleMode = 6; // DNA song xoắn
+      } else if (e.key === '7') {
+        setParticleShape('sphere');
+      } else if (e.key === '8') {
+        setParticleShape('box');
+      } else if (e.key === '9') {
+        setParticleShape('pyramid');
+      } else if (e.key === '0') {
+        setParticleShape('octahedron');
+      }
+    });
+
+    // 6b. Nút bấm trên giao diện
+    const btnMode = document.querySelectorAll('.controls .control-group:first-child .btn');
+    const btnShape = document.querySelectorAll('.controls .shape-group .btn');
+    const btnPause = document.getElementById('btn-pause');
+
+    btnMode.forEach((b) => {
+      b.addEventListener('click', () => {
+        styleMode = Number(b.dataset.mode);
+        btnMode.forEach((x) => x.classList.toggle('active', x === b));
+      });
+    });
+
+    btnShape.forEach((b) => {
+      b.addEventListener('click', () => {
+        setParticleShape(b.dataset.shape);
+        btnShape.forEach((x) => x.classList.toggle('active', x === b));
+      });
+    });
+
+    btnPause.addEventListener('click', () => {
+      isPaused = !isPaused;
+      btnPause.textContent = isPaused ? 'Tiếp tục' : 'Tạm dừng';
+    });
+
+    // Cập nhật trạng thái nút active khi nhấn phím
+    window.addEventListener('keydown', (e) => {
+      const modeMap = { '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6 };
+      if (modeMap[e.key] !== undefined) {
+        btnMode.forEach((x) => x.classList.toggle('active', Number(x.dataset.mode) === modeMap[e.key]));
+      }
+      const shapeMap = { '7': 'sphere', '8': 'box', '9': 'pyramid', '0': 'octahedron' };
+      if (shapeMap[e.key] !== undefined) {
+        btnShape.forEach((x) => x.classList.toggle('active', x.dataset.shape === shapeMap[e.key]));
+      }
+    });
+
+    // 6c. Cảm ứng: vuốt xoay (1 ngón), chạm hai ngón zoom (pinch)
+    let touchId1 = null;
+    let touchId2 = null;
+    let lastDist = 0;
+
+    container.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        isDragging = true;
+        touchId1 = e.touches[0].identifier;
+        prevMouseX = e.touches[0].clientX;
+        prevMouseY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        touchId1 = e.touches[0].identifier;
+        touchId2 = e.touches[1].identifier;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        lastDist = Math.sqrt(dx * dx + dy * dy);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (touchId1 === null && touchId2 === null) return;
+      const t1 = Array.from(e.touches).find((t) => t.identifier === touchId1);
+      const t2 = Array.from(e.touches).find((t) => t.identifier === touchId2);
+
+      if (t1 && !t2) {
+        const deltaX = t1.clientX - prevMouseX;
+        const deltaY = t1.clientY - prevMouseY;
+        prevMouseX = t1.clientX;
+        prevMouseY = t1.clientY;
+        targetRotY -= deltaX * 0.006;
+        targetRotX += deltaY * 0.006;
+        targetRotX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, targetRotX));
+      } else if (t1 && t2) {
+        const dx = t1.clientX - t2.clientX;
+        const dy = t1.clientY - t2.clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        targetDistance += (dist - lastDist) * 0.5;
+        targetDistance = Math.max(20, Math.min(180, targetDistance));
+        lastDist = dist;
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === touchId1) touchId1 = null;
+        if (t.identifier === touchId2) touchId2 = null;
+      }
+      if (touchId1 === null && touchId2 === null) isDragging = false;
+    });
+
+    window.addEventListener('touchcancel', () => {
+      touchId1 = null;
+      touchId2 = null;
+      isDragging = false;
+    });
+
+    // 7. Resize màn hình
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 8. Vòng lặp Animation
+    let animTime = 0;
+    let lastTime = performance.now();
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+
+      const dt = (now - lastTime) * 0.001;
+      lastTime = now;
+
+      if (!isPaused) {
+        animTime += dt;
+        if (!isDragging) {
+          targetRotY += dt * 0.25;
+        }
+      }
+
+      // Nội suy góc xoay camera mượt mà
+      currentRotX += (targetRotX - currentRotX) * 0.08;
+      currentRotY += (targetRotY - currentRotY) * 0.08;
+      currentDistance += (targetDistance - currentDistance) * 0.08;
+
+      camera.position.x = currentDistance * Math.sin(currentRotY) * Math.cos(currentRotX);
+      camera.position.y = currentDistance * Math.sin(currentRotX);
+      camera.position.z = currentDistance * Math.cos(currentRotY) * Math.cos(currentRotX);
+      camera.lookAt(0, 0, 0);
+
+      for (let i = 0; i < COUNT; i++) {
+        const p = particles[i];
+        let x = 0, y = 0, z = 0;
+        const currentAngle = p.angle + animTime * 0.15;
+
+        if (styleMode === 1) {
+          // Phong cách 1: Nón xoắn Fibonacci + sóng lan tỏa
+          const wave = Math.sin(p.radius * 0.45 - animTime * 2.5) * 2.0;
+          x = Math.cos(currentAngle) * p.radius;
+          z = Math.sin(currentAngle) * p.radius;
+          y = p.yBase + wave;
+          color.setHSL((p.ratio * 0.8 + animTime * 0.06) % 1.0, 0.85, 0.55);
+        } else if (styleMode === 2) {
+          // Phong cách 2: Đĩa hoa hướng dương Phyllotaxis
+          const wave = Math.cos(p.radius * 0.6 - animTime * 3.0) * 1.5;
+          x = Math.cos(currentAngle) * p.radius * 1.15;
+          z = Math.sin(currentAngle) * p.radius * 1.15;
+          y = wave;
+          color.setHSL((0.08 + p.ratio * 0.14 + Math.sin(animTime) * 0.03) % 1.0, 0.9, 0.52);
+        } else if (styleMode === 3) {
+          // Phong cách 3: Quả cầu Fibonacci 3D
+          const phi = Math.acos(1 - 2 * (p.index + 0.5) / COUNT);
+          const sphereRadius = 26 + Math.sin(phi * 8 - animTime * 3) * 1.5;
+          x = sphereRadius * Math.sin(phi) * Math.cos(currentAngle);
+          y = sphereRadius * Math.cos(phi);
+          z = sphereRadius * Math.sin(phi) * Math.sin(currentAngle);
+          color.setHSL((0.5 + p.ratio * 0.35 + animTime * 0.05) % 1.0, 0.85, 0.56);
+        } else if (styleMode === 4) {
+          // Phong cách 4: Lốc xoáy năng lượng
+          const r = p.radius * 0.85 + Math.sin(p.ratio * 10 - animTime * 4) * 2;
+          x = Math.cos(currentAngle * 1.2) * r;
+          z = Math.sin(currentAngle * 1.2) * r;
+          y = (p.ratio - 0.5) * 65;
+          color.setHSL((0.75 + p.ratio * 0.25 + animTime * 0.08) % 1.0, 0.9, 0.58);
+        } else if (styleMode === 5) {
+          // Phong cách 5: Vòng xuyến Torus
+          const u = (p.index / COUNT) * Math.PI * 4;
+          const v = (p.index / COUNT) * Math.PI * 2;
+          const R = 22;
+          const r = 6 + Math.sin(animTime + p.ratio * 6) * 1.5;
+          x = (R + r * Math.cos(v)) * Math.cos(u);
+          z = (R + r * Math.cos(v)) * Math.sin(u);
+          y = r * Math.sin(v) + Math.sin(animTime + p.index * 0.1) * 1.5;
+          color.setHSL((0.6 + p.ratio * 0.3 + animTime * 0.05) % 1.0, 0.9, 0.55);
+        } else if (styleMode === 6) {
+          // Phong cách 6: DNA song xoắn
+          const strand = p.index % 2;
+          const dnaAngle = p.index * 0.22 + animTime * 0.5 + (strand === 0 ? 0 : Math.PI);
+          const dnaRadius = 10 + Math.sin(p.index * 0.05 + animTime) * 2;
+          x = Math.cos(dnaAngle) * dnaRadius;
+          z = Math.sin(dnaAngle) * dnaRadius;
+          y = (p.ratio - 0.5) * 70;
+          color.setHSL((strand === 0 ? 0.55 : 0.05) + animTime * 0.04, 0.9, 0.55);
+        }
+
+        dummy.position.set(x, y, z);
+        dummy.rotation.set(0, p.spin + animTime * 0.8, 0);
+        const scale = (0.45 + p.ratio * 0.85) * (1 + Math.sin(p.index * 0.05 + animTime * 3) * 0.2);
+        dummy.scale.set(scale, scale, scale);
+        dummy.updateMatrix();
+
+        instancedMesh.setMatrixAt(i, dummy.matrix);
+        instancedMesh.setColorAt(i, color);
+      }
+
+      instancedMesh.instanceMatrix.needsUpdate = true;
+      instancedMesh.instanceColor.needsUpdate = true;
+      stars.rotation.y = animTime * 0.02;
+
+      renderer.render(scene, camera);
+    }
+
+    animate(performance.now());
+  </script>
+</body>
+</html>

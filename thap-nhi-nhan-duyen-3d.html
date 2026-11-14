@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thập Nhị Nhân Duyên 3D - Three.js</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      background-color: #07060d;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f4f1ea;
+      user-select: none;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: grab;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+
+    /* Tiêu đề góc trên trái */
+    .hud-top {
+      position: fixed;
+      top: 22px;
+      left: 24px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud-top h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #f6c959;
+      text-shadow: 0 0 16px rgba(246, 201, 89, 0.45);
+    }
+    .hud-top p {
+      font-size: 13px;
+      color: rgba(244, 241, 234, 0.72);
+      margin-top: 4px;
+    }
+
+    /* Thẻ thông tin chi tiết bên phải */
+    .info-card {
+      position: fixed;
+      top: 22px;
+      right: 24px;
+      width: 330px;
+      max-width: calc(100vw - 48px);
+      background: rgba(18, 15, 28, 0.82);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(246, 201, 89, 0.28);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+      z-index: 10;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .info-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(246, 201, 89, 0.16);
+      color: #f6c959;
+      margin-bottom: 8px;
+    }
+    .info-card h2 {
+      font-size: 19px;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .info-pali {
+      font-size: 12.5px;
+      font-style: italic;
+      color: #a99ec4;
+      margin-bottom: 12px;
+    }
+    .info-desc {
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: rgba(244, 241, 234, 0.9);
+      margin-bottom: 12px;
+    }
+    .info-relation {
+      font-size: 12.5px;
+      line-height: 1.5;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      color: #7ee8fa;
+    }
+
+    /* Thanh nút điều khiển bên dưới */
+    .control-bar {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(18, 15, 28, 0.82);
+      backdrop-filter: blur(12px);
+      padding: 9px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      max-width: 95vw;
+    }
+    button {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(244, 241, 234, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      background: rgba(246, 201, 89, 0.18);
+      border-color: rgba(246, 201, 89, 0.55);
+      color: #ffffff;
+    }
+    button.active {
+      background: #f6c959;
+      color: #120f1c;
+      border-color: #f6c959;
+      font-weight: 700;
+      box-shadow: 0 0 14px rgba(246, 201, 89, 0.45);
+    }
+    button.nirvana.active {
+      background: #5ce1e6;
+      color: #071921;
+      border-color: #5ce1e6;
+      box-shadow: 0 0 14px rgba(92, 225, 230, 0.45);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div class="hud-top">
+    <h1>THẬP NHỊ NHÂN DUYÊN 3D</h1>
+    <p>Nhấp vào từng mắt xích để xem ý nghĩa • Kéo chuột: xoay • Cuộn: zoom</p>
+  </div>
+
+  <!-- Thẻ giải nghĩa chi tiết -->
+  <div class="info-card" id="info-card">
+    <span class="info-badge" id="info-badge">Mắt xích 1 / 12 • Nhân quá khứ</span>
+    <h2 id="info-title">1. Vô Minh</h2>
+    <div class="info-pali" id="info-pali">Pāli: Avijjā • Biểu tượng: Người mù chống gậy</div>
+    <p class="info-desc" id="info-desc">
+      Sự thiếu hiểu biết về bản chất thật của vạn pháp, không thấu rõ Tứ Diệu Đế và quy luật vô thường, vô ngã. Đây là gốc rễ khởi đầu của vòng luân hồi sinh tử.
+    </p>
+    <div class="info-relation" id="info-relation">
+      • Chiều lưu chuyển: Vô minh duyên Hành.<br/>
+      • Chiều hoàn diệt: Vô minh diệt thì Hành diệt.
+    </div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <!-- Thanh điều khiển -->
+  <div class="control-bar">
+    <button id="btn-samsara" class="active">Chiều Lưu Chuyển (Luân Hồi)</button>
+    <button id="btn-nirvana" class="nirvana">Chiều Hoàn Diệt (Giải Thoát)</button>
+    <button id="btn-prev">◀ Trước</button>
+    <button id="btn-next">Tiếp ▶</button>
+    <button id="btn-pause">Tạm Dừng</button>
+  </div>
+
+  <script>
+    // Dữ liệu 12 mắt xích Thập Nhị Nhân Duyên
+    const LINKS_DATA = [
+      {
+        id: 1,
+        name: "1. Vô Minh",
+        pali: "Avijjā • Biểu tượng: Người mù chống gậy",
+        phase: "Nhân quá khứ",
+        color: 0xff5964,
+        desc: "Sự mờ tối, không thấu suốt chân lý Tứ Diệu Đế, vô thường và vô ngã, dẫn đến nhận thức sai lầm về bản thân và thế giới.",
+        forward: "Vô minh duyên Hành (tạo tác nghiệp).",
+        reverse: "Vô minh diệt thì Hành diệt."
+      },
+      {
+        id: 2,
+        name: "2. Hành",
+        pali: "Saṅkhāra • Biểu tượng: Người thợ gốm nặn bình",
+        phase: "Nhân quá khứ",
+        color: 0xff7b54,
+        desc: "Các hành động tạo tác có chủ ý qua thân, khẩu, ý (nghiệp thiện, nghiệp bất thiện, nghiệp bất động) được thúc đẩy bởi vô minh.",
+        forward: "Hành duyên Thức (tâm thức tái sinh).",
+        reverse: "Hành diệt thì Thức diệt."
+      },
+      {
+        id: 3,
+        name: "3. Thức",
+        pali: "Viññāṇa • Biểu tượng: Con khỉ chuyền cành",
+        phase: "Quả hiện tại",
+        color: 0xffa64d,
+        desc: "Tâm thức mang theo chủng tử nghiệp lực đi tái sinh và phân biệt đối tượng ngay từ giây phút đầu tiên hình thành sự sống mới.",
+        forward: "Thức duyên Danh Sắc.",
+        reverse: "Thức diệt thì Danh Sắc diệt."
+      },
+      {
+        id: 4,
+        name: "4. Danh Sắc",
+        pali: "Nāmarūpa • Biểu tượng: Hai người chèo thuyền",
+        phase: "Quả hiện tại",
+        color: 0xffd166,
+        desc: "Sự kết hợp giữa tâm lý (Danh: thọ, tưởng, hành, thức) và vật chất hình hài (Sắc: tứ đại) hình thành nên một cá thể.",
+        forward: "Danh Sắc duyên Lục Nhập.",
+        reverse: "Danh Sắc diệt thì Lục Nhập diệt."
+      },
+      {
+        id: 5,
+        name: "5. Lục Nhập",
+        pali: "Saḷāyatana • Biểu tượng: Ngôi nhà sáu cửa sổ",
+        phase: "Quả hiện tại",
+        color: 0xcbe86b,
+        desc: "Sáu giác quan hoàn thiện (mắt, tai, mũi, lưỡi, thân, ý) làm cửa ngõ tiếp nhận thông tin từ thế giới bên ngoài.",
+        forward: "Lục Nhập duyên Xúc.",
+        reverse: "Lục Nhập diệt thì Xúc diệt."
+      },
+      {
+        id: 6,
+        name: "6. Xúc",
+        pali: "Phassa • Biểu tượng: Đôi nam nữ chạm nhau",
+        phase: "Quả hiện tại",
+        color: 0x6ede8a,
+        desc: "Sự tiếp xúc hội tụ giữa ba yếu tố: giác quan (căn), đối tượng bên ngoài (trần) và sự nhận biết tương ứng (thức).",
+        forward: "Xúc duyên Thọ.",
+        reverse: "Xúc diệt thì Thọ diệt."
+      },
+      {
+        id: 7,
+        name: "7. Thọ",
+        pali: "Vedanā • Biểu tượng: Người bị mũi tên bắn vào mắt",
+        phase: "Quả hiện tại",
+        color: 0x38d9a9,
+        desc: "Cảm giác nảy sinh ngay sau khi tiếp xúc, bao gồm cảm giác dễ chịu (lạc thọ), khó chịu (khổ thọ) hoặc trung tính (xả thọ).",
+        forward: "Thọ duyên Ái.",
+        reverse: "Thọ diệt thì Ái diệt."
+      },
+      {
+        id: 8,
+        name: "8. Ái",
+        pali: "Taṇhā • Biểu tượng: Người uống rượu say sưa",
+        phase: "Nhân hiện tại",
+        color: 0x3bc9db,
+        desc: "Sự khao khát, tham muốn bám víu vào cảm giác dễ chịu và chối bỏ, ghét bỏ cảm giác khó chịu.",
+        forward: "Ái duyên Thủ.",
+        reverse: "Ái diệt thì Thủ diệt."
+      },
+      {
+        id: 9,
+        name: "9. Thủ",
+        pali: "Upādāna • Biểu tượng: Người hái trái cây",
+        phase: "Nhân hiện tại",
+        color: 0x4dabf7,
+        desc: "Sự chấp giữ mãnh liệt, chiếm hữu và cố chấp vào đối tượng ham muốn, quan điểm hay bản ngã.",
+        forward: "Thủ duyên Hữu.",
+        reverse: "Thủ diệt thì Hữu diệt."
+      },
+      {
+        id: 10,
+        name: "10. Hữu",
+        pali: "Bhava • Biểu tượng: Người phụ nữ mang thai",
+        phase: "Nhân hiện tại",
+        color: 0x748ffc,
+        desc: "Sự hình thành năng lực nghiệp hữu và môi trường tồn tại mới, chuẩn bị cho một tiến trình sinh khởi tiếp theo.",
+        forward: "Hữu duyên Sinh.",
+        reverse: "Hữu diệt thì Sinh diệt."
+      },
+      {
+        id: 11,
+        name: "11. Sinh",
+        pali: "Jāti • Biểu tượng: Người phụ nữ sinh con",
+        phase: "Quả vị lai",
+        color: 0x9775fa,
+        desc: "Sự xuất hiện, khởi sinh của một đời sống mới cùng năm uẩn và các giác quan trong một cảnh giới tương ứng.",
+        forward: "Sinh duyên Lão Tử.",
+        reverse: "Sinh diệt thì Lão Tử diệt."
+      },
+      {
+        id: 12,
+        name: "12. Lão Tử",
+        pali: "Jarāmaraṇa • Biểu tượng: Người gánh xác chết",
+        phase: "Quả vị lai",
+        color: 0xe599f7,
+        desc: "Sự già nua, suy tàn, tan rã của thân tâm kèm theo sầu, bi, khổ, ưu, não — khép lại một vòng và nối tiếp vô minh mới.",
+        forward: "Lão Tử lại nối tiếp Vô minh trong vòng luân hồi.",
+        reverse: "Lão Tử diệt, toàn bộ khổ uẩn chấm dứt."
+      }
+    ];
+
+    // 1. Khởi tạo Scene, Camera, Renderer
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x07060d, 0.0065);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // 2. Ánh sáng
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+    scene.add(ambientLight);
+
+    const centerLight = new THREE.PointLight(0xf6c959, 2.5, 120);
+    centerLight.position.set(0, 8, 0);
+    scene.add(centerLight);
+
+    const rimLight1 = new THREE.PointLight(0x5ce1e6, 2.0, 150);
+    rimLight1.position.set(35, 25, 35);
+    scene.add(rimLight1);
+
+    const rimLight2 = new THREE.PointLight(0xff5964, 2.0, 150);
+    rimLight2.position.set(-35, -20, -35);
+    scene.add(rimLight2);
+
+    // 3. Tạo Texture chữ trên mặt phẳng (Sprite Label)
+    function createLabelSprite(text, subText, accentHex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 160;
+      const ctx = canvas.getContext('2d');
+
+      // Khung nền bo góc
+      ctx.fillStyle = 'rgba(16, 13, 26, 0.85)';
+      ctx.strokeStyle = accentHex;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(16, 16, 480, 128, 28);
+      ctx.fill();
+      ctx.stroke();
+
+      // Tiêu đề chính
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, 256, 74);
+
+      // Phụ đề Pāli
+      ctx.fillStyle = accentHex;
+      ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(subText, 256, 116);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.scale.set(9.2, 2.9, 1);
+      return sprite;
+    }
+
+    // 4. Dựng Bánh xe Thập Nhị Nhân Duyên 3D
+    const wheelGroup = new THREE.Group();
+    scene.add(wheelGroup);
+
+    const WHEEL_RADIUS = 24;
+
+    // Vòng xuyến chính nối 12 mắt xích
+    const mainRingGeo = new THREE.TorusGeometry(WHEEL_RADIUS, 0.22, 16, 128);
+    const mainRingMat = new THREE.MeshStandardMaterial({
+      color: 0xf6c959,
+      roughness: 0.3,
+      metalness: 0.8
+    });
+    const mainRing = new THREE.Mesh(mainRingGeo, mainRingMat);
+    mainRing.rotation.x = Math.PI / 2;
+    wheelGroup.add(mainRing);
+
+    // Vòng hào quang phụ bên trong
+    const innerRingGeo = new THREE.TorusGeometry(7.5, 0.14, 16, 96);
+    const innerRingMat = new THREE.MeshStandardMaterial({
+      color: 0x8b7aa8,
+      roughness: 0.4,
+      metalness: 0.6
+    });
+    const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+    innerRing.rotation.x = Math.PI / 2;
+    wheelGroup.add(innerRing);
+
+    // Tâm bánh xe: Biểu tượng Tam Độc (3 khối xoắn quyện vào nhau ở trung tâm)
+    const coreGroup = new THREE.Group();
+    wheelGroup.add(coreGroup);
+
+    const poisonColors = [0xff4d6d, 0x38d9a9, 0xf6c959]; // Sân, Tham, Si
+    for (let i = 0; i < 3; i++) {
+      const a = (i * Math.PI * 2) / 3;
+      const orbGeo = new THREE.OctahedronGeometry(1.6, 1);
+      const orbMat = new THREE.MeshStandardMaterial({
+        color: poisonColors[i],
+        emissive: poisonColors[i],
+        emissiveIntensity: 0.35,
+        roughness: 0.2,
+        metalness: 0.7
+      });
+      const orb = new THREE.Mesh(orbGeo, orbMat);
+      orb.position.set(Math.cos(a) * 2.1, 0, Math.sin(a) * 2.1);
+      coreGroup.add(orb);
+    }
+
+    // 12 Node mắt xích + Nan hoa + Nhãn chữ
+    const nodeMeshes = [];
+    const nodeHalos = [];
+
+    LINKS_DATA.forEach((item, idx) => {
+      // Sắp xếp theo chiều kim đồng hồ từ đỉnh trên (góc -PI/2)
+      const angle = -Math.PI / 2 + (idx / 12) * Math.PI * 2;
+      const x = Math.cos(angle) * WHEEL_RADIUS;
+      const z = Math.sin(angle) * WHEEL_RADIUS;
+
+      // Khối cầu mắt xích
+      const sphereGeo = new THREE.SphereGeometry(1.65, 32, 32);
+      const sphereMat = new THREE.MeshStandardMaterial({
+        color: item.color,
+        emissive: item.color,
+        emissiveIntensity: 0.25,
+        roughness: 0.22,
+        metalness: 0.75
+      });
+      const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+      sphere.position.set(x, 0, z);
+      sphere.userData = { index: idx };
+      wheelGroup.add(sphere);
+      nodeMeshes.push(sphere);
+
+      // Vòng hào quang bao quanh từng mắt xích
+      const haloGeo = new THREE.TorusGeometry(2.35, 0.08, 12, 48);
+      const haloMat = new THREE.MeshBasicMaterial({
+        color: item.color,
+        transparent: true,
+        opacity: 0.45
+      });
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      halo.position.set(x, 0, z);
+      halo.rotation.x = Math.PI / 2;
+      wheelGroup.add(halo);
+      nodeHalos.push(halo);
+
+      // Nan hoa nối từ tâm ra mắt xích
+      const spokeLen = WHEEL_RADIUS - 7.5;
+      const spokeGeo = new THREE.CylinderGeometry(0.06, 0.06, spokeLen, 8);
+      const spokeMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.16
+      });
+      const spoke = new THREE.Mesh(spokeGeo, spokeMat);
+      const midR = 7.5 + spokeLen / 2;
+      spoke.position.set(Math.cos(angle) * midR, 0, Math.sin(angle) * midR);
+      spoke.rotation.z = Math.PI / 2;
+      spoke.rotation.y = -angle;
+      wheelGroup.add(spoke);
+
+      // Nhãn tên mắt xích phía trên
+      const hexStr = '#' + item.color.toString(16).padStart(6, '0');
+      const paliShort = item.pali.split('•')[0].trim();
+      const label = createLabelSprite(item.name, paliShort, hexStr);
+      label.position.set(x * 1.16, 3.4, z * 1.16);
+      wheelGroup.add(label);
+    });
+
+    // 5. Dòng hạt năng lượng luân chuyển dọc theo vòng tròn 12 duyên
+    const FLOW_COUNT = 240;
+    const flowGeo = new THREE.BufferGeometry();
+    const flowPositions = new Float32Array(FLOW_COUNT * 3);
+    const flowAngles = new Float32Array(FLOW_COUNT);
+
+    for (let i = 0; i < FLOW_COUNT; i++) {
+      flowAngles[i] = (i / FLOW_COUNT) * Math.PI * 2;
+      flowPositions[i * 3] = Math.cos(flowAngles[i]) * WHEEL_RADIUS;
+      flowPositions[i * 3 + 1] = 0;
+      flowPositions[i * 3 + 2] = Math.sin(flowAngles[i]) * WHEEL_RADIUS;
+    }
+    flowGeo.setAttribute('position', new THREE.BufferAttribute(flowPositions, 3));
+
+    const flowMat = new THREE.PointsMaterial({
+      color: 0xf6c959,
+      size: 0.65,
+      transparent: true,
+      opacity: 0.9
+    });
+    const flowParticles = new THREE.Points(flowGeo, flowMat);
+    wheelGroup.add(flowParticles);
+
+    // 6. Không gian sao nền
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 1400;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i++) {
+      starPos[i] = (Math.random() - 0.5) * 280;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0.55 });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
+
+    // 7. Cập nhật bảng thông tin & trạng thái chọn
+    let selectedIndex = 0;
+    let flowDirection = 1; // 1: Lưu chuyển (thuận), -1: Hoàn diệt (nghịch)
+    let isPaused = false;
+
+    const infoBadge = document.getElementById('info-badge');
+    const infoTitle = document.getElementById('info-title');
+    const infoPali = document.getElementById('info-pali');
+    const infoDesc = document.getElementById('info-desc');
+    const infoRelation = document.getElementById('info-relation');
+
+    function selectLink(index) {
+      selectedIndex = (index + 12) % 12;
+      const data = LINKS_DATA[selectedIndex];
+
+      infoBadge.textContent = `Mắt xích ${data.id} / 12 • ${data.phase}`;
+      infoTitle.textContent = data.name;
+      infoPali.textContent = `Pāli: ${data.pali}`;
+      infoDesc.textContent = data.desc;
+      infoRelation.innerHTML = `• <strong>Chiều lưu chuyển:</strong> ${data.forward}<br/>• <strong>Chiều hoàn diệt:</strong> ${data.reverse}`;
+
+      // Làm nổi bật mắt xích đang chọn
+      nodeMeshes.forEach((mesh, i) => {
+        const isSelected = i === selectedIndex;
+        mesh.scale.setScalar(isSelected ? 1.45 : 1.0);
+        mesh.material.emissiveIntensity = isSelected ? 0.75 : 0.22;
+      });
+    }
+
+    selectLink(0);
+
+    // 8. Nút điều khiển giao diện
+    const btnSamsara = document.getElementById('btn-samsara');
+    const btnNirvana = document.getElementById('btn-nirvana');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnPause = document.getElementById('btn-pause');
+
+    btnSamsara.addEventListener('click', () => {
+      flowDirection = 1;
+      btnSamsara.classList.add('active');
+      btnNirvana.classList.remove('active');
+      flowMat.color.setHex(0xf6c959);
+      mainRingMat.color.setHex(0xf6c959);
+    });
+
+    btnNirvana.addEventListener('click', () => {
+      flowDirection = -1;
+      btnNirvana.classList.add('active');
+      btnSamsara.classList.remove('active');
+      flowMat.color.setHex(0x5ce1e6);
+      mainRingMat.color.setHex(0x5ce1e6);
+    });
+
+    btnPrev.addEventListener('click', () => selectLink(selectedIndex - 1));
+    btnNext.addEventListener('click', () => selectLink(selectedIndex + 1));
+
+    btnPause.addEventListener('click', () => {
+      isPaused = !isPaused;
+      btnPause.textContent = isPaused ? 'Tiếp Tục' : 'Tạm Dừng';
+      btnPause.classList.toggle('active', isPaused);
+    });
+
+    // 9. Điều khiển Camera (Xoay chuột + Zoom + Click Raycaster)
+    let isDragging = false;
+    let dragDistance = 0;
+    let prevX = 0;
+    let prevY = 0;
+    let targetRotY = 0;
+    let targetRotX = 0.62;
+    let currentRotY = 0;
+    let currentRotX = 0.62;
+    let targetZoom = 68;
+    let currentZoom = 68;
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragDistance = 0;
+      prevX = e.clientX;
+      prevY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevX;
+      const dy = e.clientY - prevY;
+      dragDistance += Math.abs(dx) + Math.abs(dy);
+      prevX = e.clientX;
+      prevY = e.clientY;
+
+      targetRotY -= dx * 0.006;
+      targetRotX += dy * 0.006;
+      targetRotX = Math.max(0.15, Math.min(Math.PI / 2.1, targetRotX));
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (isDragging && dragDistance < 6) {
+        // Xử lý nhấp chọn mắt xích 3D
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(nodeMeshes);
+        if (intersects.length > 0) {
+          selectLink(intersects[0].object.userData.index);
+        }
+      }
+      isDragging = false;
+    });
+
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      targetZoom += e.deltaY * 0.04;
+      targetZoom = Math.max(28, Math.min(130, targetZoom));
+    }, { passive: false });
+
+    // Phím tắt mũi tên trái/phải
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') selectLink(selectedIndex + 1);
+      if (e.key === 'ArrowLeft') selectLink(selectedIndex - 1);
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 10. Vòng lặp Animation
+    let animTime = 0;
+    let lastTime = performance.now();
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+
+      const dt = (now - lastTime) * 0.001;
+      lastTime = now;
+
+      if (!isPaused) {
+        animTime += dt;
+        if (!isDragging) {
+          targetRotY += dt * 0.14 * flowDirection;
+        }
+
+        // Cập nhật dòng hạt năng lượng chạy theo chiều thuận/nghịch
+        const posAttr = flowGeo.attributes.position;
+        for (let i = 0; i < FLOW_COUNT; i++) {
+          flowAngles[i] += dt * 0.55 * flowDirection;
+          const a = flowAngles[i];
+          posAttr.array[i * 3] = Math.cos(a) * WHEEL_RADIUS;
+          posAttr.array[i * 3 + 1] = Math.sin(a * 6 + animTime * 3) * 0.45;
+          posAttr.array[i * 3 + 2] = Math.sin(a) * WHEEL_RADIUS;
+        }
+        posAttr.needsUpdate = true;
+      }
+
+      // Xoay tâm Tam Độc
+      coreGroup.rotation.y = animTime * 0.9 * flowDirection;
+
+      // Hiệu ứng nhịp thở cho vòng hào quang mắt xích đang chọn
+      nodeHalos.forEach((halo, idx) => {
+        if (idx === selectedIndex) {
+          const pulse = 1.35 + Math.sin(animTime * 4) * 0.2;
+          halo.scale.setScalar(pulse);
+          halo.material.opacity = 0.85;
+        } else {
+          halo.scale.setScalar(1.0);
+          halo.material.opacity = 0.35;
+        }
+      });
+
+      currentRotX += (targetRotX - currentRotX) * 0.08;
+      currentRotY += (targetRotY - currentRotY) * 0.08;
+      currentZoom += (targetZoom - currentZoom) * 0.08;
+
+      camera.position.x = currentZoom * Math.sin(currentRotY) * Math.cos(currentRotX);
+      camera.position.y = currentZoom * Math.sin(currentRotX);
+      camera.position.z = currentZoom * Math.cos(currentRotY) * Math.cos(currentRotX);
+      camera.lookAt(0, 0, 0);
+
+      stars.rotation.y = animTime * 0.015;
+      renderer.render(scene, camera);
+    }
+
+    animate(performance.now());
+  </script>
+</body>
+</html>

@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ngũ Hành Tương Sinh Tương Khắc 3D - Three.js</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      background-color: #060812;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f3f4f6;
+      user-select: none;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: grab;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+
+    /* Tiêu đề góc trên trái */
+    .hud-top {
+      position: fixed;
+      top: 20px;
+      left: 24px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud-top h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: #fbbf24;
+      text-shadow: 0 0 16px rgba(251, 191, 36, 0.45);
+    }
+    .hud-top p {
+      font-size: 12.5px;
+      color: rgba(243, 244, 246, 0.72);
+      margin-top: 4px;
+    }
+
+    /* Chú thích đường nối */
+    .legend {
+      position: fixed;
+      top: 76px;
+      left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(15, 20, 36, 0.75);
+      backdrop-filter: blur(10px);
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 12px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot-sinh {
+      width: 12px;
+      height: 4px;
+      border-radius: 2px;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
+    }
+    .dot-khac {
+      width: 12px;
+      height: 4px;
+      border-radius: 2px;
+      background: #fb7185;
+      box-shadow: 0 0 8px #fb7185;
+    }
+
+    /* Thẻ thông tin chi tiết bên phải */
+    .info-card {
+      position: fixed;
+      top: 20px;
+      right: 24px;
+      width: 350px;
+      max-width: calc(100vw - 48px);
+      max-height: calc(100vh - 110px);
+      overflow-y: auto;
+      background: rgba(15, 20, 36, 0.84);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+      z-index: 10;
+    }
+    .info-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .element-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .element-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      text-transform: uppercase;
+    }
+    .element-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: rgba(243, 244, 246, 0.88);
+      margin-bottom: 14px;
+    }
+    .attr-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .attr-box {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .attr-label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    .attr-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    .relations-box {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      line-height: 1.6;
+      border-left: 3px solid #fbbf24;
+    }
+    .rel-sinh {
+      color: #34d399;
+      font-weight: 600;
+    }
+    .rel-khac {
+      color: #fb7185;
+      font-weight: 600;
+    }
+
+    /* Thanh nút bấm phía dưới */
+    .control-bar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 7px;
+      background: rgba(15, 20, 36, 0.84);
+      backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      max-width: 95vw;
+    }
+    button {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(243, 244, 246, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 6px 13px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+    button.active {
+      background: #fbbf24;
+      color: #090d16;
+      border-color: #fbbf24;
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+    }
+    button.mode-btn.active {
+      background: #38bdf8;
+      color: #06121e;
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.45);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div class="hud-top">
+    <h1>NGŨ HÀNH TƯƠNG SINH • TƯƠNG KHẮC 3D</h1>
+    <p>Nhấp vào hành tinh hoặc nút bên dưới để xem Tạng Phủ, Mùa, Phương Vị • Kéo chuột: xoay</p>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="dot-sinh"></span><span>Vòng ngoài: <strong>Tương Sinh</strong> (Nuôi dưỡng, thúc đẩy)</span></div>
+    <div class="legend-item"><span class="dot-khac"></span><span>Ngôi sao trong: <strong>Tương Khắc</strong> (Chế ước, cân bằng)</span></div>
+  </div>
+
+  <!-- Bảng tra cứu chi tiết Ngũ Hành -->
+  <div class="info-card" id="info-card">
+    <div class="info-header">
+      <div class="element-title" id="el-title" style="color: #34d399;">HÀNH MỘC</div>
+      <span class="element-tag" id="el-nature">Sinh trưởng • Vươn lên</span>
+    </div>
+    <p class="element-desc" id="el-desc">
+      Tượng trưng cho cây cối, sức sống mùa xuân, sự sinh sôi, phát triển và tính linh hoạt vươn lên.
+    </p>
+    <div class="attr-grid">
+      <div class="attr-box"><div class="attr-label">Tạng (Âm)</div><div class="attr-val" id="el-tang">Can (Gan)</div></div>
+      <div class="attr-box"><div class="attr-label">Phủ (Dương)</div><div class="attr-val" id="el-phu">Đởm (Mật)</div></div>
+      <div class="attr-box"><div class="attr-label">Mùa & Khí hậu</div><div class="attr-val" id="el-season">Mùa Xuân • Phong (Gió)</div></div>
+      <div class="attr-box"><div class="attr-label">Phương vị</div><div class="attr-val" id="el-dir">Hướng Đông</div></div>
+      <div class="attr-box"><div class="attr-label">Ngũ Vị & Màu</div><div class="attr-val" id="el-taste">Vị Chua • Xanh Lục</div></div>
+      <div class="attr-box"><div class="attr-label">Ngũ Quan & Thể</div><div class="attr-val" id="el-sense">Mắt • Gân (Cân)</div></div>
+      <div class="attr-box"><div class="attr-label">Tình chí (Cảm xúc)</div><div class="attr-val" id="el-emotion">Nộ (Giận dữ)</div></div>
+      <div class="attr-box"><div class="attr-label">Ngũ Thường</div><div class="attr-val" id="el-virtue">Nhân (Lòng nhân ái)</div></div>
+    </div>
+    <div class="relations-box" id="el-relations">
+      <div><span class="rel-sinh">● Tương Sinh:</span> Thủy sinh Mộc (Nước nuôi cây) • Mộc sinh Hỏa (Cây cháy sinh lửa).</div>
+      <div style="margin-top:4px;"><span class="rel-khac">● Tương Khắc:</span> Kim khắc Mộc (Rìu chặt cây) • Mộc khắc Thổ (Rễ hút màu đất).</div>
+    </div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <!-- Thanh điều khiển -->
+  <div class="control-bar">
+    <button class="el-btn active" data-idx="0">1. Mộc</button>
+    <button class="el-btn" data-idx="1">2. Hỏa</button>
+    <button class="el-btn" data-idx="2">3. Thổ</button>
+    <button class="el-btn" data-idx="3">4. Kim</button>
+    <button class="el-btn" data-idx="4">5. Thủy</button>
+    <button id="btn-all" class="mode-btn active">Tất Cả</button>
+    <button id="btn-sinh" class="mode-btn">Chỉ Tương Sinh</button>
+    <button id="btn-khac" class="mode-btn">Chỉ Tương Khắc</button>
+    <button id="btn-pause">Tạm Dừng</button>
+  </div>
+
+  <script>
+    // Dữ liệu 5 hành theo thứ tự vòng tròn Tương Sinh: Mộc -> Hỏa -> Thổ -> Kim -> Thủy
+    const ELEMENTS = [
+      {
+        id: 0,
+        name: "HÀNH MỘC",
+        short: "MỘC",
+        sub: "Can • Đởm • Xuân",
+        nature: "Sinh trưởng • Vươn lên",
+        color: 0x22c55e,
+        hex: "#22c55e",
+        desc: "Tượng trưng cho cây cối, sức sống mùa xuân, sự sinh sôi nảy nở, thẳng thắn và vươn lên.",
+        tang: "Can (Gan)",
+        phu: "Đởm (Mật)",
+        season: "Mùa Xuân • Phong (Gió)",
+        dir: "Hướng Đông",
+        taste: "Vị Chua • Xanh Lục",
+        sense: "Mắt • Gân (Cân)",
+        emotion: "Nộ (Giận dữ)",
+        virtue: "Nhân (Nhân ái)",
+        sinhDetail: "Thủy sinh Mộc (Nước nuôi cây) • Mộc sinh Hỏa (Cây cháy sinh lửa).",
+        khacDetail: "Kim khắc Mộc (Rìu chặt cây) • Mộc khắc Thổ (Rễ hút chất đất)."
+      },
+      {
+        id: 1,
+        name: "HÀNH HỎA",
+        short: "HỎA",
+        sub: "Tâm • Tiểu Trường • Hạ",
+        nature: "Nhiệt huyết • Thăng hoa",
+        color: 0xef4444,
+        hex: "#ef4444",
+        desc: "Tượng trưng cho ngọn lửa, ánh sáng, sức nóng mùa hạ, sự bùng cháy, nhiệt huyết và văn minh.",
+        tang: "Tâm (Tim) & Tâm Bào",
+        phu: "Tiểu Trường & Tam Tiêu",
+        season: "Mùa Hạ • Thử (Nóng)",
+        dir: "Hướng Nam",
+        taste: "Vị Đắng • Đỏ / Hồng",
+        sense: "Lưỡi • Mạch máu",
+        emotion: "Hỷ (Vui mừng)",
+        virtue: "Lễ (Lễ phép)",
+        sinhDetail: "Mộc sinh Hỏa (Cây sinh lửa) • Hỏa sinh Thổ (Tro tàn hóa đất).",
+        khacDetail: "Thủy khắc Hỏa (Nước dập lửa) • Hỏa khắc Kim (Lửa nung chảy kim loại)."
+      },
+      {
+        id: 2,
+        name: "HÀNH THỔ",
+        short: "THỔ",
+        sub: "Tỳ • Vị • Trưởng Hạ",
+        nature: "Nuôi dưỡng • Ôn hòa",
+        color: 0xeab308,
+        hex: "#eab308",
+        desc: "Tượng trưng cho đất mẹ, sự bao dung, ổn định, nơi ươm mầm và nuôi dưỡng vạn vật.",
+        tang: "Tỳ (Lách / Tiêu hóa)",
+        phu: "Vị (Dạ dày)",
+        season: "Trưởng Hạ (Giao mùa) • Thấp (Ẩm)",
+        dir: "Trung Ương",
+        taste: "Vị Ngọt • Vàng / Nâu",
+        sense: "Miệng • Cơ nhục",
+        emotion: "Tư (Lo nghĩ)",
+        virtue: "Tín (Chữ tín)",
+        sinhDetail: "Hỏa sinh Thổ (Tro hóa đất) • Thổ sinh Kim (Lòng đất tạo quặng).",
+        khacDetail: "Mộc khắc Thổ (Cây hút màu đất) • Thổ khắc Thủy (Đất đắp đê ngăn nước)."
+      },
+      {
+        id: 3,
+        name: "HÀNH KIM",
+        short: "KIM",
+        sub: "Phế • Đại Trường • Thu",
+        nature: "Thu liễm • Cương nghị",
+        color: 0xe2e8f0,
+        hex: "#e2e8f0",
+        desc: "Tượng trưng cho kim loại, khí thu se lạnh, sự sắc bén, quyết đoán, tinh khiết và thu liễm.",
+        tang: "Phế (Phổi)",
+        phu: "Đại Trường (Ruột già)",
+        season: "Mùa Thu • Táo (Khô)",
+        dir: "Hướng Tây",
+        taste: "Vị Cay • Trắng / Bạc",
+        sense: "Mũi • Da lông",
+        emotion: "Bi / Ưu (Buồn bã)",
+        virtue: "Nghĩa (Nghĩa khí)",
+        sinhDetail: "Thổ sinh Kim (Đất sinh khoáng) • Kim sinh Thủy (Kim loại nung chảy / ngưng sương).",
+        khacDetail: "Hỏa khắc Kim (Lửa nung kim loại) • Kim khắc Mộc (Dao rìu chặt cây)."
+      },
+      {
+        id: 4,
+        name: "HÀNH THỦY",
+        short: "THỦY",
+        sub: "Thận • Bàng Quang • Đông",
+        nature: "Tàng trữ • Linh hoạt",
+        color: 0x38bdf8,
+        hex: "#38bdf8",
+        desc: "Tượng trưng cho dòng nước, mùa đông tàng ẩn, sự uyển chuyển, trí tuệ sâu sắc và nguồn cội sự sống.",
+        tang: "Thận",
+        phu: "Bàng Quang",
+        season: "Mùa Đông • Hàn (Lạnh)",
+        dir: "Hướng Bắc",
+        taste: "Vị Mặn • Đen / Xanh Thẫm",
+        sense: "Tai • Xương tủy",
+        emotion: "Khủng (Sợ hãi)",
+        virtue: "Trí (Trí tuệ)",
+        sinhDetail: "Kim sinh Thủy (Ngưng tụ nước) • Thủy sinh Mộc (Nước tưới cây).",
+        khacDetail: "Thổ khắc Thủy (Đất ngăn nước) • Thủy khắc Hỏa (Nước dập tắt lửa)."
+      }
+    ];
+
+    // 1. Khởi tạo Scene, Camera, Renderer
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x060812, 0.0065);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // 2. Hệ thống ánh sáng
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+    scene.add(ambientLight);
+
+    const pointLight1 = new THREE.PointLight(0xffffff, 1.8, 160);
+    pointLight1.position.set(0, 28, 0);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(0x38bdf8, 1.8, 160);
+    pointLight2.position.set(-30, -15, 30);
+    scene.add(pointLight2);
+
+    const pointLight3 = new THREE.PointLight(0xfbbf24, 1.8, 160);
+    pointLight3.position.set(30, -15, -30);
+    scene.add(pointLight3);
+
+    // 3. Hàm tạo nhãn tên 3D trên từng hành
+    function createSpriteLabel(title, subtitle, borderColor) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 170;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = 'rgba(12, 16, 30, 0.86)';
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(16, 16, 480, 138, 30);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 46px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(title, 256, 78);
+
+      ctx.fillStyle = borderColor;
+      ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.fillText(subtitle, 256, 124);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(10.5, 3.5, 1);
+      return sprite;
+    }
+
+    // 4. Dựng mô hình Ngũ Hành 3D
+    const mainGroup = new THREE.Group();
+    scene.add(mainGroup);
+
+    const RADIUS = 21;
+    const nodePositions = [];
+    const nodeMeshes = [];
+    const nodeRings = [];
+
+    // Vòng đĩa nền mờ kết nối ngũ giác
+    const baseRingGeo = new THREE.TorusGeometry(RADIUS, 0.14, 16, 120);
+    const baseRingMat = new THREE.MeshBasicMaterial({ color: 0x34d399, transparent: true, opacity: 0.28 });
+    const baseRing = new THREE.Mesh(baseRingGeo, baseRingMat);
+    baseRing.rotation.x = Math.PI / 2;
+    mainGroup.add(baseRing);
+
+    // Tạo 5 hành tinh Ngũ Hành trên mặt phẳng ngang (XZ)
+    ELEMENTS.forEach((el, idx) => {
+      // Bắt đầu từ đỉnh trên (-PI/2) đi theo chiều kim đồng hồ
+      const angle = -Math.PI / 2 + (idx / 5) * Math.PI * 2;
+      const pos = new THREE.Vector3(Math.cos(angle) * RADIUS, 0, Math.sin(angle) * RADIUS);
+      nodePositions.push(pos);
+
+      // Khối cầu đại diện cho hành
+      const geo = new THREE.SphereGeometry(2.5, 36, 36);
+      const mat = new THREE.MeshStandardMaterial({
+        color: el.color,
+        emissive: el.color,
+        emissiveIntensity: 0.28,
+        roughness: 0.22,
+        metalness: 0.72
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(pos);
+      mesh.userData = { index: idx };
+      mainGroup.add(mesh);
+      nodeMeshes.push(mesh);
+
+      // Vòng hào quang xoay quanh từng hành
+      const ringGeo = new THREE.TorusGeometry(3.4, 0.1, 12, 64);
+      const ringMat = new THREE.MeshBasicMaterial({ color: el.color, transparent: true, opacity: 0.55 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.copy(pos);
+      ring.rotation.x = Math.PI / 2;
+      mainGroup.add(ring);
+      nodeRings.push(ring);
+
+      // Nhãn 3D
+      const label = createSpriteLabel(el.short, el.sub, el.hex);
+      label.position.set(pos.x * 1.15, 4.8, pos.z * 1.15);
+      mainGroup.add(label);
+    });
+
+    // 5. Tạo đường cong 3D & hạt năng lượng chuyển động cho Tương Sinh & Tương Khắc
+    const sinhGroup = new THREE.Group();
+    const khacGroup = new THREE.Group();
+    mainGroup.add(sinhGroup);
+    mainGroup.add(khacGroup);
+
+    const flowParticles = [];
+
+    function createRelationPath(fromIdx, toIdx, isSinh) {
+      const p1 = nodePositions[fromIdx];
+      const p2 = nodePositions[toIdx];
+      const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+
+      if (isSinh) {
+        // Đường cung uốn ra ngoài vòng tròn
+        mid.multiplyScalar(1.22);
+        mid.y = 1.2;
+      } else {
+        // Đường sao 5 cánh uốn nhẹ lên/xuống ở tâm để không đè lên nhau
+        mid.y = (fromIdx % 2 === 0 ? 2.4 : -2.4);
+      }
+
+      const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+      const tubeGeo = new THREE.TubeGeometry(curve, 44, isSinh ? 0.15 : 0.11, 8, false);
+      const tubeMat = new THREE.MeshBasicMaterial({
+        color: isSinh ? 0x34d399 : 0xfb7185,
+        transparent: true,
+        opacity: isSinh ? 0.65 : 0.52
+      });
+      const tube = new THREE.Mesh(tubeGeo, tubeMat);
+      (isSinh ? sinhGroup : khacGroup).add(tube);
+
+      // Các hạt năng lượng chạy dọc đường dẫn để biểu thị chiều Sinh / Khắc
+      const count = isSinh ? 5 : 4;
+      for (let k = 0; k < count; k++) {
+        const pGeo = new THREE.SphereGeometry(isSinh ? 0.34 : 0.28, 12, 12);
+        const pMat = new THREE.MeshBasicMaterial({ color: isSinh ? 0x6ee7b7 : 0xfda4af });
+        const pMesh = new THREE.Mesh(pGeo, pMat);
+        (isSinh ? sinhGroup : khacGroup).add(pMesh);
+        flowParticles.push({
+          mesh: pMesh,
+          curve: curve,
+          offset: k / count,
+          speed: isSinh ? 0.28 : 0.22,
+          from: fromIdx,
+          to: toIdx,
+          isSinh: isSinh
+        });
+      }
+    }
+
+    // 5 cặp Tương Sinh (vòng ngoài: i -> (i+1)%5)
+    for (let i = 0; i < 5; i++) {
+      createRelationPath(i, (i + 1) % 5, true);
+    }
+
+    // 5 cặp Tương Khắc (ngôi sao: i -> (i+2)%5)
+    for (let i = 0; i < 5; i++) {
+      createRelationPath(i, (i + 2) % 5, false);
+    }
+
+    // 6. Nền sao vũ trụ
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 1400;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i++) {
+      starPos[i] = (Math.random() - 0.5) * 280;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0.55 });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
+
+    // 7. Cập nhật bảng thông tin chi tiết
+    let selectedIndex = 0;
+    const elBtns = document.querySelectorAll('.el-btn');
+
+    function selectElement(idx) {
+      selectedIndex = idx;
+      const d = ELEMENTS[idx];
+
+      document.getElementById('el-title').textContent = d.name;
+      document.getElementById('el-title').style.color = d.hex;
+      document.getElementById('el-nature').textContent = d.nature;
+      document.getElementById('el-desc').textContent = d.desc;
+      document.getElementById('el-tang').textContent = d.tang;
+      document.getElementById('el-phu').textContent = d.phu;
+      document.getElementById('el-season').textContent = d.season;
+      document.getElementById('el-dir').textContent = d.dir;
+      document.getElementById('el-taste').textContent = d.taste;
+      document.getElementById('el-sense').textContent = d.sense;
+      document.getElementById('el-emotion').textContent = d.emotion;
+      document.getElementById('el-virtue').textContent = d.virtue;
+
+      const relBox = document.getElementById('el-relations');
+      relBox.style.borderLeftColor = d.hex;
+      relBox.innerHTML = `
+        <div><span class="rel-sinh">● Tương Sinh:</span> ${d.sinhDetail}</div>
+        <div style="margin-top:4px;"><span class="rel-khac">● Tương Khắc:</span> ${d.khacDetail}</div>
+      `;
+
+      elBtns.forEach((btn, i) => btn.classList.toggle('active', i === idx));
+
+      nodeMeshes.forEach((m, i) => {
+        const active = i === idx;
+        m.scale.setScalar(active ? 1.32 : 1.0);
+        m.material.emissiveIntensity = active ? 0.72 : 0.25;
+      });
+    }
+
+    selectElement(0);
+
+    elBtns.forEach((btn) => {
+      btn.addEventListener('click', () => selectElement(Number(btn.dataset.idx)));
+    });
+
+    // Chế độ hiển thị đường Sinh / Khắc
+    const btnAll = document.getElementById('btn-all');
+    const btnSinh = document.getElementById('btn-sinh');
+    const btnKhac = document.getElementById('btn-khac');
+    const btnPause = document.getElementById('btn-pause');
+
+    function setRelationMode(mode) {
+      btnAll.classList.toggle('active', mode === 'all');
+      btnSinh.classList.toggle('active', mode === 'sinh');
+      btnKhac.classList.toggle('active', mode === 'khac');
+
+      sinhGroup.visible = (mode === 'all' || mode === 'sinh');
+      khacGroup.visible = (mode === 'all' || mode === 'khac');
+      baseRing.visible = (mode === 'all' || mode === 'sinh');
+    }
+
+    btnAll.addEventListener('click', () => setRelationMode('all'));
+    btnSinh.addEventListener('click', () => setRelationMode('sinh'));
+    btnKhac.addEventListener('click', () => setRelationMode('khac'));
+
+    let isPaused = false;
+    btnPause.addEventListener('click', () => {
+      isPaused = !isPaused;
+      btnPause.textContent = isPaused ? 'Tiếp Tục' : 'Tạm Dừng';
+      btnPause.classList.toggle('active', isPaused);
+    });
+
+    // 8. Điều khiển Camera chuột, cảm ứng & Click chọn khối 3D
+    let isDragging = false;
+    let dragDist = 0;
+    let prevX = 0;
+    let prevY = 0;
+    let targetRotY = 0;
+    let targetRotX = 0.65;
+    let currentRotY = 0;
+    let currentRotX = 0.65;
+    let targetZoom = 64;
+    let currentZoom = 64;
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragDist = 0;
+      prevX = e.clientX;
+      prevY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevX;
+      const dy = e.clientY - prevY;
+      dragDist += Math.abs(dx) + Math.abs(dy);
+      prevX = e.clientX;
+      prevY = e.clientY;
+
+      targetRotY -= dx * 0.006;
+      targetRotX += dy * 0.006;
+      targetRotX = Math.max(0.15, Math.min(Math.PI / 2.1, targetRotX));
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (isDragging && dragDist < 6) {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(nodeMeshes);
+        if (hits.length > 0) {
+          selectElement(hits[0].object.userData.index);
+        }
+      }
+      isDragging = false;
+    });
+
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      targetZoom += e.deltaY * 0.04;
+      targetZoom = Math.max(26, Math.min(125, targetZoom));
+    }, { passive: false });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 9. Vòng lặp Animation
+    let animTime = 0;
+    let lastTime = performance.now();
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = (now - lastTime) * 0.001;
+      lastTime = now;
+
+      if (!isPaused) {
+        animTime += dt;
+        if (!isDragging) {
+          targetRotY += dt * 0.14;
+        }
+      }
+
+      // Di chuyển các hạt năng lượng dọc theo cung Tương Sinh & Tương Khắc
+      flowParticles.forEach((fp) => {
+        const t = (animTime * fp.speed + fp.offset) % 1.0;
+        const pos = fp.curve.getPointAt(t);
+        fp.mesh.position.copy(pos);
+
+        // Làm sáng nổi bật các luồng liên quan trực tiếp đến hành đang chọn
+        const isRelated = (fp.from === selectedIndex || fp.to === selectedIndex);
+        fp.mesh.scale.setScalar(isRelated ? 1.45 : 0.85);
+      });
+
+      // Hiệu ứng nhịp thở cho vòng hào quang của hành đang chọn
+      nodeRings.forEach((ring, i) => {
+        if (i === selectedIndex) {
+          const s = 1.25 + Math.sin(animTime * 4) * 0.15;
+          ring.scale.setScalar(s);
+          ring.material.opacity = 0.9;
+        } else {
+          ring.scale.setScalar(1.0);
+          ring.material.opacity = 0.4;
+        }
+      });
+
+      currentRotX += (targetRotX - currentRotX) * 0.08;
+      currentRotY += (targetRotY - currentRotY) * 0.08;
+      currentZoom += (targetZoom - currentZoom) * 0.08;
+
+      camera.position.x = currentZoom * Math.sin(currentRotY) * Math.cos(currentRotX);
+      camera.position.y = currentZoom * Math.sin(currentRotX);
+      camera.position.z = currentZoom * Math.cos(currentRotY) * Math.cos(currentRotX);
+      camera.lookAt(0, 0, 0);
+
+      stars.rotation.y = animTime * 0.015;
+      renderer.render(scene, camera);
+    }
+
+    animate(performance.now());
+  </script>
+</body>
+</html>
