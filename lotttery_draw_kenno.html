@@ -17,7 +17,7 @@
                 radial-gradient(900px 600px at 100% 20%, #0f4c5c 0%, transparent 55%), var(--bg);
     color: var(--text); min-height: 100vh; padding: 22px 16px 40px; line-height: 1.5;
   }
-  .wrap { max-width: 1160px; margin: 0 auto; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
 
   header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
   .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #d90429, #ffd166);
@@ -39,6 +39,7 @@
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
   .panel h2 { font-size: .95rem; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .4px; }
   .hint { font-size: .84rem; color: var(--muted); margin-bottom: 10px; line-height: 1.55; }
+  .sub { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin: 14px 0 8px; }
 
   .board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
   .cell { aspect-ratio: 1; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-2);
@@ -52,6 +53,7 @@
   .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .counter { font-size: .86rem; color: var(--muted); }
   .counter b { color: var(--accent); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
   .tickets { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
   .tickets-head { display: flex; justify-content: space-between; font-size: .85rem; color: var(--muted); margin-bottom: 8px; }
@@ -69,21 +71,22 @@
   .rm:hover:not(:disabled) { color: var(--text); border-color: var(--red); }
 
   canvas { width: 100%; max-width: 420px; height: auto; display: block; margin: 0 auto; }
-
   .controls { display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 12px; flex-wrap: wrap; }
   button.btn { border: none; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: .9rem; color: #111; cursor: pointer; transition: all .15s; }
   button.btn:disabled { opacity: .45; cursor: not-allowed; }
   button.btn:active:not(:disabled) { transform: translateY(1px); }
   .btn-primary { background: linear-gradient(135deg, var(--accent), #f59e0b); }
   .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn-blue { background: linear-gradient(135deg, #60a5fa, var(--blue)); color: #fff; }
   .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
   .btn-outline:hover:not(:disabled) { border-color: var(--accent-dim); }
   .btn-danger { background: var(--red); color: #fff; }
   .btn-small { padding: 7px 12px; font-size: .82rem; }
 
+  select { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: .85rem; }
+
   .status { text-align: center; margin-top: 10px; font-size: .9rem; color: var(--muted); min-height: 1.4em; }
   .status b { color: var(--accent); }
-
   .results { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin-top: 12px; }
   .num { height: 34px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border);
     font-weight: 800; font-size: .85rem; display: grid; place-items: center; }
@@ -98,7 +101,29 @@
   .msg.err { color: #f87171; }
   .msg.ok { color: var(--green); }
 
-  .history { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+  /* Thống kê */
+  .stats-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: .85rem; color: var(--muted); }
+  .heat { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+  .heat .c { border-radius: 7px; padding: 5px 0; text-align: center; border: 1px solid rgba(255,255,255,.06); cursor: pointer; user-select: none; }
+  .heat .c .n { font-weight: 800; font-size: .8rem; }
+  .heat .c .f { font-size: .62rem; opacity: .8; }
+  .heat .c.sel { outline: 2px solid var(--accent); }
+  .legend { display: flex; align-items: center; gap: 8px; font-size: .75rem; color: var(--muted); margin-top: 10px; }
+  .legend .bar { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, hsl(220,70%,45%), hsl(110,70%,45%), hsl(0,70%,45%)); }
+  .lists { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+  @media (max-width: 900px) { .lists { grid-template-columns: 1fr; } }
+  .lst { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+  .lst h3 { font-size: .8rem; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .lst .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .lst .chip { font-size: .75rem; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: var(--panel); border: 1px solid var(--border); }
+  .lst .chip small { color: var(--muted); font-weight: 400; }
+  .sug { background: linear-gradient(135deg, rgba(255,209,102,.1), rgba(168,85,247,.08)); border: 1px solid rgba(255,209,102,.3);
+    border-radius: 12px; padding: 14px; margin-top: 14px; }
+  .sug .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .sug .chip { min-width: 36px; height: 36px; border-radius: 18px; background: var(--red); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: .9rem; padding: 0 8px; }
+  .sug .why { font-size: .84rem; color: var(--muted); line-height: 1.55; }
+  .disclaimer { font-size: .78rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+
   .hist-head { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
   .hist-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; }
   .hist-item { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: .78rem; }
@@ -134,13 +159,13 @@
       <div class="board" id="board"></div>
       <div class="toolbar">
         <div class="counter">Đang chọn: <b id="selCount">0</b> số (cần 2–10)</div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-outline btn-small" id="quickPick">Chọn nhanh</button>
-          <button class="btn btn-outline btn-small" id="clearSel">Bỏ chọn</button>
-        </div>
+        <button type="button" class="btn btn-outline btn-small" id="clearSel">Bỏ chọn</button>
       </div>
-      <div class="controls" style="margin-top:10px">
-        <button class="btn btn-primary btn-small" id="addTicket">+ Thêm dãy vào vé</button>
+      <div class="row">
+        <button type="button" class="btn btn-blue btn-small" id="quickPick">🎲 Chọn nhanh</button>
+        <button type="button" class="btn btn-blue btn-small" id="quickTicket">🎲 Chọn nhanh + thêm vé</button>
+        <button type="button" class="btn btn-outline btn-small" id="quick5">Thêm 5 dãy ngẫu nhiên</button>
+        <button type="button" class="btn btn-primary btn-small" id="addTicket">+ Thêm dãy vào vé</button>
       </div>
       <div class="msg" id="ticketMsg"></div>
 
@@ -154,9 +179,9 @@
       <h2>🎱 Lồng cầu 80 quả bóng</h2>
       <canvas id="stage" width="420" height="400"></canvas>
       <div class="controls">
-        <button class="btn btn-primary" id="btnDraw">Quay số ngay</button>
-        <button class="btn btn-outline btn-small" id="autoToggle">Tự động quay: TẮT</button>
-        <button class="btn btn-danger btn-small" id="btnReset">Làm mới</button>
+        <button type="button" class="btn btn-primary" id="btnDraw">Quay số ngay</button>
+        <button type="button" class="btn btn-outline btn-small" id="autoToggle">Tự động quay: TẮT</button>
+        <button type="button" class="btn btn-danger btn-small" id="btnReset">Làm mới</button>
       </div>
       <div class="status" id="status">Chọn số, thêm vé (nếu có) rồi nhấn Quay số.</div>
       <div class="results" id="results"></div>
@@ -164,14 +189,65 @@
     </section>
   </div>
 
-  <section class="panel history" id="historySection" style="display:none">
-    <div class="hist-head"><span>Lịch sử các kỳ đã quay trong phiên này</span><span id="histCount">0 kỳ</span></div>
+  <section class="panel">
+    <h2>📊 Thống kê số nóng · số lạnh</h2>
+    <div class="stats-top">
+      <div>
+        Dựa trên: <select id="winSel">
+          <option value="20">20 kỳ gần nhất</option>
+          <option value="50">50 kỳ gần nhất</option>
+          <option value="100" selected>100 kỳ gần nhất</option>
+          <option value="all">Tất cả kỳ đã lưu</option>
+        </select>
+      </div>
+      <div>
+        <span id="drawsCount">0 kỳ đã lưu</span>
+        <button type="button" class="btn btn-outline btn-small" id="clearStats" style="margin-left:8px">Xóa dữ liệu thống kê</button>
+      </div>
+    </div>
+    <div class="heat" id="heat"></div>
+    <div class="legend"><span>Lạnh</span><div class="bar"></div><span>Nóng</span></div>
+    <div class="lists">
+      <div class="lst"><h3>🔥 Số nóng (về nhiều)</h3><div class="chips" id="hotList"></div></div>
+      <div class="lst"><h3>🧊 Số lạnh (về ít)</h3><div class="chips" id="coldList"></div></div>
+      <div class="lst"><h3>⏳ Số gan (lâu chưa về)</h3><div class="chips" id="ganList"></div></div>
+    </div>
+
+    <div class="sug">
+      <h3 style="font-size:.9rem;color:var(--accent);text-transform:uppercase;letter-spacing:.4px">💡 Gợi ý dãy số</h3>
+      <div class="row" style="margin-top:10px">
+        <label style="font-size:.84rem;color:var(--muted)">Chiến lược
+          <select id="sugStrategy">
+            <option value="hot">Theo số nóng</option>
+            <option value="cold">Theo số lạnh</option>
+            <option value="mix" selected>Cân bằng (nóng + lạnh)</option>
+          </select>
+        </label>
+        <label style="font-size:.84rem;color:var(--muted)">Số lượng
+          <select id="sugCount">
+            <option>2</option><option>3</option><option>4</option><option selected>5</option>
+            <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+          </select>
+        </label>
+        <button type="button" class="btn btn-primary btn-small" id="btnSuggest">Gợi ý</button>
+        <button type="button" class="btn btn-outline btn-small" id="btnApplySug" disabled>Đưa vào ô chọn</button>
+      </div>
+      <div class="sugout" id="sugOut"></div>
+    </div>
+    <div class="disclaimer">
+      Thống kê và gợi ý chỉ mang tính tham khảo. Các quả bóng được rút ngẫu nhiên và độc lập, nên mỗi số có xác suất
+      như nhau trong mỗi kỳ; số nóng hay số lạnh không làm tăng hay giảm cơ hội trúng ở kỳ tiếp theo.
+    </div>
+  </section>
+
+  <section class="panel" id="historySection" style="display:none">
+    <div class="hist-head"><span>Lịch sử các kỳ đã quay trên trình duyệt này</span><span id="histCount">0 kỳ</span></div>
     <div class="hist-list" id="history"></div>
   </section>
 
   <div class="note">
     Mô phỏng minh họa, kết quả ngẫu nhiên trên trình duyệt, không liên kết với hệ thống mở thưởng thực tế.
-    Dãy được tính là trúng khi trùng từ 2 số trở lên trong 20 số kết quả (điều kiện bậc tối thiểu). Mức thưởng cụ thể theo bậc và tiền cược xem tại thể lệ chính thức trên vietlott.vn.
+    Dãy được tính là trúng khi trùng từ 2 số trở lên trong 20 số kết quả (điều kiện bậc tối thiểu). Mức thưởng theo bậc và tiền cược xem tại thể lệ chính thức trên vietlott.vn.
   </div>
   <div class="footer">Chỉ dùng cho mục đích giải trí và minh họa quy trình quay số.</div>
 </div>
@@ -187,13 +263,15 @@
   const G = 900, MAX_W = 4;
   const CX = 210, CY = 190, RD = 170, BR = 10;
   const HOLE = { x: CX, y: CY + RD - 2 };
+  const STORE_KEY = 'keno_draws_v1';
+  const MAX_STORED = 1000;
 
   // ---------- Trạng thái ----------
   const selected = new Set();
   let tickets = [];
   let ticketSeq = 1;
-  let drawn = [];                 // 20 số kỳ hiện tại theo thứ tự rút
-  let drawnCycle = null;          // nhãn kỳ đã quay, ví dụ "K012"
+  let drawn = [];            // 20 số kỳ hiện tại theo thứ tự rút (sau khi sắp xếp)
+  let drawnCycle = null;
   let history = [];
   let busy = false;
   let lockedNow = false;
@@ -201,6 +279,8 @@
   let lastAutoKey = null;
   let lastDayKey = null;
   let omega = 0, angle = 0;
+  let lastSuggestion = null;
+  let draws = loadDraws();   // [{ id, cycle, nums }]
 
   // ---------- Tiện ích ----------
   const $ = id => document.getElementById(id);
@@ -216,6 +296,26 @@
         if (k < 1) requestAnimationFrame(f); else res();
       })(t0);
     });
+  }
+  const shuffle = arr => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+  const allNumbers = () => Array.from({ length: NUMBERS }, (_, i) => i + 1);
+
+  // ---------- Lưu trữ kỳ đã quay ----------
+  function loadDraws() {
+    try {
+      const v = JSON.parse(localStorage.getItem(STORE_KEY));
+      return Array.isArray(v) ? v : [];
+    } catch (e) { return []; }
+  }
+  function saveDraws() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(draws.slice(-MAX_STORED))); }
+    catch (e) { /* bộ nhớ đầy hoặc bị chặn: vẫn chạy bình thường */ }
   }
 
   // ---------- Lịch quay ----------
@@ -269,6 +369,12 @@
   // ---------- Bảng số & vé ----------
   function editable() { return !busy && !lockedNow; }
 
+  function flash(msg, ok) {
+    const m = $('ticketMsg');
+    m.className = 'msg ' + (ok ? 'ok' : 'err');
+    m.textContent = msg;
+  }
+
   function renderBoard() {
     const board = $('board');
     board.innerHTML = '';
@@ -286,12 +392,6 @@
     $('selCount').textContent = selected.size;
   }
 
-  function flash(msg, ok) {
-    const m = $('ticketMsg');
-    m.className = 'msg ' + (ok ? 'ok' : 'err');
-    m.textContent = msg;
-  }
-
   function toggleSelect(n) {
     if (!editable()) return;
     if (selected.has(n)) selected.delete(n);
@@ -303,28 +403,36 @@
     renderBoard();
   }
 
-  function quickPick() {
-    if (!editable()) return;
-    selected.clear();
-    const pool = Array.from({ length: NUMBERS }, (_, i) => i + 1);
+  // Chọn ngẫu nhiên một dãy có số lượng từ 2 đến 10
+  function randomSet() {
     const k = MIN_PICKS + Math.floor(Math.random() * (MAX_PICKS - MIN_PICKS + 1));
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    pool.slice(0, k).forEach(n => selected.add(n));
-    flash('', true);
+    return shuffle(allNumbers()).slice(0, k).sort((a, b) => a - b);
+  }
+
+  function fillSelection(nums) {
+    selected.clear();
+    nums.forEach(n => selected.add(n));
     renderBoard();
+  }
+
+  function addTicketFrom(nums, silent) {
+    if (!editable()) { if (!silent) flash('Sổ đang khóa, không thể thêm vé.', false); return false; }
+    if (nums.length < MIN_PICKS || nums.length > MAX_PICKS) {
+      if (!silent) flash('Mỗi dãy cần từ ' + MIN_PICKS + ' đến ' + MAX_PICKS + ' số.', false);
+      return false;
+    }
+    tickets.push({ id: ticketSeq++, nums: [...nums].sort((a, b) => a - b) });
+    renderTickets();
+    return true;
   }
 
   function addTicket() {
     if (!editable()) { flash('Sổ đang khóa, không thể thêm vé.', false); return; }
     if (selected.size < MIN_PICKS) { flash('Mỗi dãy cần chọn ít nhất ' + MIN_PICKS + ' số.', false); return; }
-    tickets.push({ id: ticketSeq++, nums: [...selected].sort((a, b) => a - b) });
+    addTicketFrom([...selected], false);
     selected.clear();
     flash('Đã thêm dãy vào vé.', true);
     renderBoard();
-    renderTickets();
   }
 
   function removeTicket(id) {
@@ -347,10 +455,100 @@
       div.className = 'ticket';
       const pks = t.nums.map(n => '<span class="pk' + (dset.has(n) ? ' hit' : '') + '">' + pad(n) + '</span>').join('');
       div.innerHTML = '<div class="top"><span>Dãy <b>#' + t.id + '</b> · ' + t.nums.length + ' số</span>' +
-        '<button class="rm">Xóa</button></div><div class="nums">' + pks + '</div>';
+        '<button type="button" class="rm">Xóa</button></div><div class="nums">' + pks + '</div>';
       div.querySelector('.rm').addEventListener('click', () => removeTicket(t.id));
       list.appendChild(div);
     });
+  }
+
+  // ---------- Thống kê ----------
+  function getWindow() {
+    const v = $('winSel').value;
+    return v === 'all' ? 'all' : Number(v);
+  }
+
+  // freq[n]: số lần n về trong cửa sổ; gap[n]: số kỳ kể từ lần gần nhất n về (nếu chưa về: bằng độ dài cửa sổ)
+  function statsFor(win) {
+    const list = win === 'all' ? draws : draws.slice(-win);
+    const freq = new Array(NUMBERS + 1).fill(0);
+    const gap = new Array(NUMBERS + 1).fill(list.length);
+    list.forEach((d, i) => d.nums.forEach(n => { freq[n]++; gap[n] = list.length - 1 - i; }));
+    return { n: list.length, freq, gap };
+  }
+
+  function rankings() {
+    const s = statsFor(getWindow());
+    const nums = allNumbers();
+    const hot = [...nums].sort((a, b) => s.freq[b] - s.freq[a] || s.gap[a] - s.gap[b] || a - b);
+    const cold = [...nums].sort((a, b) => s.freq[a] - s.freq[b] || s.gap[b] - s.gap[a] || a - b);
+    const gan = [...nums].sort((a, b) => s.gap[b] - s.gap[a] || a - b);
+    return { s, hot, cold, gan };
+  }
+
+  function chipList(nums, s, extra) {
+    if (!nums.length) return '<span class="muted">Chưa có dữ liệu</span>';
+    return nums.map(n => `<span class="chip">${pad(n)} <small>${extra(n)}</small></span>`).join('');
+  }
+
+  function renderStats() {
+    $('drawsCount').textContent = draws.length + ' kỳ đã lưu';
+    const { s, hot, cold, gan } = rankings();
+    const freqs = s.freq.slice(1);
+    const max = Math.max(...freqs), min = Math.min(...freqs);
+    const heat = $('heat');
+    heat.innerHTML = '';
+    allNumbers().forEach(n => {
+      const rel = max === min ? 0.5 : (s.freq[n] - min) / (max - min);
+      const hue = Math.round(220 - 220 * rel);           // xanh (lạnh) -> đỏ (nóng)
+      const c = document.createElement('div');
+      c.className = 'c' + (selected.has(n) ? ' sel' : '');
+      c.style.background = `hsl(${hue}, 65%, ${32 + rel * 14}%)`;
+      c.title = `Số ${pad(n)}: về ${s.freq[n]} lần, cách đây ${s.gap[n]} kỳ`;
+      c.innerHTML = `<div class="n">${pad(n)}</div><div class="f">${s.freq[n]}×</div>`;
+      c.addEventListener('click', () => toggleSelect(n));
+      heat.appendChild(c);
+    });
+
+    const hotTop = hot.slice(0, 10), coldTop = cold.slice(0, 10), ganTop = gan.slice(0, 10);
+    const hasData = s.n > 0;
+    $('hotList').innerHTML = hasData ? chipList(hotTop, s, n => s.freq[n] + '×') : chipList([], s, () => '');
+    $('coldList').innerHTML = hasData ? chipList(coldTop, s, n => s.freq[n] + '×') : chipList([], s, () => '');
+    $('ganList').innerHTML = hasData ? chipList(ganTop, s, n => s.gap[n] + ' kỳ') : chipList([], s, () => '');
+  }
+
+  // ---------- Gợi ý ----------
+  function suggest() {
+    const { s, hot, cold } = rankings();
+    const strategy = $('sugStrategy').value;
+    const k = Number($('sugCount').value);
+    let pool, why;
+    const hasData = s.n > 0;
+
+    if (!hasData) {
+      pool = allNumbers();
+      why = 'Chưa có kỳ quay nào được lưu trên trình duyệt này, nên gợi ý là ngẫu nhiên. Hãy quay thêm vài kỳ để có thống kê.';
+    } else if (strategy === 'hot') {
+      pool = hot.slice(0, 20);
+      why = 'Chọn ngẫu nhiên từ 20 số về nhiều nhất trong ' + s.n + ' kỳ gần đây.';
+    } else if (strategy === 'cold') {
+      pool = cold.slice(0, 20);
+      why = 'Chọn ngẫu nhiên từ 20 số về ít nhất trong ' + s.n + ' kỳ gần đây.';
+    } else {
+      pool = [...new Set([...hot.slice(0, 10), ...cold.slice(0, 10)])];
+      why = 'Trộn ngẫu nhiên giữa 10 số nóng và 10 số lạnh của ' + s.n + ' kỳ gần đây.';
+    }
+
+    const picked = shuffle([...pool]).slice(0, k);
+    if (picked.length < k) {
+      const rest = shuffle(allNumbers().filter(n => !picked.includes(n))).slice(0, k - picked.length);
+      picked.push(...rest);
+    }
+    picked.sort((a, b) => a - b);
+    lastSuggestion = picked;
+
+    const chips = picked.map(n => `<span class="chip">${pad(n)}</span>`).join('');
+    $('sugOut').innerHTML = `<div class="chips">${chips}</div><div class="why">${why}</div>`;
+    $('btnApplySug').disabled = false;
   }
 
   // ---------- Lồng cầu ----------
@@ -483,10 +681,7 @@
       tween(300, k => {
         const e = ease(k);
         b.x = sx + (HOLE.x - sx) * e; b.y = sy + (HOLE.y - sy) * e;
-      }).then(() => {
-        b.state = 'out';
-        res(b.n);
-      });
+      }).then(() => { b.state = 'out'; res(b.n); });
     });
   }
 
@@ -494,18 +689,12 @@
   function renderResults() {
     const r = $('results');
     r.innerHTML = '';
-    const dset = new Set(drawn);
     drawn.forEach(n => {
       const el = document.createElement('div');
       el.className = 'num drawn';
       el.textContent = pad(n);
       r.appendChild(el);
     });
-    if (!drawn.length) r.innerHTML = '';
-  }
-
-  function renderNumsHighlight() {
-    renderBoard();
   }
 
   async function performDraw() {
@@ -526,22 +715,28 @@
     omega = 0;
     await wait(200);
 
+    const got = [];
     for (let i = 0; i < DRAWN; i++) {
       const n = await pickOne();
-      drawn.push(n);
+      got.push(n);
+      drawn = [...got];
       renderResults();
       renderBoard();
       $('status').innerHTML = 'Kỳ <b>' + drawnCycle + '</b>: đã rút ' + (i + 1) + '/' + DRAWN + ' số';
       await wait(120);
     }
 
-    drawn.sort((a, b) => a - b);
+    drawn = [...got].sort((a, b) => a - b);
     renderResults();
     renderBoard();
     $('status').innerHTML = 'Đã mở thưởng kỳ <b>' + drawnCycle + '</b>.';
+
+    draws.push({ id: Date.now() + Math.random(), cycle: drawnCycle, nums: [...drawn] });
+    saveDraws();
     showVerdict();
     addHistory();
     renderTickets();
+    renderStats();
     $('historySection').style.display = 'block';
     busy = false;
     updateButtons();
@@ -597,12 +792,37 @@
     $('btnReset').disabled = busy;
     $('addTicket').disabled = !editable();
     $('quickPick').disabled = !editable();
+    $('quickTicket').disabled = !editable();
+    $('quick5').disabled = !editable();
     $('clearSel').disabled = !editable();
   }
 
+  $('clearSel').addEventListener('click', () => {
+    if (!editable()) return;
+    selected.clear(); flash('', true); renderBoard();
+  });
+
+  $('quickPick').addEventListener('click', () => {
+    if (!editable()) return;
+    fillSelection(randomSet());
+    flash('Đã chọn ngẫu nhiên ' + selected.size + ' số. Bấm "+ Thêm dãy vào vé" để lưu.', true);
+  });
+
+  $('quickTicket').addEventListener('click', () => {
+    if (!editable()) { flash('Sổ đang khóa, không thể thêm vé.', false); return; }
+    const nums = randomSet();
+    addTicketFrom(nums, false);
+    flash('Đã thêm dãy ngẫu nhiên: ' + nums.map(pad).join(' ') + '.', true);
+  });
+
+  $('quick5').addEventListener('click', () => {
+    if (!editable()) { flash('Sổ đang khóa, không thể thêm vé.', false); return; }
+    let added = 0;
+    for (let i = 0; i < 5; i++) { if (addTicketFrom(randomSet(), true)) added++; else break; }
+    flash('Đã thêm ' + added + ' dãy ngẫu nhiên.', added > 0);
+  });
+
   $('addTicket').addEventListener('click', addTicket);
-  $('quickPick').addEventListener('click', quickPick);
-  $('clearSel').addEventListener('click', () => { if (editable()) { selected.clear(); flash('', true); renderBoard(); } });
   $('btnDraw').addEventListener('click', () => { if (!busy) performDraw(); });
 
   $('btnReset').addEventListener('click', () => {
@@ -619,13 +839,32 @@
     renderTickets();
   });
 
-  // Tự động: mỗi kỳ mới bắt đầu thì quay một lần
   $('autoToggle').addEventListener('click', () => {
     autoOn = !autoOn;
     $('autoToggle').textContent = 'Tự động quay: ' + (autoOn ? 'BẬT' : 'TẮT');
     $('autoToggle').className = autoOn ? 'btn btn-danger btn-small' : 'btn btn-outline btn-small';
   });
 
+  $('winSel').addEventListener('change', renderStats);
+
+  $('clearStats').addEventListener('click', () => {
+    if (busy) return;
+    if (!confirm('Xóa toàn bộ kỳ quay đã lưu trên trình duyệt này?')) return;
+    draws = [];
+    saveDraws();
+    renderStats();
+  });
+
+  $('btnSuggest').addEventListener('click', suggest);
+
+  $('btnApplySug').addEventListener('click', () => {
+    if (!lastSuggestion) return;
+    if (!editable()) { flash('Sổ đang khóa, không thể chọn số.', false); return; }
+    fillSelection(lastSuggestion);
+    flash('Đã đưa gợi ý vào ô chọn. Bấm "+ Thêm dãy vào vé" để lưu.', true);
+  });
+
+  // Tự động: mỗi kỳ mới bắt đầu thì quay một lần
   setInterval(() => {
     const info = currentAndNext(new Date());
     if (info.idx < 0) return;
@@ -636,15 +875,13 @@
   }, 1000);
 
   // ---------- Khởi tạo ----------
-  buildInit();
-  function buildInit() {
-    scatter();
-    renderBoard();
-    renderTickets();
-    updateClock();
-    setInterval(updateClock, 1000);
-    requestAnimationFrame(t => { last = t; frame(t); });
-  }
+  scatter();
+  renderBoard();
+  renderTickets();
+  renderStats();
+  updateClock();
+  setInterval(updateClock, 1000);
+  requestAnimationFrame(t => { last = t; frame(t); });
 })();
 </script>
 </body>
