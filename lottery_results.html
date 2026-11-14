@@ -6,7 +6,8 @@
 <title>Kết quả xổ số</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --bg:#0b1120; --panel:#111a2e; --panel2:#18233d; --line:#26324f; --text:#e6ebf5; --muted:#94a3b8; --gold:#fbbf24; --red:#ef4444; --purple:#a855f7; }
+  :root { --bg:#0b1120; --panel:#111a2e; --panel2:#18233d; --line:#26324f; --text:#e6ebf5; --muted:#94a3b8;
+    --gold:#fbbf24; --red:#ef4444; --purple:#a855f7; }
   body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
   .wrap { max-width:1100px; margin:0 auto; padding:20px 16px 40px; }
   h1 { font-size:1.4rem; }
@@ -16,16 +17,16 @@
   .tabs button.active { background:var(--gold); color:#111; border-color:var(--gold); }
   .bar { display:flex; gap:12px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:14px; }
   .bar label { font-size:.82rem; color:var(--muted); display:flex; gap:6px; align-items:center; }
-  select { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
+  select { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:.9rem; }
   .hide { display:none; }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; overflow-x:auto; }
   .panel h2 { font-size:1rem; color:var(--gold); margin-bottom:10px; }
   .muted { color:var(--muted); }
   .msg { color:#fca5a5; margin-bottom:10px; font-size:.88rem; }
-  table { width:100%; border-collapse:collapse; min-width:420px; font-size:.9rem; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
   th, td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
-  th { color:var(--muted); font-size:.78rem; text-transform:uppercase; }
-  td:first-child { color:var(--muted); white-space:nowrap; width:120px; }
+  th { color:var(--muted); font-size:.78rem; text-transform:uppercase; white-space:nowrap; }
+  td.prize { color:var(--muted); white-space:nowrap; width:120px; }
   td.nums span { display:inline-block; margin:2px 8px 2px 0; font-weight:700; letter-spacing:1px; }
   tr.db td.nums { color:var(--gold); font-size:1.05rem; }
   .draw { display:flex; gap:14px; flex-wrap:wrap; padding:12px 0; border-bottom:1px solid var(--line); }
@@ -36,6 +37,7 @@
   .balls { display:flex; gap:6px; flex-wrap:wrap; }
   .ball { width:36px; height:36px; border-radius:50%; background:var(--red); color:#fff; font-weight:800; display:grid; place-items:center; font-size:.9rem; }
   .ball.sp { background:var(--purple); }
+  .stamp { font-size:.8rem; color:var(--muted); margin-left:8px; }
 </style>
 </head>
 <body>
@@ -43,21 +45,14 @@
   <h1>Kết quả xổ số <small id="updated"></small></h1>
 
   <div class="tabs">
-    <button data-tab="xsmn" class="active">Xổ số miền Nam</button>
-    <button data-tab="vietlott">Vietlott</button>
+    <button type="button" data-tab="xsmn" class="active">Xổ số miền Nam</button>
+    <button type="button" data-tab="vietlott">Vietlott</button>
   </div>
 
   <div class="bar">
     <label>Ngày <select id="dateSel"></select></label>
     <label id="stWrap">Đài <select id="stSel"></select></label>
-    <label id="pdWrap" class="hide">Sản phẩm
-      <select id="pdSel">
-        <option value="mega645">Mega 6/45</option>
-        <option value="power655">Power 6/55</option>
-        <option value="max3d">Max 3D</option>
-        <option value="lotto535">Lotto 5/35</option>
-      </select>
-    </label>
+    <label id="pdWrap" class="hide">Sản phẩm <select id="pdSel"></select></label>
   </div>
 
   <div id="msg"></div>
@@ -67,48 +62,77 @@
 <script>
 (function () {
   'use strict';
+
   const PRIZES = [['G8','Giải tám'],['G7','Giải bảy'],['G6','Giải sáu'],['G5','Giải năm'],
     ['G4','Giải tư'],['G3','Giải ba'],['G2','Giải nhì'],['G1','Giải nhất'],['DB','Giải đặc biệt']];
-  const VL = { mega645: 'Mega 6/45', power655: 'Power 6/55', max3d: 'Max 3D', lotto535: 'Lotto 5/35' };
+  const VL_NAMES = { mega645: 'Mega 6/45', power655: 'Power 6/55', max3d: 'Max 3D', lotto535: 'Lotto 5/35' };
   const MAX3D_GROUPS = [['n1','Nhất'],['n2','Nhì'],['n3','Ba'],['kk','Khuyến khích']];
+  const REFRESH_MS = 5 * 60 * 1000;
 
   const $ = id => document.getElementById(id);
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-  let data = { xsmn: {}, vietlott: {}, updatedAt: null };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+  let data = { updatedAt: null, xsmn: {}, vietlott: {} };
   let tab = 'xsmn';
 
+  // ---------- Dữ liệu ----------
   function dates() {
     return [...new Set([...Object.keys(data.xsmn || {}), ...Object.keys(data.vietlott || {})])].sort().reverse();
   }
 
-  function fillSelectors() {
-    const ds = dates();
-    const prevDate = $('dateSel').value;
-    $('dateSel').innerHTML = ds.length ? ds.map(d => `<option>${d}</option>`).join('') : '<option value="">(chưa có)</option>';
-    if (ds.includes(prevDate)) $('dateSel').value = prevDate;
-
-    const day = (data.xsmn || {})[$('dateSel').value] || {};
-    const prevSt = $('stSel').value;
-    $('stSel').innerHTML = '<option value="__all">Tất cả các đài</option>' +
-      Object.keys(day).map(s => `<option>${esc(s)}</option>`).join('');
-    if ([...$('stSel').options].some(o => o.value === prevSt)) $('stSel').value = prevSt;
+  function products() {
+    const seen = new Set();
+    Object.values(data.vietlott || {}).forEach(day => Object.keys(day || {}).forEach(k => seen.add(k)));
+    return Object.keys(VL_NAMES).filter(k => seen.has(k));
   }
 
+  // Đặt lại danh sách lựa chọn nhưng giữ giá trị đang chọn nếu còn tồn tại
+  function setOptions(sel, items, placeholder) {
+    const prev = sel.value;
+    if (!items.length) {
+      sel.innerHTML = `<option value="">${esc(placeholder)}</option>`;
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = items.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('');
+    if (items.some(([v]) => v === prev)) sel.value = prev;
+  }
+
+  function fillSelectors() {
+    setOptions($('dateSel'), dates().map(d => [d, d]), '(chưa có dữ liệu)');
+
+    const date = $('dateSel').value;
+    const day = (data.xsmn || {})[date] || {};
+    const stations = Object.keys(day).map(s => [s, s]);
+    setOptions($('stSel'), [['__all', 'Tất cả các đài'], ...stations], '(chưa có đài)');
+
+    setOptions($('pdSel'), products().map(k => [k, VL_NAMES[k]]), '(chưa có dữ liệu)');
+  }
+
+  // ---------- Hiển thị ----------
   function balls(arr, sp) {
     return '<div class="balls">' + arr.map(n => `<div class="ball ${sp ? 'sp' : ''}">${esc(n)}</div>`).join('') + '</div>';
   }
 
   function renderXsmn(date) {
     const day = (data.xsmn || {})[date];
-    if (!day) { $('out').innerHTML = `<div class="muted">Chưa có kết quả XSMN ngày ${date}.</div>`; return; }
+    if (!day || !Object.keys(day).length) {
+      $('out').innerHTML = `<div class="muted">Chưa có kết quả XSMN ngày ${esc(date)}.</div>`;
+      return;
+    }
     const st = $('stSel').value;
-    const stations = st === '__all' || !day[st] ? Object.keys(day) : [st];
-    let h = `<h2>XSMN · ${date}</h2><table><thead><tr><th>Giải</th>` +
+    const stations = (st && st !== '__all' && day[st]) ? [st] : Object.keys(day);
+
+    let h = `<h2>XSMN · ${esc(date)}</h2><table><thead><tr><th>Giải</th>` +
       stations.map(s => `<th>${esc(s)}</th>`).join('') + '</tr></thead><tbody>';
     PRIZES.forEach(([k, label]) => {
-      h += `<tr class="${k === 'DB' ? 'db' : ''}"><td>${label}</td>` +
-        stations.map(s => `<td class="nums">${((day[s] || {})[k] || []).map(n => `<span>${esc(n)}</span>`).join('')}</td>`).join('') +
-        '</tr>';
+      h += `<tr class="${k === 'DB' ? 'db' : ''}"><td class="prize">${label}</td>` +
+        stations.map(s => {
+          const nums = (day[s] || {})[k] || [];
+          return `<td class="nums">${nums.map(n => `<span>${esc(n)}</span>`).join('')}</td>`;
+        }).join('') + '</tr>';
     });
     $('out').innerHTML = h + '</tbody></table>';
   }
@@ -116,10 +140,13 @@
   function renderVl(date) {
     const pd = $('pdSel').value;
     const list = (((data.vietlott || {})[date]) || {})[pd] || [];
-    if (!list.length) { $('out').innerHTML = `<div class="muted">Chưa có kết quả ${VL[pd]} ngày ${date}.</div>`; return; }
-    let h = `<h2>${VL[pd]} · ${date}</h2>`;
+    if (!pd || !list.length) {
+      $('out').innerHTML = `<div class="muted">Chưa có kết quả ${esc(VL_NAMES[pd] || 'Vietlott')} ngày ${esc(date)}.</div>`;
+      return;
+    }
+    let h = `<h2>${esc(VL_NAMES[pd])} · ${esc(date)}</h2>`;
     list.forEach(d => {
-      h += `<div class="draw"><div class="meta">Kỳ <b>${esc(d.ky || '')}</b>${d.time ? '<br>' + esc(d.time) : ''}</div><div>`;
+      h += `<div class="draw"><div class="meta">Kỳ <b>${esc(d.ky)}</b>${d.time ? '<br>' + esc(d.time) : ''}</div><div>`;
       if (pd === 'max3d') {
         const p = d.prizes || {};
         MAX3D_GROUPS.forEach(([k, l]) => { h += `<div class="gt">${l}</div>${balls(p[k] || [])}`; });
@@ -134,14 +161,20 @@
 
   function render() {
     fillSelectors();
-    const date = $('dateSel').value;
-    $('updated').textContent = data.updatedAt ? '· cập nhật lúc ' + new Date(data.updatedAt).toLocaleString('vi-VN') : '';
+    $('updated').textContent = data.updatedAt
+      ? '· cập nhật lúc ' + new Date(data.updatedAt).toLocaleString('vi-VN') : '';
     $('stWrap').classList.toggle('hide', tab !== 'xsmn');
     $('pdWrap').classList.toggle('hide', tab !== 'vietlott');
-    if (!date) { $('out').innerHTML = '<div class="muted">Chưa có dữ liệu. Kiểm tra server đã cấu hình nguồn chưa.</div>'; return; }
-    tab === 'xsmn' ? renderXsmn(date) : renderVl(date);
+
+    const date = $('dateSel').value;
+    if (!date) {
+      $('out').innerHTML = '<div class="muted">Chưa có dữ liệu. Hãy chạy workflow "Cập nhật kết quả" trong GitHub Actions.</div>';
+      return;
+    }
+    if (tab === 'xsmn') renderXsmn(date); else renderVl(date);
   }
 
+  // ---------- Tải dữ liệu ----------
   async function load() {
     try {
       const r = await fetch('data/results.json?t=' + Date.now(), { cache: 'no-store' });
@@ -149,11 +182,12 @@
       data = await r.json();
       $('msg').innerHTML = '';
     } catch (e) {
-      $('msg').innerHTML = '<div class="msg">Không tải được dữ liệu: ' + esc(e.message) + '</div>';
+      $('msg').innerHTML = `<div class="msg">Không tải được data/results.json (${esc(e.message)}).</div>`;
     }
     render();
   }
 
+  // ---------- Sự kiện ----------
   document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
     tab = b.dataset.tab;
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
@@ -164,7 +198,7 @@
   $('pdSel').addEventListener('change', render);
 
   load();
-  setInterval(load, 60000);   // tự làm mới mỗi phút
+  setInterval(load, REFRESH_MS);
 })();
 </script>
 </body>
