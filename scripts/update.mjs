@@ -1,171 +1,299 @@
-// Node 20+. Chạy: node scripts/update.mjs xsmn | vietlott
-// Thử một ngày: DATE=2026-11-13 node scripts/update.mjs xsmn
+
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// ============================================================
+// 1. CẤU HÌNH
+// ============================================================
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const ROOT = path.resolve(__dirname, '..');
 const DATA_FILE = path.join(ROOT, 'data', 'results.json');
+
 const KEEP_DAYS = 60;
-const kind = process.argv[2];
+const REQUEST_TIMEOUT = 30000;
 
-const vnToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
-const dateISO = process.env.DATE || vnToday();
-const [Y, M, D] = dateISO.split('-');
-const ddmmyyyy = `${D}-${M}-${Y}`;
+const kind = (process.argv[2] || '').toLowerCase();
 
-// ---------- Nguồn XSMN: minhchinh.com ----------
-const XSMN_URL = `https://www.minhchinh.com/ket-qua-xo-so-mien-nam/${ddmmyyyy}.html`;
+function getVietnamToday() {
+    return new Date(Date.now() + 7 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+}
 
-// Giải, số lượng số trên MỖI đài, độ dài mỗi số
+const dateISO = process.env.DATE || getVietnamToday();
+
+const BASE_MINHNGOC = 'https://www.minhngoc.net';
+const BASE_MINHCHINH = 'https://www.minhchinh.com';
+
+const VIETLOTT_DATA_URL =
+    'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data';
+
 const XSMN_PRIZES = [
-  ['G8', 1, 2], ['G7', 1, 3], ['G6', 3, 4], ['G5', 1, 4], ['G4', 7, 5],
-  ['G3', 2, 5], ['G2', 1, 5], ['G1', 1, 5], ['DB', 1, 6],
-];
-// Nhãn giá trị trên minhchinh -> khóa giải
-const XSMN_LABELS = {
-  '100N': 'G8', '200N': 'G7', '400N': 'G6', '1TR': 'G5', '3TR': 'G4',
-  '10TR': 'G3', '15TR': 'G2', '30TR': 'G1', '2TỶ': 'DB',
-};
-const MIEN_NAM = [
-  'An Giang', 'Bạc Liêu', 'Bến Tre', 'Bình Dương', 'Bình Phước', 'Bình Thuận',
-  'Cà Mau', 'Cần Thơ', 'Đà Lạt', 'Đồng Nai', 'Đồng Tháp', 'Hậu Giang',
-  'Kiên Giang', 'Long An', 'Sóc Trăng', 'Tây Ninh', 'Tiền Giang', 'TP. HCM',
-  'Trà Vinh', 'Vĩnh Long', 'Vũng Tàu',
+    ['G8', 1, 2],
+    ['G7', 1, 3],
+    ['G6', 3, 4],
+    ['G5', 1, 4],
+    ['G4', 7, 5],
+    ['G3', 2, 5],
+    ['G2', 1, 5],
+    ['G1', 1, 5],
+    ['DB', 1, 6],
 ];
 
-// ---------- Nguồn Vietlott: minhngoc.net ----------
-const BASE = 'https://www.minhngoc.net';
+const XSMN_URL = (() => {
+    const ddmmyyyy = dateISO.split('-').reverse().join('');
+    return `${BASE_MINHCHINH}/ket-qua-xo-so-mien-nam/${ddmmyyyy}.html`;
+})();
+
 const PRODUCTS = {
-  mega645: { url: `${BASE}/ket-qua-xo-so/dien-toan-vietlott/mega-6x45/${ddmmyyyy}.html`, main: 6, special: false, time: '18:00' },
-  power655: { url: `${BASE}/ket-qua-xo-so/dien-toan-vietlott/power-6x55/${ddmmyyyy}.html`, main: 6, special: true, time: '18:00' },
+    mega645: {
+        url: `${BASE_MINHNGOC}/ket-qua-xo-so/dien-toan-vietlott/mega-6x45/${dateISO.split('-').reverse().join('')}.html`,
+        main: 6,
+        special: false,
+        time: '18:00',
+        drawDays: [0, 3, 5],
+    },
+
+    power655: {
+        url: `${BASE_MINHNGOC}/ket-qua-xo-so/dien-toan-vietlott/power-6x55/${dateISO.split('-').reverse().join('')}.html`,
+        main: 6,
+        special: true,
+        time: '18:00',
+        drawDays: [2, 4, 6],
+    },
 };
+
+const DATASET_PRODUCTS = {
+    max3d: {
+        file: '3d.jsonl',
+        time: '18:00',
+        type: 'max3d',
+    },
+
+    max3d_pro: {
+        file: '3d_pro.jsonl',
+        time: '18:00',
+        type: 'max3d_pro',
+    },
+
+    keno: {
+        file: 'keno.jsonl',
+        time: null,
+        type: 'keno',
+    },
+};
+
+const ALLOWED_KINDS = [
+    'xsmn',
+    'vietlott',
+    'mega645',
+    'power655',
+    'max3d',
+    'max3d_pro',
+    'keno',
+    'all',
+];
+
+// ============================================================
+// 2. VALIDATE NGÀY
+// ============================================================
+
+function validateDate(date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new Error(`Ngày không hợp lệ: ${date}`);
+    }
+
+    const parsed = new Date(`${date}T00:00:00.000Z`);
+
+    if (
+        !Number.isFinite(parsed.getTime()) ||
+        parsed.toISOString().slice(0, 10) !== date
+    ) {
+        throw new Error(`Ngày không tồn tại: ${date}`);
+    }
+}
+
+// ============================================================
+// 3. HTTP REQUEST
+// ============================================================
 
 async function get(url) {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; lottery-dashboard/1.0)',
-      'Accept-Language': 'vi-VN,vi;q=0.9',
-    },
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status} tại ${url}`);
-  return res.text();
-}
+    console.log(`GET ${url}`);
 
-// HTML -> danh sách dòng văn bản (mỗi thẻ là một dấu xuống dòng)
-function toLines(html) {
-  let t = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
-  t = t.replace(/<[^>]+>/g, '\n');
-  t = t.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
-       .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-  return t.split('\n').map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
-}
+    const response = await fetch(url, {
+        method: 'GET',
 
-// ---------- XSMN (minhchinh) ----------
+        headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
 
+            Accept:
+                'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 
-function parseXsmn(html) {
-    // Chỉ lấy bảng kết quả XSMN đầu tiên, không quét toàn bộ trang.
-    const tableMatch = html.match(
-        /<table\b(?=[^>]*\bclass=["'][^"']*\bkqxsmiennam\b)[^>]*>([\s\S]*?)<\/table>/i
-    );
+            'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+        },
 
-    if (!tableMatch) {
-        throw new Error('Không tìm thấy bảng kết quả XSMN (.kqxsmiennam).');
-    }
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+    });
 
-    const tableHtml = tableMatch[1];
-
-    // Lấy các hàng trong bảng.
-    const rows = [
-        ...tableHtml.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)
-    ].map(match => match[1]);
-
-    // Lấy class của một ô TD.
-    function getClasses(attrs) {
-        const match = attrs.match(/\bclass\s*=\s*["']([^"']*)["']/i);
-        return match ? match[1].split(/\s+/).filter(Boolean) : [];
-    }
-
-    // Lấy các ô TD trong một hàng.
-    function getCells(rowHtml) {
-        return [
-            ...rowHtml.matchAll(/<td\b([^>]*)>([\s\S]*?)<\/td>/gi)
-        ].map(match => ({
-            classes: getClasses(match[1]),
-            html: match[2]
-        }));
-    }
-
-    // Chuyển HTML thành văn bản.
-    function cleanText(value) {
-        return value
-            .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<[^>]+>/g, '')
-            .replace(/&nbsp;|&#160;/gi, ' ')
-            .replace(/&amp;/gi, '&')
-            .replace(/&quot;/gi, '"')
-            .replace(/&#39;|&apos;/gi, "'")
-            .replace(/&lt;/gi, '<')
-            .replace(/&gt;/gi, '>')
-            .replace(/&#(\d+);/g, (_, n) =>
-                String.fromCodePoint(Number(n))
-            )
-            .replace(/&#x([0-9a-f]+);/gi, (_, n) =>
-                String.fromCodePoint(parseInt(n, 16))
-            )
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    // Tìm hàng chứa tên đài.
-    const namesCells = rows
-        .map(getCells)
-        .find(cells => cells.some(cell =>
-            cell.classes.includes('tentinh')
-        ));
-
-    if (!namesCells) {
-        throw new Error('Không tìm thấy hàng tên đài (.tentinh).');
-    }
-
-    const names = namesCells
-        .filter(cell => cell.classes.includes('tentinh'))
-        .map(cell => cleanText(cell.html));
-
-    // Tìm hàng chứa mã đài.
-    const codesCells = rows
-        .map(getCells)
-        .find(cells => cells.some(cell =>
-            cell.classes.includes('loaive')
-        ));
-
-    if (!codesCells) {
-        throw new Error('Không tìm thấy hàng mã đài (.loaive).');
-    }
-
-    const codes = codesCells
-        .filter(cell => cell.classes.includes('loaive'))
-        .map(cell => cleanText(cell.html));
-
-    // Kiểm tra tên đài và mã đài.
-    if (names.length === 0 || names.length !== codes.length) {
+    if (!response.ok) {
         throw new Error(
-            `Số tên đài (${names.length}) khác số mã đài (${codes.length}).`
+            `HTTP ${response.status} khi truy cập ${url}`
         );
     }
 
-    for (let i = 0; i < names.length; i++) {
-        if (!names[i] || !/^[\p{L}\d-]+$/u.test(codes[i])) {
-            throw new Error(
-                `Mã đài không hợp lệ: ${names[i]} = ${codes[i]}`
-            );
-        }
+    return await response.text();
+}
+
+// ============================================================
+// 4. HTML HELPERS
+// ============================================================
+
+function decodeHtml(value = '') {
+    return String(value)
+        .replace(/&nbsp;|&#160;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;|&apos;/gi, "'")
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&#(\d+);/g, (_, n) =>
+            String.fromCodePoint(Number(n))
+        )
+        .replace(/&#x([0-9a-f]+);/gi, (_, n) =>
+            String.fromCodePoint(parseInt(n, 16))
+        );
+}
+
+function stripHtml(html = '') {
+    return decodeHtml(
+        String(html)
+            .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<!--[\s\S]*?-->/g, ' ')
+            .replace(/<[^>]+>/g, ' ')
+    )
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getAttributes(tag = '') {
+    const attributes = {};
+
+    const regex =
+        /([a-zA-Z_:][a-zA-Z0-9_:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+
+    let match;
+
+    while ((match = regex.exec(tag)) !== null) {
+        attributes[match[1].toLowerCase()] =
+            decodeHtml(match[2] ?? match[3] ?? match[4] ?? '');
     }
 
-    // Ánh xạ class HTML sang tên giải trong results.json.
-    const PRIZE_CLASS_MAP = {
+    return attributes;
+}
+
+function getClassNames(tag = '') {
+    const attrs = getAttributes(tag);
+
+    return (attrs.class || '')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean);
+}
+
+function getDataNumber(html = '') {
+    const tagMatch = html.match(/<[^>]*\bdata\s*=\s*["']([^"']+)["'][^>]*>/i);
+
+    if (tagMatch) {
+        return decodeHtml(tagMatch[1]).trim();
+    }
+
+    return stripHtml(html).trim();
+}
+
+function extractTags(html = '', tagName = 'td') {
+    const results = [];
+
+    const regex = new RegExp(
+        `<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}\\s*>`,
+        'gi'
+    );
+
+    let match;
+
+    while ((match = regex.exec(html)) !== null) {
+        results.push(match[0]);
+    }
+
+    return results;
+}
+
+function extractRows(html = '') {
+    return extractTags(html, 'tr');
+}
+
+function toLines(html = '') {
+    return stripHtml(
+        html
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/(?:div|p|li|tr|td|th|h[1-6])\s*>/gi, '\n')
+    )
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+}
+
+function extractNumbers(html = '') {
+    const numbers = [];
+
+    const regex =
+        /<[^>]*\bdata\s*=\s*["'](\d+)["'][^>]*>|>(\d{1,6})</gi;
+
+    let match;
+
+    while ((match = regex.exec(html)) !== null) {
+        numbers.push(match[1] || match[2]);
+    }
+
+    return numbers;
+}
+
+// ============================================================
+// 5. PARSE XSMN
+// ============================================================
+
+function parseXsmn(html) {
+    if (!html || typeof html !== 'string') {
+        throw new Error('HTML XSMN rỗng hoặc không hợp lệ.');
+    }
+
+    const tableMatch = html.match(
+        /<table\b[^>]*class\s*=\s*["'][^"']*\bkqxsmiennam\b[^"']*["'][^>]*>[\s\S]*?<\/table>/i
+    );
+
+    if (!tableMatch) {
+        throw new Error(
+            'Không tìm thấy bảng .kqxsmiennam trong HTML XSMN.'
+        );
+    }
+
+    const table = tableMatch[0];
+    const rows = extractRows(table);
+
+    if (!rows.length) {
+        throw new Error('Bảng XSMN không có dữ liệu.');
+    }
+
+    const result = {};
+    let currentStation = null;
+    let currentCode = null;
+
+    const prizeClassMap = {
         giai_tam: 'G8',
         giai_bay: 'G7',
         giai_sau: 'G6',
@@ -174,196 +302,722 @@ function parseXsmn(html) {
         giai_ba: 'G3',
         giai_nhi: 'G2',
         giai_nhat: 'G1',
-        giai_dac_biet: 'DB'
+        giai_db: 'DB',
+        giai_dac_biet: 'DB',
     };
 
-    // Số lượng và độ dài số của từng giải.
-    const expected = new Map(
-        XSMN_PRIZES.map(([prize, count, digits]) => [
-            prize,
-            { count, digits }
-        ])
-    );
+    for (const row of rows) {
+        const cells = extractTags(row, 'td');
 
-    // Khởi tạo kết quả theo từng đài.
-    const out = Object.fromEntries(
-        names.map(name => [name, {}])
-    );
+        if (!cells.length) continue;
 
-    const foundPrizes = new Set();
+        for (const cell of cells) {
+            const openingTag = cell.match(/^<td\b[^>]*>/i)?.[0] || '';
+            const classes = getClassNames(openingTag);
 
-    // Đọc số trúng thưởng trong một ô.
-    function getNumbers(cellHtml) {
-        const divs = [
-            ...cellHtml.matchAll(
-                /<div\b([^>]*)>([\s\S]*?)<\/div>/gi
-            )
-        ];
+            const attrs = getAttributes(openingTag);
 
-        return divs.map(match => {
-            const attrs = match[1];
-            const content = match[2];
+            // Tên đài
+            if (classes.includes('tentinh')) {
+                const station = stripHtml(cell);
 
-            // Ưu tiên thuộc tính data để giữ nguyên số 0 ở đầu.
-            const dataMatch = attrs.match(
-                /\bdata\s*=\s*["'](\d+)["']/i
+                if (station) {
+                    currentStation = station;
+                    result[currentStation] ??= {};
+                }
+            }
+
+            // Mã đài
+            if (classes.includes('loaive')) {
+                const code = stripHtml(cell);
+
+                if (code) {
+                    currentCode = code;
+                }
+            }
+
+            // Kết quả giải
+            const prizeClass = classes.find(
+                className => prizeClassMap[className]
             );
 
-            return dataMatch
-                ? dataMatch[1]
-                : cleanText(content).replace(/\s+/g, '');
-        }).filter(Boolean);
-    }
+            if (!prizeClass || !currentStation) {
+                continue;
+            }
 
-    // Duyệt từng hàng giải thưởng.
-    for (const rowHtml of rows) {
-        const cells = getCells(rowHtml);
+            const prize = prizeClassMap[prizeClass];
 
-        if (cells.length === 0) continue;
+            const numbers = extractNumbers(cell)
+                .map(value => String(value).trim())
+                .filter(Boolean);
 
-        const labelClass = cells[0].classes.find(
-            cls => cls.startsWith('ten_giai_')
-        );
-
-        if (!labelClass) continue;
-
-        const prizeClass = labelClass.replace(/^ten_/, '');
-        const prize = PRIZE_CLASS_MAP[prizeClass];
-
-        if (!prize) continue;
-
-        if (foundPrizes.has(prize)) {
-            throw new Error(`Giải ${prize} xuất hiện nhiều lần.`);
-        }
-
-        const spec = expected.get(prize);
-
-        if (!spec) {
-            throw new Error(`Chưa cấu hình số lượng giải ${prize}.`);
-        }
-
-        if (cells.length !== names.length + 1) {
-            throw new Error(
-                `Giải ${prize}: số ô dữ liệu không khớp số đài.`
+            const expected = XSMN_PRIZES.find(
+                item => item[0] === prize
             );
-        }
 
-        // Mỗi ô tương ứng với một đài.
-        for (let i = 0; i < names.length; i++) {
-            const numbers = getNumbers(cells[i + 1].html);
+            if (!expected) continue;
 
-            if (numbers.length !== spec.count) {
+            const [, expectedCount, expectedLength] = expected;
+
+            if (numbers.length !== expectedCount) {
                 throw new Error(
-                    `${names[i]} - ${prize}: cần ${spec.count} số, ` +
-                    `nhưng tìm thấy ${numbers.length} số.`
+                    `${currentStation} - ${prize}: ` +
+                    `cần ${expectedCount} số, nhận được ${numbers.length}.`
                 );
             }
 
             for (const number of numbers) {
                 if (
-                    !/^\d+$/.test(number) ||
-                    number.length !== spec.digits
+                    !new RegExp(`^\\d{${expectedLength}}$`).test(number)
                 ) {
                     throw new Error(
-                        `${names[i]} - ${prize}: số không hợp lệ ${number}`
+                        `${currentStation} - ${prize}: số không hợp lệ "${number}".`
                     );
                 }
             }
 
-            out[names[i]][prize] = numbers;
+            result[currentStation][prize] = numbers;
         }
 
-        foundPrizes.add(prize);
+        // Nếu dòng có tên đài hoặc mã đài, ghi nhận mã.
+        if (currentStation && currentCode) {
+            result[currentStation].code = currentCode;
+        }
     }
 
-    // Không cho phép lưu nếu thiếu bất kỳ giải nào.
-    for (const [prize] of XSMN_PRIZES) {
-        if (!foundPrizes.has(prize)) {
-            throw new Error(`Không tìm thấy dữ liệu giải ${prize}.`);
+    const stations = Object.keys(result);
+
+    if (!stations.length) {
+        throw new Error(
+            'Không phân tích được dữ liệu đài XSMN.'
+        );
+    }
+
+    for (const station of stations) {
+        for (const [prize, count] of XSMN_PRIZES) {
+            const numbers = result[station][prize];
+
+            if (!Array.isArray(numbers) || numbers.length !== count) {
+                throw new Error(
+                    `${station}: thiếu hoặc sai dữ liệu giải ${prize}.`
+                );
+            }
         }
     }
 
     console.log(
-        'Đài XSMN:',
-        names.map((name, i) => `${name} (${codes[i]})`).join(', ')
+        `XSMN: phân tích thành công ${stations.length} đài.`
     );
 
-    console.log(
-        `Đã phân tích ${names.length} đài và ${foundPrizes.size} giải.`
-    );
-
-    return out;
+    return result;
 }
 
+// ============================================================
+// 6. PARSE VIETLOTT MEGA 6/45 - POWER 6/55
+// ============================================================
 
-
-// ---------- Vietlott (minhngoc) ----------
 function parseVietlott(html, cfg) {
-  const lines = toLines(html);
-  const out = [];
-  const want = cfg.special ? cfg.main + 1 : cfg.main;
-  for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(/^Kỳ vé:\s*#?(\d+)/);
-    if (!m) continue;
-    const ky = m[1];
-    const dm = lines[i].match(/(\d{2})\/(\d{2})\/(\d{4})/) || (lines[i + 1] || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
-    if (!dm) continue;
-    if (`${dm[3]}-${dm[2]}-${dm[1]}` !== dateISO) continue;
-
-    const nums = [];
-    for (let j = i + 1; j < lines.length && nums.length < want; j++) {
-      if (/^\d{1,2}$/.test(lines[j])) nums.push(lines[j].padStart(2, '0'));
-      else if (nums.length) break;
+    if (!html || typeof html !== 'string') {
+        throw new Error('HTML Vietlott rỗng.');
     }
-    if (nums.length !== want) throw new Error(`Kỳ ${ky}: đọc được ${nums.length}/${want} số`);
 
-    out.push({
-      ky,
-      time: cfg.time,
-      numbers: nums.slice(0, cfg.main),
-      ...(cfg.special ? { special: nums[cfg.main] } : {}),
+    const lines = toLines(html);
+    const text = lines.join('\n');
+
+    const kyMatch = text.match(
+        /Kỳ\s*(?:vé|quay)?\s*[:#]?\s*#?\s*(\d+)/i
+    );
+
+    const dateMatch = text.match(
+        /(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/
+    );
+
+    if (!kyMatch) {
+        return [];
+    }
+
+    const ky = kyMatch[1];
+
+    let numbers = [];
+
+    // Ưu tiên lấy số từ các thẻ HTML có thuộc tính data.
+    const dataNumbers = extractNumbers(html);
+
+    if (dataNumbers.length >= cfg.main) {
+        numbers = dataNumbers;
+    }
+
+    // Dự phòng: lấy các dãy số trong nội dung text.
+    if (numbers.length < cfg.main) {
+        numbers = text.match(/\b\d{1,2}\b/g) || [];
+    }
+
+    numbers = numbers
+        .map(value => Number(value))
+        .filter(value =>
+            Number.isInteger(value) &&
+            value >= 1 &&
+            value <= (cfg.special ? 55 : 45)
+        );
+
+    // Loại trùng nhưng vẫn giữ thứ tự.
+    numbers = [...new Set(numbers)];
+
+    if (numbers.length < cfg.main) {
+        throw new Error(
+            `Kỳ ${ky}: không tìm thấy đủ ${cfg.main} số chính.`
+        );
+    }
+
+    const result = {
+        ky,
+        time: cfg.time,
+        numbers: numbers.slice(0, cfg.main).map(
+            number => String(number).padStart(2, '0')
+        ),
+    };
+
+    if (cfg.special) {
+        const specialCandidates = numbers.slice(cfg.main);
+
+        if (specialCandidates.length > 0) {
+            result.special = String(
+                specialCandidates[0]
+            ).padStart(2, '0');
+        }
+    }
+
+    if (dateMatch) {
+        const [, day, month, year] = dateMatch;
+
+        result.date =
+            `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    return [result];
+}
+
+// ============================================================
+// 7. VIETLOTT MAX 3D / MAX 3D PRO / KENO
+// Nguồn: vietvudanh/vietlott-data
+// ============================================================
+
+async function getDatasetRecords(file) {
+    const url = `${VIETLOTT_DATA_URL}/${file}`;
+
+    console.log(`Đọc dữ liệu: ${url}`);
+
+    const response = await fetch(url, {
+        headers: {
+            'User-Agent':
+                'Mozilla/5.0 (compatible; lottery-dashboard/1.0)',
+
+            Accept: 'application/x-ndjson, text/plain, */*',
+        },
+
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
-  }
-  return out;
+
+    if (!response.ok) {
+        throw new Error(
+            `HTTP ${response.status}: ${url}`
+        );
+    }
+
+    const content = await response.text();
+
+    if (!content.trim()) {
+        throw new Error(
+            `Nguồn dữ liệu rỗng: ${file}`
+        );
+    }
+
+    const records = [];
+
+    for (const [index, line] of content.split(/\r?\n/).entries()) {
+        if (!line.trim()) continue;
+
+        try {
+            records.push(JSON.parse(line));
+        } catch {
+            throw new Error(
+                `${file}: JSON lỗi tại dòng ${index + 1}.`
+            );
+        }
+    }
+
+    return records;
 }
 
-// ---------- Lưu ----------
+function normalizeMax3D(record, cfg) {
+    const result = record.result;
+
+    if (
+        !result ||
+        typeof result !== 'object' ||
+        Array.isArray(result)
+    ) {
+        throw new Error(
+            `${cfg.type} kỳ ${record.id}: kết quả không hợp lệ.`
+        );
+    }
+
+    const prizes = {};
+
+    const expectedCounts = {
+        'Giải Đặc biệt': 2,
+        'Giải Nhất': 4,
+        'Giải Nhì': 6,
+        'Giải ba': 8,
+    };
+
+    for (const [name, expectedCount] of Object.entries(expectedCounts)) {
+        const values = result[name];
+
+        if (!Array.isArray(values)) {
+            throw new Error(
+                `${cfg.type} kỳ ${record.id}: thiếu ${name}.`
+            );
+        }
+
+        if (values.length !== expectedCount) {
+            throw new Error(
+                `${cfg.type} kỳ ${record.id}: ${name} cần ${expectedCount} số, nhận ${values.length}.`
+            );
+        }
+
+        const numbers = values.map(value =>
+            String(value).padStart(3, '0')
+        );
+
+        for (const number of numbers) {
+            if (!/^\d{3}$/.test(number)) {
+                throw new Error(
+                    `${cfg.type} kỳ ${record.id}: số không hợp lệ ${number}.`
+                );
+            }
+        }
+
+        prizes[name] = numbers;
+    }
+
+    return {
+        ky: String(record.id),
+        time: cfg.time,
+        result: prizes,
+        date: record.date,
+    };
+}
+
+function normalizeKeno(record) {
+    if (
+        !Array.isArray(record.result) ||
+        record.result.length !== 20
+    ) {
+        throw new Error(
+            `Keno kỳ ${record.id}: cần đúng 20 số.`
+        );
+    }
+
+    const numbers = record.result.map(value =>
+        String(value).padStart(2, '0')
+    );
+
+    for (const number of numbers) {
+        const value = Number(number);
+
+        if (
+            !/^\d{2}$/.test(number) ||
+            value < 1 ||
+            value > 80
+        ) {
+            throw new Error(
+                `Keno kỳ ${record.id}: số không hợp lệ ${number}.`
+            );
+        }
+    }
+
+    return {
+        ky: String(record.id),
+        numbers,
+        date: record.date,
+    };
+}
+
+async function fetchNewVietlottProduct(product, date) {
+    const cfg = DATASET_PRODUCTS[product];
+
+    if (!cfg) {
+        throw new Error(
+            `Sản phẩm không hợp lệ: ${product}`
+        );
+    }
+
+    const records = await getDatasetRecords(cfg.file);
+
+    const matches = records.filter(record =>
+        record.date === date
+    );
+
+    if (!matches.length) {
+        console.warn(
+            `${product}: nguồn chưa có dữ liệu ngày ${date}, bỏ qua.`
+        );
+
+        return [];
+    }
+
+    const normalized = matches.map(record => {
+        if (!record.id || !record.date) {
+            throw new Error(
+                `${product}: thiếu mã kỳ hoặc ngày quay.`
+            );
+        }
+
+        if (product === 'keno') {
+            return normalizeKeno(record);
+        }
+
+        return normalizeMax3D(record, cfg);
+    });
+
+    const unique = new Map();
+
+    for (const item of normalized) {
+        unique.set(String(item.ky), item);
+    }
+
+    return [...unique.values()].sort((a, b) =>
+        a.ky.localeCompare(b.ky, 'en', {
+            numeric: true,
+        })
+    );
+}
+
+async function updateNewVietlottProduct(data, product, date) {
+    const records = await fetchNewVietlottProduct(
+        product,
+        date
+    );
+
+    if (!records.length) {
+        return 0;
+    }
+
+    data.vietlott[date] ??= {};
+
+    const previous = data.vietlott[date][product];
+
+    const merged = new Map();
+
+    if (Array.isArray(previous)) {
+        for (const item of previous) {
+            if (item?.ky) {
+                merged.set(String(item.ky), item);
+            }
+        }
+    }
+
+    for (const item of records) {
+        merged.set(String(item.ky), item);
+    }
+
+    data.vietlott[date][product] = [
+        ...merged.values(),
+    ].sort((a, b) =>
+        a.ky.localeCompare(b.ky, 'en', {
+            numeric: true,
+        })
+    );
+
+    console.log(
+        `${product} ${date}: ${records.length} kỳ mới/cập nhật; ` +
+        `tổng ${data.vietlott[date][product].length} kỳ.`
+    );
+
+    return records.length;
+}
+
+// ============================================================
+// 8. MERGE DỮ LIỆU
+// ============================================================
+
+function mergeDraws(previous, incoming) {
+    const merged = new Map();
+
+    if (Array.isArray(previous)) {
+        for (const item of previous) {
+            if (item?.ky != null) {
+                merged.set(String(item.ky), item);
+            }
+        }
+    }
+
+    for (const item of incoming) {
+        if (item?.ky != null) {
+            merged.set(String(item.ky), item);
+        }
+    }
+
+    return [...merged.values()].sort((a, b) =>
+        String(a.ky).localeCompare(String(b.ky), 'en', {
+            numeric: true,
+        })
+    );
+}
+
+// ============================================================
+// 9. UPDATE MEGA / POWER
+// ============================================================
+
+function getWeekday(date) {
+    return new Date(`${date}T00:00:00.000Z`).getUTCDay();
+}
+
+async function updateClassicVietlott(data, product, date) {
+    const cfg = PRODUCTS[product];
+
+    if (!cfg) {
+        throw new Error(
+            `Không tìm thấy cấu hình ${product}.`
+        );
+    }
+
+    const weekday = getWeekday(date);
+
+    // Không phải ngày quay thì bỏ qua.
+    if (!cfg.drawDays.includes(weekday)) {
+        console.log(
+            `${product}: ngày ${date} không có lịch quay, bỏ qua.`
+        );
+
+        return 0;
+    }
+
+    const html = await get(cfg.url);
+    const list = parseVietlott(html, cfg);
+
+    if (!list.length) {
+        throw new Error(
+            `${product}: hôm nay có lịch quay nhưng không lấy được kết quả.`
+        );
+    }
+
+    data.vietlott[date] ??= {};
+
+    data.vietlott[date][product] = mergeDraws(
+        data.vietlott[date][product],
+        list
+    );
+
+    console.log(
+        `${product} ${date}: cập nhật ${list.length} kỳ.`
+    );
+
+    return list.length;
+}
+
+// ============================================================
+// 10. LOAD / SAVE JSON
+// ============================================================
+
+async function loadData() {
+    try {
+        const content = await readFile(
+            DATA_FILE,
+            'utf8'
+        );
+
+        const data = JSON.parse(content);
+
+        data.xsmn ??= {};
+        data.vietlott ??= {};
+
+        return data;
+    } catch (error) {
+        if (error.code !== 'ENOENT') {
+            throw new Error(
+                `Không đọc được ${DATA_FILE}: ${error.message}`
+            );
+        }
+
+        console.log(
+            'Chưa có results.json, khởi tạo dữ liệu mới.'
+        );
+
+        return {
+            updatedAt: null,
+            xsmn: {},
+            vietlott: {},
+        };
+    }
+}
+
+async function saveData(data) {
+    await mkdir(path.dirname(DATA_FILE), {
+        recursive: true,
+    });
+
+    await writeFile(
+        DATA_FILE,
+        JSON.stringify(data, null, 2) + '\n',
+        'utf8'
+    );
+
+    console.log(
+        `Đã lưu dữ liệu: ${DATA_FILE}`
+    );
+}
+
+// ============================================================
+// 11. DỌN DỮ LIỆU CŨ
+// ============================================================
+
+function cleanOldData(data) {
+    const cutoff =
+        Date.now() - KEEP_DAYS * 24 * 60 * 60 * 1000;
+
+    for (const key of ['xsmn', 'vietlott']) {
+        for (const date of Object.keys(data[key])) {
+            const timestamp = Date.parse(
+                `${date}T00:00:00.000Z`
+            );
+
+            if (
+                Number.isFinite(timestamp) &&
+                timestamp < cutoff
+            ) {
+                delete data[key][date];
+            }
+        }
+    }
+}
+
+// ============================================================
+// 12. MAIN
+// ============================================================
+
 async function main() {
-  let data;
-  try { data = JSON.parse(await readFile(DATA_FILE, 'utf8')); }
-  catch { data = { updatedAt: null, xsmn: {}, vietlott: {} }; }
+    console.log('========================================');
+    console.log('      LOTTERY DATA UPDATE');
+    console.log('========================================');
 
-  if (kind === 'xsmn') {
-    data.xsmn[dateISO] = parseXsmn(await get(XSMN_URL));
-    console.log(`XSMN ${dateISO}: ${Object.keys(data.xsmn[dateISO]).length} đài`);
-  } else if (kind === 'vietlott') {
-    const rec = {};
-    for (const [key, cfg] of Object.entries(PRODUCTS)) {
-      try {
-        const list = parseVietlott(await get(cfg.url), cfg);
-        if (list.length) rec[key] = list;
-        else console.warn(`${key}: chưa có kỳ quay ngày ${dateISO}`);
-      } catch (e) {
-        console.warn(`${key}: ${e.message}`);
-      }
+    console.log(`Loại cập nhật : ${kind}`);
+    console.log(`Ngày dữ liệu  : ${dateISO}`);
+    console.log(`Node.js       : ${process.version}`);
+    console.log('----------------------------------------');
+
+    if (!ALLOWED_KINDS.includes(kind)) {
+        throw new Error(
+            `Loại cập nhật không hợp lệ: ${kind}\n` +
+            `Cho phép: ${ALLOWED_KINDS.join(', ')}`
+        );
     }
-    if (!Object.keys(rec).length) throw new Error('Không lấy được kết quả Vietlott nào');
-    data.vietlott[dateISO] = rec;
-    console.log(`Vietlott ${dateISO}: ${Object.keys(rec).join(', ')}`);
-  } else {
-    throw new Error('Loại không hợp lệ: ' + kind);
-  }
 
-  const cutoff = Date.now() - KEEP_DAYS * 864e5;
-  for (const k of ['xsmn', 'vietlott']) {
-    for (const d of Object.keys(data[k])) {
-      if (new Date(d).getTime() < cutoff) delete data[k][d];
+    validateDate(dateISO);
+
+    const data = await loadData();
+
+    const updateXsmn =
+        kind === 'xsmn' || kind === 'all';
+
+    const updateAllVietlott =
+        kind === 'vietlott' || kind === 'all';
+
+    // --------------------------------------------------------
+    // XSMN
+    // --------------------------------------------------------
+
+    if (updateXsmn) {
+        console.log('\n[1/2] CẬP NHẬT XSMN');
+
+        const html = await get(XSMN_URL);
+        const result = parseXsmn(html);
+
+        data.xsmn[dateISO] = result;
+
+        console.log(
+            `XSMN ${dateISO}: ${Object.keys(result).length} đài.`
+        );
     }
-  }
-  data.updatedAt = new Date().toISOString();
 
-  await mkdir(path.dirname(DATA_FILE), { recursive: true });
-  await writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+    // --------------------------------------------------------
+    // VIETLOTT MEGA / POWER
+    // --------------------------------------------------------
+
+    if (updateAllVietlott) {
+        console.log('\n[2/2] CẬP NHẬT MEGA / POWER');
+
+        data.vietlott[dateISO] ??= {};
+
+        for (const product of Object.keys(PRODUCTS)) {
+            await updateClassicVietlott(
+                data,
+                product,
+                dateISO
+            );
+        }
+    }
+
+    // --------------------------------------------------------
+    // MAX 3D / MAX 3D PRO / KENO
+    // --------------------------------------------------------
+
+    const datasetProducts = updateAllVietlott
+        ? Object.keys(DATASET_PRODUCTS)
+        : DATASET_PRODUCTS[kind]
+            ? [kind]
+            : [];
+
+    for (const product of datasetProducts) {
+        console.log(`\nCẬP NHẬT ${product.toUpperCase()}`);
+
+        await updateNewVietlottProduct(
+            data,
+            product,
+            dateISO
+        );
+    }
+
+    // --------------------------------------------------------
+    // CẬP NHẬT MỘT SẢN PHẨM MEGA / POWER
+    // --------------------------------------------------------
+
+    if (
+        !updateAllVietlott &&
+        (kind === 'mega645' || kind === 'power655')
+    ) {
+        console.log(`\nCẬP NHẬT ${kind.toUpperCase()}`);
+
+        data.vietlott[dateISO] ??= {};
+
+        await updateClassicVietlott(
+            data,
+            kind,
+            dateISO
+        );
+    }
+
+    // --------------------------------------------------------
+    // CLEAN / SAVE
+    // --------------------------------------------------------
+
+    cleanOldData(data);
+
+    data.updatedAt = new Date().toISOString();
+
+    await saveData(data);
+
+    console.log('\n========================================');
+    console.log('       UPDATE COMPLETED');
+    console.log('========================================');
 }
 
-main().catch(e => { console.error(e.message); process.exit(1); });
+main().catch(error => {
+    console.error('\n========================================');
+    console.error('       UPDATE FAILED');
+    console.error('========================================');
+    console.error(error.stack || error.message || error);
+
+    process.exitCode = 1;
+});
