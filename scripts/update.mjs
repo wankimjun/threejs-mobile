@@ -96,27 +96,57 @@ function parseXsmn(html) {
     }
 
     // Mã đài nằm ngay sau hàng tên tỉnh.
-    const codeStart = headerStart + names.length;
-    const codes = lines.slice(codeStart, codeStart + names.length);
+    
+// Tìm mã đài sau danh sách tên tỉnh.
+// Bỏ qua tiêu đề khu vực và nội dung không phải mã đài.
+const CODE = /^(?=.*\d)[A-ZĐ0-9-]+$/i;
 
-    if (codes.length !== names.length) {
-        throw new Error('Số mã đài không khớp số tên đài');
+const REGION_LABELS = new Set([
+    'MIỀN BẮC',
+    'MIỀN TRUNG',
+    'MIỀN NAM',
+    'XỔ SỐ MIỀN NAM',
+    'KẾT QUẢ XỔ SỐ MIỀN NAM'
+]);
+
+const codes = [];
+const codePositions = [];
+
+for (
+    let j = headerStart + names.length;
+    j < lines.length && codes.length < names.length;
+    j++
+) {
+    const value = lines[j].trim();
+
+    // Bỏ qua tiêu đề khu vực
+    if (REGION_LABELS.has(value.toLocaleUpperCase('vi-VN'))) {
+        continue;
     }
 
-    // Mã đài có thể gồm chữ trước hoặc sau chữ số:
-    // TGC11, 11K3, ĐL11K3, 47VL46...
-    const CODE = /^(?=.*\d)[A-ZĐ0-9-]+$/i;
-
-    for (let i = 0; i < codes.length; i++) {
-        if (!CODE.test(codes[i])) {
-            throw new Error(
-                `Mã đài không hợp lệ: ${names[i]} = ${codes[i]}`
-            );
-        }
+    // Chỉ nhận mã có chữ và số, không nhận tên khu vực
+    if (!CODE.test(value)) {
+        continue;
     }
 
-    console.log('Tên đài:', names);
-    console.log('Mã đài:', codes);
+    codes.push(value);
+    codePositions.push(j);
+}
+
+if (codes.length !== names.length) {
+    throw new Error(
+        `Số mã đài tìm được (${codes.length}) khác số tên đài (${names.length}). ` +
+        `Tên đài: ${names.join(', ')}. ` +
+        `Mã đài: ${codes.join(', ')}`
+    );
+}
+
+console.log('Tên đài:', names);
+console.log('Mã đài:', codes);
+
+// Dùng vị trí thực tế của mã đài cuối cùng
+const end = codePositions[codePositions.length - 1];
+
 
     // Vị trí cuối hàng mã đài
     const end = codeStart + codes.length - 1;
