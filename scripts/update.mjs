@@ -145,7 +145,7 @@ console.log('Tên đài:', names);
 console.log('Mã đài:', codes);
 
 // Dùng vị trí thực tế của mã đài cuối cùng
-const end = codePositions[codePositions.length - 1];
+const lastCodeIndex = codePositions[codePositions.length - 1];
 
 
     // Vị trí cuối hàng mã đài
@@ -155,24 +155,22 @@ const end = codePositions[codePositions.length - 1];
     const buckets = {};
     let cur = null;
 
-    for (let i = end + 1; i < lines.length; i++) {
-        const line = lines[i];
+    for (let i = lastCodeIndex + 1; i < lines.length; i++) {
+    const l = lines[i];
 
-        if (XSMN_LABELS[line]) {
-            cur = XSMN_LABELS[line];
-            buckets[cur] = [];
-            continue;
-        }
-
-        if (cur && /^\d+$/.test(line)) {
-            buckets[cur].push(line);
-            continue;
-        }
-
-        // Bỏ qua dòng trống đã được lọc,
-        // nhưng dừng khi gặp nội dung ngoài bảng.
-        cur = null;
+    if (XSMN_LABELS[l]) {
+        cur = XSMN_LABELS[l];
+        buckets[cur] = [];
+        continue;
     }
+
+    if (cur && /^\d+$/.test(l)) {
+        buckets[cur].push(l);
+        continue;
+    }
+
+    cur = null;
+}
 
     // Kiểm tra và phân chia kết quả theo từng đài
     const out = {};
