@@ -31,6 +31,8 @@ const BASE_MINHCHINH = 'https://www.minhchinh.com';
 
 const VIETLOTT_DATA_URL =
     'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data';
+const LOTTO535_DATA_URL =
+    'https://raw.githubusercontent.com/vietvudanh/vietlott-data/main/data/power535.jsonl';
 
 const XSMN_PRIZES = [
     ['G8', 1, 2],
@@ -99,6 +101,7 @@ const ALLOWED_KINDS = [
     'max3d',
     'max3d_pro',
     'keno',
+    'lotto535',
     'all',
 ];
 
@@ -655,6 +658,96 @@ function parseVietlott(html, cfg) {
     return [result];
 }
 
+// ---------- Lotto 5/35 ----------
+async function updateLotto535() {
+    console.log('Nguồn Lotto 5/35:', LOTTO535_DATA_URL);
+
+    const response = await fetch(LOTTO535_DATA_URL, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; lottery-dashboard/1.0)',
+            'Accept': 'text/plain'
+        },
+        signal: AbortSignal.timeout(30000)
+    });
+
+    if (!response.ok) {
+        throw new Error(
+            `Không tải được Lotto 5/35: HTTP ${response.status}`
+        );
+    }
+
+    const content = await response.text();
+
+    const records = content
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map((line, index) => {
+            try {
+                return JSON.parse(line);
+            } catch {
+                throw new Error(
+                    `Lotto 5/35: JSON lỗi tại dòng ${index + 1}`
+                );
+            }
+        });
+
+    const draws = records
+        .filter(item => item.date === dateISO)
+        .sort((a, b) => Number(a.id) - Number(b.id));
+
+    if (!draws.length) {
+        console.warn(
+            `Lotto 5/35: chưa có kết quả ngày ${dateISO}`
+        );
+        return [];
+    }
+
+    return draws.map((draw, index) => {
+        if (!Array.isArray(draw.result) || draw.result.length !== 6) {
+            throw new Error(
+                `Lotto 5/35 kỳ ${draw.id}: cần đúng 6 số`
+            );
+        }
+
+        const numbers = draw.result.map(number =>
+            String(number).padStart(2, '0')
+        );
+
+        const mainNumbers = numbers.slice(0, 5);
+        const special = numbers[5];
+
+        if (
+            mainNumbers.some(number =>
+                !Number.isInteger(Number(number)) ||
+                Number(number) < 1 ||
+                Number(number) > 35
+            ) ||
+            new Set(mainNumbers).size !== 5
+        ) {
+            throw new Error(
+                `Lotto 5/35 kỳ ${draw.id}: 5 số chính không hợp lệ`
+            );
+        }
+
+        if (
+            !Number.isInteger(Number(special)) ||
+            Number(special) < 1 ||
+            Number(special) > 12
+        ) {
+            throw new Error(
+                `Lotto 5/35 kỳ ${draw.id}: số đặc biệt không hợp lệ`
+            );
+        }
+
+        return {
+            ky: String(draw.id).padStart(5, '0'),
+            time: index === 0 ? '13:00' : '21:00',
+            numbers: mainNumbers,
+            special
+        };
+    });
+}
+
 // ============================================================
 // 7. VIETLOTT MAX 3D / MAX 3D PRO / KENO
 // Nguồn: vietvudanh/vietlott-data
@@ -800,6 +893,91 @@ function normalizeKeno(record) {
         numbers,
         date: record.date,
     };
+}
+
+// ============================================================
+// LOTTO 5/35
+// Nguồn: vietvudanh/vietlott-data
+// ============================================================
+
+async function updateLotto535(data, date) {
+    const records = await getDatasetRecords('power535.jsonl');
+
+    const matches = records
+        .filter(record => record.date === date)
+        .sort((a, b) =>
+            String(a.id).localeCompare(String(b.id), 'en', {
+                numeric: true
+            })
+        );
+
+    if (!matches.length) {
+        console.warn(
+            `Lotto 5/35: chưa có dữ liệu ngày ${date}, giữ nguyên dữ liệu cũ.`
+        );
+        return 0;
+    }
+
+    const normalized = matches.map(record => {
+        if (
+            !record.id ||
+            !Array.isArray(record.result) ||
+            record.result.length !== 6
+        ) {
+            throw new Error(
+                `Lotto 5/35 kỳ ${record.id}: dữ liệu không hợp lệ.`
+            );
+        }
+
+        const numbers = record.result.map(Number);
+
+        const mainNumbers = numbers.slice(0, 5);
+        const special = numbers[5];
+
+        if (
+            mainNumbers.some(n =>
+                !Number.isInteger(n) || n < 1 || n > 35
+            ) ||
+            new Set(mainNumbers).size !== 5
+        ) {
+            throw new Error(
+                `Lotto 5/35 kỳ ${record.id}: 5 số chính không hợp lệ.`
+            );
+        }
+
+        if (
+            !Number.isInteger(special) ||
+            special < 1 ||
+            special > 12
+        ) {
+            throw new Error(
+                `Lotto 5/35 kỳ ${record.id}: số đặc biệt không hợp lệ.`
+            );
+        }
+
+        return {
+            ky: String(record.id),
+            time: null,
+            numbers: mainNumbers.map(n =>
+                String(n).padStart(2, '0')
+            ),
+            special: String(special).padStart(2, '0'),
+            date: record.date
+        };
+    });
+
+    data.vietlott[date] ??= {};
+
+    data.vietlott[date].lotto535 = mergeDraws(
+        data.vietlott[date].lotto535,
+        normalized
+    );
+
+    console.log(
+        `Lotto 5/35 ${date}: ${normalized.length} kỳ quay.`
+    );
+
+    return normalized.length;
 }
 
 async function fetchNewVietlottProduct(product, date) {
@@ -1128,6 +1306,16 @@ if (updateXsmn) {
             `XSMN ${dateISO}: ${Object.keys(result).length} đài.`
         );
     }
+}
+
+    // --------------------------------------------------------
+// LOTTO 5/35
+// --------------------------------------------------------
+
+if (kind === 'lotto535' || kind === 'all') {
+    console.log('\nCẬP NHẬT LOTTO 5/35');
+
+    await updateLotto535(data, dateISO);
 }
 
 
