@@ -304,23 +304,9 @@ function parseXsmn(html) {
         html.match(/XSMN hôm nay\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i) ||
         html.match(/KQXSMN[^<]{0,150}?(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
 
-    if (actualDateMatch) {
-        const [, day, month, year] = actualDateMatch;
-
-        const actualDate = [
-            year,
-            month.padStart(2, '0'),
-            day.padStart(2, '0')
-        ].join('-');
-
-        if (actualDate !== dateISO) {
-            throw new Error(
-                `Nguồn Minh Chính trả kết quả ngày ${actualDate}, ` +
-                `không phải ngày yêu cầu ${dateISO}. ` +
-                `Có thể kết quả ngày mới chưa được công bố.`
-            );
-        }
-    }
+    // Không kiểm tra ngày tại đây.
+// Việc kiểm tra ngày được thực hiện trong main()
+// để có thể bỏ qua dữ liệu cũ thay vì làm dừng toàn bộ workflow.
 
     // --------------------------------------------------------
     // 2. Tìm bảng kết quả mới
