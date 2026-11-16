@@ -273,26 +273,21 @@ function extractNumbers(html = '') {
 
 
 function getActualXsmnDate(html) {
-    const patterns = [
-        /XSMN hôm nay\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
-        /KQXSMN[^<]{0,150}?(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
-    ];
+    const match =
+        html.match(/XSMN hôm nay\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i) ||
+        html.match(/KQXSMN[^<]{0,150}?(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
 
-    for (const pattern of patterns) {
-        const match = html.match(pattern);
-
-        if (match) {
-            const [, day, month, year] = match;
-
-            return [
-                year,
-                month.padStart(2, '0'),
-                day.padStart(2, '0'),
-            ].join('-');
-        }
+    if (!match) {
+        return null;
     }
 
-    return null;
+    const [, day, month, year] = match;
+
+    return [
+        year,
+        month.padStart(2, '0'),
+        day.padStart(2, '0')
+    ].join('-');
 }
 
 
