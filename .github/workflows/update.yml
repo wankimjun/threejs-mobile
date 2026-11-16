@@ -3,56 +3,140 @@ name: Cập nhật kết quả
 
 on:
   schedule:
-    - cron: '45 9 * * *'    # 16:45 giờ VN: XSMN
-    - cron: '0 15 * * *'    # 22:00 giờ VN: Vietlott
+    # 16:45 giờ Việt Nam - XSMN
+    - cron: '45 9 * * *'
+
+    # 22:00 giờ Việt Nam - Vietlott
+    - cron: '0 15 * * *'
+
   workflow_dispatch:
     inputs:
       kind:
-        description: 'Loại cần cập nhật'
+        description: 'Loại kết quả cần cập nhật'
         required: true
         type: choice
-        options: [xsmn, vietlott]
+        options:
+          - xsmn
+          - vietlott
 
 permissions:
   contents: write
 
 concurrency:
-  group: results
+  group: lottery-results-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  xsmn:
-    if: ${{ github.event.schedule == '45 9 * * *' || (github.event_name == 'workflow_dispatch' && inputs.kind == 'xsmn') }}
+  update:
+    name: Cập nhật kết quả xổ số
     runs-on: ubuntu-latest
-    env:
-      KIND: xsmn
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: node scripts/update.mjs "$KIND"
-      - name: Lưu kết quả
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/results.json
-          git diff --cached --quiet || git commit -m "Cập nhật $KIND"
-          git push
+    timeout-minutes: 10
 
-  vietlott:
-    if: ${{ github.event.schedule == '0 15 * * *' || (github.event_name == 'workflow_dispatch' && inputs.kind == 'vietlott') }}
-    runs-on: ubuntu-latest
-    env:
-      KIND: vietlott
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: node scripts/update.mjs "$KIND"
-      - name: Lưu kết quả
+      # 1. Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      # 2. Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Xác định loại xổ số
+      - name: Xác định loại cập nhật
+        id: target
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_KIND: ${{ inputs.kind }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            KIND="$INPUT_KIND"
+          else
+            case "$SCHEDULE" in
+              "45 9 * * *")
+                KIND="xsmn"
+                ;;
+              "0 15 * * *")
+                KIND="vietlott"
+                ;;
+              *)
+                echo "::error::Không xác định được lịch chạy: $SCHEDULE"
+                exit 1
+                ;;
+            esac
+          fi
+
+          if [[ "$KIND" != "xsmn" && "$KIND" != "vietlott" ]]; then
+            echo "::error::Loại cập nhật không hợp lệ: $KIND"
+            exit 1
+          fi
+
+          echo "kind=$KIND" >> "$GITHUB_OUTPUT"
+          echo "Bắt đầu cập nhật: $KIND"
+
+      # 4. Kiểm tra script
+      - name: Kiểm tra cấu trúc dữ liệu
+        run: |
+          test -f scripts/update.mjs || {
+            echo "::error::Không tìm thấy scripts/update.mjs"
+            exit 1
+          }
+
+          mkdir -p data
+          test -f data/results.json || echo '{"updatedAt":null,"xsmn":{},"vietlott":{}}' > data/results.json
+
+      # 5. Cập nhật dữ liệu
+      - name: Cập nhật XSMN
+        if: steps.target.outputs.kind == 'xsmn'
+        run: node scripts/update.mjs xsmn
+
+      - name: Cập nhật Vietlott
+        if: steps.target.outputs.kind == 'vietlott'
+        run: node scripts/update.mjs vietlott
+
+      # 6. Kiểm tra JSON
+      - name: Validate results.json
+        run: |
+          node --input-type=module -e "
+            import fs from 'node:fs';
+
+            const file = 'data/results.json';
+            const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+
+            if (!data.xsmn || !data.vietlott) {
+              throw new Error('Thiếu cấu trúc dữ liệu xổ số');
+            }
+
+            if (!data.updatedAt) {
+              throw new Error('Thiếu updatedAt');
+            }
+
+            console.log('JSON hợp lệ');
+            console.log('Updated:', data.updatedAt);
+          "
+
+      # 7. Commit và Push
+      - name: Commit và push kết quả
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add data/results.json
-          git diff --cached --quiet || git commit -m "Cập nhật $KIND"
-          git push
+
+          if git diff --cached --quiet; then
+            echo "Không có dữ liệu thay đổi."
+            exit 0
+          fi
+
+          git commit -m "chore: update lottery results (${{ steps.target.outputs.kind }})"
+
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+          echo "Đã cập nhật kết quả thành công."
