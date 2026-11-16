@@ -271,139 +271,287 @@ function extractNumbers(html = '') {
 // 5. PARSE XSMN
 // ============================================================
 
+
 function parseXsmn(html) {
     if (!html || typeof html !== 'string') {
         throw new Error('HTML XSMN rỗng hoặc không hợp lệ.');
     }
 
-    const tableMatch = html.match(
-        /<table\b[^>]*class\s*=\s*["'][^"']*\bkqxsmiennam\b[^"']*["'][^>]*>[\s\S]*?<\/table>/i
-    );
+    // --------------------------------------------------------
+    // 1. Kiểm tra ngày thực tế trên trang
+    // --------------------------------------------------------
 
-    if (!tableMatch) {
+    const actualDateMatch =
+        html.match(/XSMN hôm nay\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i) ||
+        html.match(/KQXSMN[^<]{0,150}?(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
+
+    if (actualDateMatch) {
+        const [, day, month, year] = actualDateMatch;
+
+        const actualDate = [
+            year,
+            month.padStart(2, '0'),
+            day.padStart(2, '0')
+        ].join('-');
+
+        if (actualDate !== dateISO) {
+            throw new Error(
+                `Nguồn Minh Chính trả kết quả ngày ${actualDate}, ` +
+                `không phải ngày yêu cầu ${dateISO}. ` +
+                `Có thể kết quả ngày mới chưa được công bố.`
+            );
+        }
+    }
+
+    // --------------------------------------------------------
+    // 2. Tìm bảng kết quả mới
+    // --------------------------------------------------------
+
+    const tables = [
+        ...html.matchAll(
+            /<table\b[^>]*>[\s\S]*?<\/table>/gi
+        )
+    ].map(match => match[0]);
+
+    const table = tables.find(item => {
+        const content = stripHtml(item).toUpperCase();
+
+        return (
+            content.includes('100N') &&
+            content.includes('200N') &&
+            content.includes('2TỶ')
+        );
+    });
+
+    if (!table) {
         throw new Error(
-            'Không tìm thấy bảng .kqxsmiennam trong HTML XSMN.'
+            'Không tìm thấy bảng kết quả XSMN chứa 100N, 200N và 2TỶ. ' +
+            'Website có thể đã thay đổi cấu trúc HTML.'
         );
     }
 
-    const table = tableMatch[0];
-    const rows = extractRows(table);
+    // --------------------------------------------------------
+    // 3. Đọc các hàng và ô trong bảng
+    // --------------------------------------------------------
+
+    const rows = [
+        ...table.matchAll(
+            /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi
+        )
+    ].map(match => {
+        const cells = [
+            ...match[1].matchAll(
+                /<(?:td|th)\b[^>]*>([\s\S]*?)<\/(?:td|th)>/gi
+            )
+        ].map(cell => ({
+            html: cell[1],
+            text: stripHtml(cell[1])
+        }));
+
+        return {
+            html: match[1],
+            cells
+        };
+    }).filter(row => row.cells.length > 0);
 
     if (!rows.length) {
-        throw new Error('Bảng XSMN không có dữ liệu.');
+        throw new Error('Bảng XSMN không có hàng dữ liệu.');
     }
 
-    const result = {};
-    let currentStation = null;
-    let currentCode = null;
+    // --------------------------------------------------------
+    // 4. Xác định tên đài
+    // --------------------------------------------------------
 
-    const prizeClassMap = {
-        giai_tam: 'G8',
-        giai_bay: 'G7',
-        giai_sau: 'G6',
-        giai_nam: 'G5',
-        giai_tu: 'G4',
-        giai_ba: 'G3',
-        giai_nhi: 'G2',
-        giai_nhat: 'G1',
-        giai_db: 'DB',
-        giai_dac_biet: 'DB',
+    const stationNames = [
+        'An Giang',
+        'Bạc Liêu',
+        'Bến Tre',
+        'Bình Dương',
+        'Bình Phước',
+        'Bình Thuận',
+        'Cà Mau',
+        'Cần Thơ',
+        'Đà Lạt',
+        'Đồng Nai',
+        'Đồng Tháp',
+        'Hậu Giang',
+        'Kiên Giang',
+        'Long An',
+        'Sóc Trăng',
+        'Tây Ninh',
+        'Tiền Giang',
+        'TP. HCM',
+        'Trà Vinh',
+        'Vĩnh Long',
+        'Vũng Tàu'
+    ];
+
+    const normalizedName = value =>
+        value.toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+    let stationRowIndex = -1;
+    let stations = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+
+        const found = [];
+
+        for (const cell of row.cells) {
+            const text = cell.text.trim();
+
+            const station = stationNames.find(name =>
+                normalizedName(name) === normalizedName(text)
+            );
+
+            if (station && !found.includes(station)) {
+                found.push(station);
+            }
+        }
+
+        if (found.length >= 2) {
+            stationRowIndex = i;
+            stations = found;
+            break;
+        }
+    }
+
+    if (!stations.length) {
+        throw new Error(
+            'Không xác định được tên các đài trong bảng XSMN.'
+        );
+    }
+
+    // --------------------------------------------------------
+    // 5. Ánh xạ giải thưởng
+    // --------------------------------------------------------
+
+    const prizeConfig = {
+        '100N': {
+            code: 'G8',
+            count: 1,
+            length: 2
+        },
+        '200N': {
+            code: 'G7',
+            count: 1,
+            length: 3
+        },
+        '400N': {
+            code: 'G6',
+            count: 3,
+            length: 4
+        },
+        '1TR': {
+            code: 'G5',
+            count: 1,
+            length: 4
+        },
+        '3TR': {
+            code: 'G4',
+            count: 7,
+            length: 5
+        },
+        '10TR': {
+            code: 'G3',
+            count: 2,
+            length: 5
+        },
+        '15TR': {
+            code: 'G2',
+            count: 1,
+            length: 5
+        },
+        '30TR': {
+            code: 'G1',
+            count: 1,
+            length: 5
+        },
+        '2TỶ': {
+            code: 'DB',
+            count: 1,
+            length: 6
+        }
     };
 
+    const result = {};
+
+    for (const station of stations) {
+        result[station] = {};
+    }
+
+    // --------------------------------------------------------
+    // 6. Đọc kết quả từng giải
+    // --------------------------------------------------------
+
     for (const row of rows) {
-        const cells = extractTags(row, 'td');
+        const firstCell = row.cells[0]?.text
+            .toUpperCase()
+            .replace(/\s+/g, '')
+            .replace(/[.,]/g, '');
 
-        if (!cells.length) continue;
+        const config = prizeConfig[firstCell];
 
-        for (const cell of cells) {
-            const openingTag = cell.match(/^<td\b[^>]*>/i)?.[0] || '';
-            const classes = getClassNames(openingTag);
+        if (!config) continue;
 
-            const attrs = getAttributes(openingTag);
+        const valueCells = row.cells.slice(1);
 
-            // Tên đài
-            if (classes.includes('tentinh')) {
-                const station = stripHtml(cell);
-
-                if (station) {
-                    currentStation = station;
-                    result[currentStation] ??= {};
-                }
-            }
-
-            // Mã đài
-            if (classes.includes('loaive')) {
-                const code = stripHtml(cell);
-
-                if (code) {
-                    currentCode = code;
-                }
-            }
-
-            // Kết quả giải
-            const prizeClass = classes.find(
-                className => prizeClassMap[className]
+        if (valueCells.length !== stations.length) {
+            throw new Error(
+                `${firstCell}: số cột kết quả (${valueCells.length}) ` +
+                `không khớp số đài (${stations.length}).`
             );
+        }
 
-            if (!prizeClass || !currentStation) {
-                continue;
-            }
+        for (let i = 0; i < stations.length; i++) {
+            const station = stations[i];
+            const cellText = valueCells[i].text;
 
-            const prize = prizeClassMap[prizeClass];
+            const numbers = cellText.match(/\d+/g) || [];
 
-            const numbers = extractNumbers(cell)
-                .map(value => String(value).trim())
-                .filter(Boolean);
-
-            const expected = XSMN_PRIZES.find(
-                item => item[0] === prize
-            );
-
-            if (!expected) continue;
-
-            const [, expectedCount, expectedLength] = expected;
-
-            if (numbers.length !== expectedCount) {
+            if (numbers.length !== config.count) {
                 throw new Error(
-                    `${currentStation} - ${prize}: ` +
-                    `cần ${expectedCount} số, nhận được ${numbers.length}.`
+                    `${station} - ${config.code}: ` +
+                    `cần ${config.count} số, nhận ${numbers.length}. ` +
+                    `Nội dung ô: "${cellText}"`
                 );
             }
 
             for (const number of numbers) {
                 if (
-                    !new RegExp(`^\\d{${expectedLength}}$`).test(number)
+                    number.length !== config.length ||
+                    !/^\d+$/.test(number)
                 ) {
                     throw new Error(
-                        `${currentStation} - ${prize}: số không hợp lệ "${number}".`
+                        `${station} - ${config.code}: ` +
+                        `số không hợp lệ "${number}".`
                     );
                 }
             }
 
-            result[currentStation][prize] = numbers;
-        }
-
-        // Nếu dòng có tên đài hoặc mã đài, ghi nhận mã.
-        if (currentStation && currentCode) {
-            result[currentStation].code = currentCode;
+            result[station][config.code] = numbers;
         }
     }
 
-    const stations = Object.keys(result);
-
-    if (!stations.length) {
-        throw new Error(
-            'Không phân tích được dữ liệu đài XSMN.'
-        );
-    }
+    // --------------------------------------------------------
+    // 7. Validate đầy đủ dữ liệu
+    // --------------------------------------------------------
 
     for (const station of stations) {
-        for (const [prize, count] of XSMN_PRIZES) {
-            const numbers = result[station][prize];
+        for (const config of Object.values(prizeConfig)) {
+            const numbers = result[station][config.code];
 
-            if (!Array.isArray(numbers) || numbers.length !== count) {
+            if (
+                !Array.isArray(numbers) ||
+                numbers.length !== config.count
+            ) {
                 throw new Error(
-                    `${station}: thiếu hoặc sai dữ liệu giải ${prize}.`
+                    `${station}: thiếu hoặc sai dữ liệu giải ${config.code}.`
                 );
             }
         }
@@ -415,6 +563,7 @@ function parseXsmn(html) {
 
     return result;
 }
+
 
 // ============================================================
 // 6. PARSE VIETLOTT MEGA 6/45 - POWER 6/55
