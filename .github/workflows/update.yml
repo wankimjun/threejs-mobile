@@ -1,13 +1,19 @@
 
-name: Cập nhật kết quả xổ số
+name: Cập nhật kết quả
 
 on:
   schedule:
     # 16:45 giờ Việt Nam - XSMN
     - cron: '45 9 * * *'
 
-    # 22:15 giờ Việt Nam - Vietlott
-    - cron: '15 15 * * *'
+    # 22:00 giờ Việt Nam - Mega 6/45 và Power 6/55
+    - cron: '0 15 * * *'
+
+    # 13:30 giờ Việt Nam - Lotto 5/35 kỳ 13:00
+    - cron: '30 6 * * *'
+
+    # 21:30 giờ Việt Nam - Lotto 5/35 kỳ 21:00
+    - cron: '30 14 * * *'
 
   workflow_dispatch:
     inputs:
@@ -16,14 +22,9 @@ on:
         required: true
         type: choice
         options:
-          - all
           - xsmn
           - vietlott
-          - mega645
-          - power655
-          - max3d
-          - max3d_pro
-          - keno
+          - lotto535
 
 permissions:
   contents: write
@@ -34,9 +35,9 @@ concurrency:
 
 jobs:
   update:
-    name: Cập nhật dữ liệu xổ số
+    name: Cập nhật kết quả xổ số
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -49,12 +50,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      - name: Kiểm tra môi trường
-        run: |
-          node --version
-          npm --version
-          node --check scripts/update.mjs
 
       - name: Xác định loại cập nhật
         id: target
@@ -71,8 +66,11 @@ jobs:
               "45 9 * * *")
                 KIND="xsmn"
                 ;;
-              "15 15 * * *")
+              "0 15 * * *")
                 KIND="vietlott"
+                ;;
+              "30 6 * * *"|"30 14 * * *")
+                KIND="lotto535"
                 ;;
               *)
                 echo "::error::Không xác định được lịch chạy: $SCHEDULE"
@@ -81,41 +79,62 @@ jobs:
             esac
           fi
 
+          case "$KIND" in
+            xsmn|vietlott|lotto535)
+              ;;
+            *)
+              echo "::error::Loại cập nhật không hợp lệ: $KIND"
+              exit 1
+              ;;
+          esac
+
           echo "kind=$KIND" >> "$GITHUB_OUTPUT"
           echo "Bắt đầu cập nhật: $KIND"
 
-      - name: Khởi tạo thư mục dữ liệu
+      - name: Kiểm tra cấu trúc dữ liệu
         run: |
+          test -f scripts/update.mjs || {
+            echo "::error::Không tìm thấy scripts/update.mjs"
+            exit 1
+          }
+
+          node --check scripts/update.mjs
+
           mkdir -p data
-
-          if [ ! -f data/results.json ]; then
+          test -f data/results.json || \
             echo '{"updatedAt":null,"xsmn":{},"vietlott":{}}' > data/results.json
-          fi
 
-      - name: Cập nhật kết quả
-        run: node scripts/update.mjs "${{ steps.target.outputs.kind }}"
+      - name: Cập nhật XSMN
+        if: steps.target.outputs.kind == 'xsmn'
+        run: node scripts/update.mjs xsmn
+
+      - name: Cập nhật Vietlott
+        if: steps.target.outputs.kind == 'vietlott'
+        run: node scripts/update.mjs vietlott
+
+      - name: Cập nhật Lotto 5/35
+        if: steps.target.outputs.kind == 'lotto535'
+        run: node scripts/update.mjs lotto535
 
       - name: Validate results.json
         run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
+          node --input-type=module -e "
+            import fs from 'node:fs';
 
-          const file = 'data/results.json';
-          const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const file = 'data/results.json';
+            const data = JSON.parse(fs.readFileSync(file, 'utf8'));
 
-          if (!data.xsmn || !data.vietlott) {
-            throw new Error('Thiếu cấu trúc dữ liệu xổ số');
-          }
+            if (!data.xsmn || !data.vietlott) {
+              throw new Error('Thiếu cấu trúc dữ liệu xổ số');
+            }
 
-          if (!data.updatedAt) {
-            throw new Error('Thiếu updatedAt');
-          }
+            if (!data.updatedAt) {
+              throw new Error('Thiếu updatedAt');
+            }
 
-          console.log('JSON hợp lệ');
-          console.log('Updated:', data.updatedAt);
-          console.log('XSMN:', Object.keys(data.xsmn).length);
-          console.log('Vietlott:', Object.keys(data.vietlott).length);
-          NODE
+            console.log('JSON hợp lệ');
+            console.log('Updated:', data.updatedAt);
+          "
 
       - name: Commit và push kết quả
         shell: bash
@@ -133,3 +152,5 @@ jobs:
           git commit -m "chore: update lottery results (${{ steps.target.outputs.kind }})"
 
           git push origin "HEAD:${GITHUB_REF_NAME}"
+
+          echo "Đã cập nhật kết quả thành công."
