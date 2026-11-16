@@ -138,9 +138,15 @@ if (names.length !== codes.length) {
 
 
   // Tên đài: lấy các tên miền Nam xuất hiện trong phần tiêu đề phía trên mã đài
-  const header = lines.slice(Math.max(0, start - 20), start).join(' | ');
-  const names = MIEN_NAM
-    .map(name => ({ name, pos: header.indexOf(name) }))
+  const stationHeader = lines
+    .slice(Math.max(0, start - 30), start + 5)
+    .join(' | ');
+
+const names = MIEN_NAM
+    .map(name => ({
+        name,
+        pos: stationHeader.indexOf(name)
+    }))
     .filter(x => x.pos >= 0)
     .sort((a, b) => a.pos - b.pos)
     .map(x => x.name);
