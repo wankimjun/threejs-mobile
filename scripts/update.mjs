@@ -113,28 +113,6 @@ if (!codes.length) {
 
 console.log('Mã đài tìm được:', codes);
 
-// Tên đài: lấy các tên miền Nam xuất hiện phía trên mã đài
-const header = lines
-    .slice(Math.max(0, start - 30), start + 5)
-    .join(' | ');
-
-const names = MIEN_NAM
-    .map(name => ({
-        name,
-        pos: header.indexOf(name)
-    }))
-    .filter(x => x.pos >= 0)
-    .sort((a, b) => a.pos - b.pos)
-    .map(x => x.name);
-
-// Kiểm tra số lượng đài
-if (names.length !== codes.length) {
-    throw new Error(
-        `Số đài tìm được (${names.length}) khác số mã đài (${codes.length}). ` +
-        `Tên đài: ${names.join(', ')}. ` +
-        `Mã đài: ${codes.join(', ')}`
-    );
-}
 
 
   // Tên đài: lấy các tên miền Nam xuất hiện trong phần tiêu đề phía trên mã đài
@@ -150,9 +128,14 @@ const names = MIEN_NAM
     .filter(x => x.pos >= 0)
     .sort((a, b) => a.pos - b.pos)
     .map(x => x.name);
-  if (names.length !== codes.length) {
-    throw new Error(`Số đài tìm được (${names.length}) khác số mã đài (${codes.length})`);
-  }
+ 
+if (names.length !== codes.length) {
+    throw new Error(
+        `Số đài tìm được (${names.length}) khác số mã đài (${codes.length}). ` +
+        `Tên đài: ${names.join(', ')}. ` +
+        `Mã đài: ${codes.join(', ')}`
+    );
+}
 
   // Gom số theo từng giải, theo thứ tự xuất hiện
   const buckets = {};
