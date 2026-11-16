@@ -67,18 +67,75 @@ function parseXsmn(html) {
   const CODE = /^\d{1,2}[A-Z]{1,3}\d{1,2}$/;   // mã đài, ví dụ 47VL46, 11K46, 35TV46
 
   // Tìm khối mã đài (có thể nằm trên một dòng hoặc nhiều dòng)
-  let start = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].split(' ').every(t => CODE.test(t))) { start = i; break; }
-  }
-  if (start < 0) throw new Error('Không tìm thấy dòng mã đài XSMN');
-  const codes = [];
-  let end = start;
-  for (let j = start; j < lines.length; j++) {
-    const toks = lines[j].split(' ');
-    if (toks.every(t => CODE.test(t))) { codes.push(...toks); end = j; }
-    else break;
-  }
+  
+// Tìm vị trí bắt đầu danh sách mã đài
+let start = -1;
+
+for (let i = 0; i < lines.length; i++) {
+    const matches = lines[i].match(/\b\d{1,2}[A-Z]{1,3}\d{1,2}\b/g);
+
+    if (matches && matches.length > 0) {
+        start = i;
+        break;
+    }
+}
+
+if (start < 0) {
+    throw new Error('Không tìm thấy mã đài XSMN');
+}
+
+// Thu thập mã đài trong vùng gần vị trí bắt đầu.
+// Cho phép HTML nguồn chia mã đài thành nhiều dòng.
+const codes = [];
+let end = start;
+
+for (let j = start; j < Math.min(start + 20, lines.length); j++) {
+    const matches = lines[j].match(/\b\d{1,2}[A-Z]{1,3}\d{1,2}\b/g);
+
+    if (matches) {
+        for (const code of matches) {
+            if (!codes.includes(code)) {
+                codes.push(code);
+                end = j;
+            }
+        }
+    }
+
+    // Không quét sang khu vực kết quả xổ số.
+    if (XSMN_LABELS[lines[j]]) {
+        break;
+    }
+}
+
+if (!codes.length) {
+    throw new Error('Danh sách mã đài XSMN rỗng');
+}
+
+console.log('Mã đài tìm được:', codes);
+
+// Tên đài: lấy các tên miền Nam xuất hiện phía trên mã đài
+const header = lines
+    .slice(Math.max(0, start - 30), start + 5)
+    .join(' | ');
+
+const names = MIEN_NAM
+    .map(name => ({
+        name,
+        pos: header.indexOf(name)
+    }))
+    .filter(x => x.pos >= 0)
+    .sort((a, b) => a.pos - b.pos)
+    .map(x => x.name);
+
+// Kiểm tra số lượng đài
+if (names.length !== codes.length) {
+    throw new Error(
+        `Số đài tìm được (${names.length}) khác số mã đài (${codes.length}). ` +
+        `Tên đài: ${names.join(', ')}. ` +
+        `Mã đài: ${codes.join(', ')}`
+    );
+}
+
 
   // Tên đài: lấy các tên miền Nam xuất hiện trong phần tiêu đề phía trên mã đài
   const header = lines.slice(Math.max(0, start - 20), start).join(' | ');
