@@ -63,150 +63,238 @@ function toLines(html) {
 
 // ---------- XSMN (minhchinh) ----------
 
+
 function parseXsmn(html) {
-    const lines = toLines(html);
-
-    // Tìm dòng chứa tên tỉnh theo đúng thứ tự trong bảng.
-    // Các tên tỉnh phải xuất hiện liên tiếp.
-    let names = [];
-    let headerStart = -1;
-
-    for (let i = 0; i < lines.length; i++) {
-        if (!MIEN_NAM.includes(lines[i])) continue;
-
-        const candidate = [];
-        let j = i;
-
-        while (
-            j < lines.length &&
-            MIEN_NAM.includes(lines[j])
-        ) {
-            candidate.push(lines[j]);
-            j++;
-        }
-
-        if (candidate.length >= 2 && candidate.length > names.length) {
-            names = candidate;
-            headerStart = i;
-        }
-    }
-
-    if (headerStart < 0 || names.length < 2) {
-        throw new Error('Không tìm thấy hàng tiêu đề các đài XSMN');
-    }
-
-    // Mã đài nằm ngay sau hàng tên tỉnh.
-    
-// Tìm mã đài sau danh sách tên tỉnh.
-// Bỏ qua tiêu đề khu vực và nội dung không phải mã đài.
-const CODE = /^(?=.*\d)[A-ZĐ0-9-]+$/i;
-
-const REGION_LABELS = new Set([
-    'MIỀN BẮC',
-    'MIỀN TRUNG',
-    'MIỀN NAM',
-    'XỔ SỐ MIỀN NAM',
-    'KẾT QUẢ XỔ SỐ MIỀN NAM'
-]);
-
-const codes = [];
-const codePositions = [];
-
-for (
-    let j = headerStart + names.length;
-    j < lines.length && codes.length < names.length;
-    j++
-) {
-    const value = lines[j].trim();
-
-    // Bỏ qua tiêu đề khu vực
-    if (REGION_LABELS.has(value.toLocaleUpperCase('vi-VN'))) {
-        continue;
-    }
-
-    // Chỉ nhận mã có chữ và số, không nhận tên khu vực
-    if (!CODE.test(value)) {
-        continue;
-    }
-
-    codes.push(value);
-    codePositions.push(j);
-}
-
-if (codes.length !== names.length) {
-    throw new Error(
-        `Số mã đài tìm được (${codes.length}) khác số tên đài (${names.length}). ` +
-        `Tên đài: ${names.join(', ')}. ` +
-        `Mã đài: ${codes.join(', ')}`
+    // Chỉ lấy bảng kết quả XSMN đầu tiên, không quét toàn bộ trang.
+    const tableMatch = html.match(
+        /<table\b(?=[^>]*\bclass=["'][^"']*\bkqxsmiennam\b)[^>]*>([\s\S]*?)<\/table>/i
     );
-}
 
-console.log('Tên đài:', names);
-console.log('Mã đài:', codes);
-
-// Dùng vị trí thực tế của mã đài cuối cùng
-const lastCodeIndex = codePositions[codePositions.length - 1];
-
-
-    // Vị trí cuối hàng mã đài
-    const end = codeStart + codes.length - 1;
-
-    // Thu thập kết quả từng giải
-    const buckets = {};
-    let cur = null;
-
-    for (let i = lastCodeIndex + 1; i < lines.length; i++) {
-    const l = lines[i];
-
-    if (XSMN_LABELS[l]) {
-        cur = XSMN_LABELS[l];
-        buckets[cur] = [];
-        continue;
+    if (!tableMatch) {
+        throw new Error('Không tìm thấy bảng kết quả XSMN (.kqxsmiennam).');
     }
 
-    if (cur && /^\d+$/.test(l)) {
-        buckets[cur].push(l);
-        continue;
+    const tableHtml = tableMatch[1];
+
+    // Lấy các hàng trong bảng.
+    const rows = [
+        ...tableHtml.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)
+    ].map(match => match[1]);
+
+    // Lấy class của một ô TD.
+    function getClasses(attrs) {
+        const match = attrs.match(/\bclass\s*=\s*["']([^"']*)["']/i);
+        return match ? match[1].split(/\s+/).filter(Boolean) : [];
     }
 
-    cur = null;
-}
+    // Lấy các ô TD trong một hàng.
+    function getCells(rowHtml) {
+        return [
+            ...rowHtml.matchAll(/<td\b([^>]*)>([\s\S]*?)<\/td>/gi)
+        ].map(match => ({
+            classes: getClasses(match[1]),
+            html: match[2]
+        }));
+    }
 
-    // Kiểm tra và phân chia kết quả theo từng đài
-    const out = {};
+    // Chuyển HTML thành văn bản.
+    function cleanText(value) {
+        return value
+            .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;|&#160;/gi, ' ')
+            .replace(/&amp;/gi, '&')
+            .replace(/&quot;/gi, '"')
+            .replace(/&#39;|&apos;/gi, "'")
+            .replace(/&lt;/gi, '<')
+            .replace(/&gt;/gi, '>')
+            .replace(/&#(\d+);/g, (_, n) =>
+                String.fromCodePoint(Number(n))
+            )
+            .replace(/&#x([0-9a-f]+);/gi, (_, n) =>
+                String.fromCodePoint(parseInt(n, 16))
+            )
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
 
-    names.forEach(name => {
-        out[name] = {};
-    });
+    // Tìm hàng chứa tên đài.
+    const namesCells = rows
+        .map(getCells)
+        .find(cells => cells.some(cell =>
+            cell.classes.includes('tentinh')
+        ));
 
-    for (const [key, count, len] of XSMN_PRIZES) {
-        const arr = buckets[key] || [];
-        const expected = count * names.length;
+    if (!namesCells) {
+        throw new Error('Không tìm thấy hàng tên đài (.tentinh).');
+    }
 
-        if (arr.length !== expected) {
+    const names = namesCells
+        .filter(cell => cell.classes.includes('tentinh'))
+        .map(cell => cleanText(cell.html));
+
+    // Tìm hàng chứa mã đài.
+    const codesCells = rows
+        .map(getCells)
+        .find(cells => cells.some(cell =>
+            cell.classes.includes('loaive')
+        ));
+
+    if (!codesCells) {
+        throw new Error('Không tìm thấy hàng mã đài (.loaive).');
+    }
+
+    const codes = codesCells
+        .filter(cell => cell.classes.includes('loaive'))
+        .map(cell => cleanText(cell.html));
+
+    // Kiểm tra tên đài và mã đài.
+    if (names.length === 0 || names.length !== codes.length) {
+        throw new Error(
+            `Số tên đài (${names.length}) khác số mã đài (${codes.length}).`
+        );
+    }
+
+    for (let i = 0; i < names.length; i++) {
+        if (!names[i] || !/^[\p{L}\d-]+$/u.test(codes[i])) {
             throw new Error(
-                `Giải ${key}: đọc được ${arr.length}/${expected} số`
+                `Mã đài không hợp lệ: ${names[i]} = ${codes[i]}`
+            );
+        }
+    }
+
+    // Ánh xạ class HTML sang tên giải trong results.json.
+    const PRIZE_CLASS_MAP = {
+        giai_tam: 'G8',
+        giai_bay: 'G7',
+        giai_sau: 'G6',
+        giai_nam: 'G5',
+        giai_tu: 'G4',
+        giai_ba: 'G3',
+        giai_nhi: 'G2',
+        giai_nhat: 'G1',
+        giai_dac_biet: 'DB'
+    };
+
+    // Số lượng và độ dài số của từng giải.
+    const expected = new Map(
+        XSMN_PRIZES.map(([prize, count, digits]) => [
+            prize,
+            { count, digits }
+        ])
+    );
+
+    // Khởi tạo kết quả theo từng đài.
+    const out = Object.fromEntries(
+        names.map(name => [name, {}])
+    );
+
+    const foundPrizes = new Set();
+
+    // Đọc số trúng thưởng trong một ô.
+    function getNumbers(cellHtml) {
+        const divs = [
+            ...cellHtml.matchAll(
+                /<div\b([^>]*)>([\s\S]*?)<\/div>/gi
+            )
+        ];
+
+        return divs.map(match => {
+            const attrs = match[1];
+            const content = match[2];
+
+            // Ưu tiên thuộc tính data để giữ nguyên số 0 ở đầu.
+            const dataMatch = attrs.match(
+                /\bdata\s*=\s*["'](\d+)["']/i
+            );
+
+            return dataMatch
+                ? dataMatch[1]
+                : cleanText(content).replace(/\s+/g, '');
+        }).filter(Boolean);
+    }
+
+    // Duyệt từng hàng giải thưởng.
+    for (const rowHtml of rows) {
+        const cells = getCells(rowHtml);
+
+        if (cells.length === 0) continue;
+
+        const labelClass = cells[0].classes.find(
+            cls => cls.startsWith('ten_giai_')
+        );
+
+        if (!labelClass) continue;
+
+        const prizeClass = labelClass.replace(/^ten_/, '');
+        const prize = PRIZE_CLASS_MAP[prizeClass];
+
+        if (!prize) continue;
+
+        if (foundPrizes.has(prize)) {
+            throw new Error(`Giải ${prize} xuất hiện nhiều lần.`);
+        }
+
+        const spec = expected.get(prize);
+
+        if (!spec) {
+            throw new Error(`Chưa cấu hình số lượng giải ${prize}.`);
+        }
+
+        if (cells.length !== names.length + 1) {
+            throw new Error(
+                `Giải ${prize}: số ô dữ liệu không khớp số đài.`
             );
         }
 
-        names.forEach((name, index) => {
-            const part = arr.slice(
-                index * count,
-                (index + 1) * count
-            );
+        // Mỗi ô tương ứng với một đài.
+        for (let i = 0; i < names.length; i++) {
+            const numbers = getNumbers(cells[i + 1].html);
 
-            if (part.some(number => number.length !== len)) {
+            if (numbers.length !== spec.count) {
                 throw new Error(
-                    `${name}: sai độ dài giải ${key}`
+                    `${names[i]} - ${prize}: cần ${spec.count} số, ` +
+                    `nhưng tìm thấy ${numbers.length} số.`
                 );
             }
 
-            out[name][key] = part;
-        });
+            for (const number of numbers) {
+                if (
+                    !/^\d+$/.test(number) ||
+                    number.length !== spec.digits
+                ) {
+                    throw new Error(
+                        `${names[i]} - ${prize}: số không hợp lệ ${number}`
+                    );
+                }
+            }
+
+            out[names[i]][prize] = numbers;
+        }
+
+        foundPrizes.add(prize);
     }
+
+    // Không cho phép lưu nếu thiếu bất kỳ giải nào.
+    for (const [prize] of XSMN_PRIZES) {
+        if (!foundPrizes.has(prize)) {
+            throw new Error(`Không tìm thấy dữ liệu giải ${prize}.`);
+        }
+    }
+
+    console.log(
+        'Đài XSMN:',
+        names.map((name, i) => `${name} (${codes[i]})`).join(', ')
+    );
+
+    console.log(
+        `Đã phân tích ${names.length} đài và ${foundPrizes.size} giải.`
+    );
 
     return out;
 }
+
 
 
 // ---------- Vietlott (minhngoc) ----------
