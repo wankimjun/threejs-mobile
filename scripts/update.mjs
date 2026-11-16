@@ -45,8 +45,12 @@ const XSMN_PRIZES = [
 ];
 
 const XSMN_URL = (() => {
-    const ddmmyyyy = dateISO.split('-').reverse().join('');
-    return `${BASE_MINHCHINH}/ket-qua-xo-so-mien-nam/${ddmmyyyy}.html`;
+    const [year, month, day] = dateISO.split('-');
+
+    return (
+        `${BASE_MINHCHINH}/ket-qua-xo-so-mien-nam/` +
+        `${day}-${month}-${year}.html`
+    );
 })();
 
 const PRODUCTS = {
