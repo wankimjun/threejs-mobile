@@ -3,10 +3,10 @@ name: Cập nhật kết quả xổ số
 
 on:
   schedule:
-    # 16:45 giờ Việt Nam (09:45 UTC) - XSMN
+    # 16:45 giờ Việt Nam - XSMN
     - cron: '45 9 * * *'
 
-    # 22:15 giờ Việt Nam (15:15 UTC) - Toàn bộ Vietlott và Keno
+    # 22:15 giờ Việt Nam - Vietlott
     - cron: '15 15 * * *'
 
   workflow_dispatch:
@@ -14,12 +14,13 @@ on:
       kind:
         description: 'Loại kết quả cần cập nhật'
         required: true
-        default: all
         type: choice
         options:
           - all
           - xsmn
           - vietlott
+          - mega645
+          - power655
           - max3d
           - max3d_pro
           - keno
@@ -33,26 +34,28 @@ concurrency:
 
 jobs:
   update:
-    name: Cập nhật kết quả xổ số
+    name: Cập nhật dữ liệu xổ số
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      # 1. Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: true
 
-      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
-      # 3. Xác định loại cập nhật
+      - name: Kiểm tra môi trường
+        run: |
+          node --version
+          npm --version
+          node --check scripts/update.mjs
+
       - name: Xác định loại cập nhật
         id: target
         shell: bash
@@ -62,7 +65,7 @@ jobs:
           INPUT_KIND: ${{ inputs.kind }}
         run: |
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            KIND="${INPUT_KIND:-all}"
+            KIND="$INPUT_KIND"
           else
             case "$SCHEDULE" in
               "45 9 * * *")
@@ -78,88 +81,30 @@ jobs:
             esac
           fi
 
-          case "$KIND" in
-            all|xsmn|vietlott|max3d|max3d_pro|keno)
-              ;;
-            *)
-              echo "::error::Loại cập nhật không hợp lệ: $KIND"
-              exit 1
-              ;;
-          esac
-
           echo "kind=$KIND" >> "$GITHUB_OUTPUT"
           echo "Bắt đầu cập nhật: $KIND"
 
-      # 4. Kiểm tra môi trường
-      - name: Kiểm tra môi trường
+      - name: Khởi tạo thư mục dữ liệu
         run: |
-          test -f scripts/update.mjs || {
-            echo "::error::Không tìm thấy scripts/update.mjs"
-            exit 1
-          }
-
           mkdir -p data
 
           if [ ! -f data/results.json ]; then
-            echo '{"updatedAt":null,"xsmn":{},"vietlott":{}}' \
-              > data/results.json
+            echo '{"updatedAt":null,"xsmn":{},"vietlott":{}}' > data/results.json
           fi
 
-          node --version
-          node --check scripts/update.mjs
+      - name: Cập nhật kết quả
+        run: node scripts/update.mjs "${{ steps.target.outputs.kind }}"
 
-      # 5. Cài dependencies nếu dự án có package.json
-      - name: Cài đặt dependencies
-        if: hashFiles('package.json') != ''
-        run: npm ci --ignore-scripts
-
-      # 6. Cập nhật kết quả
-      - name: Cập nhật dữ liệu xổ số
-        shell: bash
-        env:
-          KIND: ${{ steps.target.outputs.kind }}
-        run: |
-          echo "Đang cập nhật: $KIND"
-
-          node scripts/update.mjs "$KIND"
-
-      # 7. Validate JSON
-      - name: Kiểm tra dữ liệu
+      - name: Validate results.json
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
 
           const file = 'data/results.json';
+          const data = JSON.parse(fs.readFileSync(file, 'utf8'));
 
-          if (!fs.existsSync(file)) {
-            throw new Error('Không tìm thấy results.json');
-          }
-
-          const raw = fs.readFileSync(file, 'utf8');
-          const data = JSON.parse(raw);
-
-          if (
-            !data ||
-            typeof data !== 'object' ||
-            Array.isArray(data)
-          ) {
-            throw new Error('Cấu trúc JSON không hợp lệ');
-          }
-
-          if (
-            !data.xsmn ||
-            typeof data.xsmn !== 'object' ||
-            Array.isArray(data.xsmn)
-          ) {
-            throw new Error('Thiếu hoặc sai cấu trúc xsmn');
-          }
-
-          if (
-            !data.vietlott ||
-            typeof data.vietlott !== 'object' ||
-            Array.isArray(data.vietlott)
-          ) {
-            throw new Error('Thiếu hoặc sai cấu trúc vietlott');
+          if (!data.xsmn || !data.vietlott) {
+            throw new Error('Thiếu cấu trúc dữ liệu xổ số');
           }
 
           if (!data.updatedAt) {
@@ -168,27 +113,15 @@ jobs:
 
           console.log('JSON hợp lệ');
           console.log('Updated:', data.updatedAt);
-          console.log('XSMN:', Object.keys(data.xsmn).length, 'ngày');
-          console.log(
-            'Vietlott:',
-            Object.keys(data.vietlott).length,
-            'ngày'
-          );
+          console.log('XSMN:', Object.keys(data.xsmn).length);
+          console.log('Vietlott:', Object.keys(data.vietlott).length);
           NODE
 
-      # 8. Kiểm tra thay đổi
-      - name: Kiểm tra thay đổi
-        run: git diff --check
-
-      # 9. Commit và push
       - name: Commit và push kết quả
         shell: bash
-        env:
-          KIND: ${{ steps.target.outputs.kind }}
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add data/results.json
 
@@ -197,8 +130,6 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore: update lottery results ($KIND)"
+          git commit -m "chore: update lottery results (${{ steps.target.outputs.kind }})"
 
           git push origin "HEAD:${GITHUB_REF_NAME}"
-
-          echo "Đã cập nhật kết quả thành công."
