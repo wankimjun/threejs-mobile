@@ -272,6 +272,30 @@ function extractNumbers(html = '') {
 // ============================================================
 
 
+function getActualXsmnDate(html) {
+    const patterns = [
+        /XSMN hôm nay\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+        /KQXSMN[^<]{0,150}?(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+    ];
+
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+
+        if (match) {
+            const [, day, month, year] = match;
+
+            return [
+                year,
+                month.padStart(2, '0'),
+                day.padStart(2, '0'),
+            ].join('-');
+        }
+    }
+
+    return null;
+}
+
+
 function parseXsmn(html) {
     if (!html || typeof html !== 'string') {
         throw new Error('HTML XSMN rỗng hoặc không hợp lệ.');
@@ -1098,19 +1122,33 @@ async function main() {
     // VIETLOTT MEGA / POWER
     // --------------------------------------------------------
 
-    if (updateAllVietlott) {
-        console.log('\n[2/2] CẬP NHẬT MEGA / POWER');
+    
+if (updateXsmn) {
+    console.log('\n[1/2] CẬP NHẬT XSMN');
 
-        data.vietlott[dateISO] ??= {};
+    const html = await get(XSMN_URL);
+    const actualDate = getActualXsmnDate(html);
 
-        for (const product of Object.keys(PRODUCTS)) {
-            await updateClassicVietlott(
-                data,
-                product,
-                dateISO
-            );
-        }
+    if (actualDate && actualDate !== dateISO) {
+        console.warn(
+            `XSMN: nguồn đang trả dữ liệu ngày ${actualDate}, ` +
+            `trong khi yêu cầu là ${dateISO}.`
+        );
+
+        console.warn(
+            'Kết quả ngày yêu cầu chưa được công bố. Bỏ qua XSMN.'
+        );
+    } else {
+        const result = parseXsmn(html);
+
+        data.xsmn[dateISO] = result;
+
+        console.log(
+            `XSMN ${dateISO}: ${Object.keys(result).length} đài.`
+        );
     }
+}
+
 
     // --------------------------------------------------------
     // MAX 3D / MAX 3D PRO / KENO
