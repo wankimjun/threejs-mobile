@@ -1,910 +1,663 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Đàn Guitar 3D · Điệu quét, Finger style, Quạt chả</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #070a12; --panel: rgba(16,22,40,.78); --panel2: rgba(255,255,255,.04);
-    --line: rgba(255,255,255,.09); --text: #e8eaf2; --muted: #8b93a7;
-    --gold: #f5b942; --blue: #60a5fa; --red: #f87171; --green: #22c55e;
-  }
-  body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: radial-gradient(900px 600px at 50% -10%, #3b2410 0%, transparent 60%), var(--bg);
-    color: var(--text); min-height: 100vh; padding: 20px 14px 40px;
-  }
-  .wrap { max-width: 1120px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 14px; }
-  h1 { font-size: 1.9rem; letter-spacing: .5px; }
-  h1 span { color: var(--gold); }
-  header p { color: var(--muted); font-size: .92rem; margin-top: 4px; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đàn Guitar 3D · Điệu quét, Finger style, Quạt chả</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    body { background: radial-gradient(circle at center, #141a29 0%, #07090f 100%); color: #f1f5f9; overflow: hidden; height: 100vh; display: flex; }
+    #canvas-container { flex: 1; position: relative; height: 100%; cursor: grab; }
+    #canvas-container:active { cursor: grabbing; }
+    canvas { display: block; width: 100%; height: 100%; }
 
-  /* Sân khấu 3D */
-  .stage-box { position: relative; }
-  #stage {
-    width: 100%; height: 460px; border-radius: 18px; overflow: hidden; position: relative;
-    border: 1px solid var(--line); background: #070a12; cursor: grab; touch-action: none;
-    box-shadow: 0 24px 60px -12px rgba(0,0,0,.7), inset 0 0 80px rgba(0,0,0,.5);
-  }
-  #stage:active { cursor: grabbing; }
-  #stage canvas { display: block; width: 100%; height: 100%; }
-  .vignette { position: absolute; inset: 0; pointer-events: none; border-radius: 18px;
-    background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0,0,0,.55) 100%); }
-  .hud { position: absolute; left: 14px; top: 12px; pointer-events: none; }
-  .hud .mode { font-size: .72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
-  .hud .chord { font-size: 2.1rem; font-weight: 800; color: var(--gold); text-shadow: 0 0 18px rgba(245,185,66,.35); line-height: 1.1; }
-  .hud .pat { font-size: .85rem; color: var(--text); opacity: .85; }
-  .hint { position: absolute; right: 14px; bottom: 10px; font-size: .72rem; color: #64748b; pointer-events: none; }
+    .hud-top-left { position: absolute; top: 20px; left: 24px; pointer-events: none; }
+    .hud-tag { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #94a3b8; }
+    .hud-chord { font-size: 46px; font-weight: 800; color: #fbbf24; line-height: 1.1; text-shadow: 0 4px 20px rgba(251, 191, 36, 0.35); }
+    .hud-pattern { font-size: 14px; color: #cbd5e1; margin-top: 4px; }
+    .hud-bottom { position: absolute; bottom: 16px; left: 24px; font-size: 12px; color: #94a3b8; background: rgba(15, 23, 42, 0.75); padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); }
 
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-top: 14px; backdrop-filter: blur(6px); }
-  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .grow { flex: 1; }
-  .lab { font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-  .val { font-variant-numeric: tabular-nums; color: var(--gold); font-weight: 700; min-width: 3.2em; }
-  select { background: rgba(10,14,30,.9); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: .9rem; }
-  input[type=range] { accent-color: var(--gold); }
+    .sidebar { width: 360px; background: rgba(15, 23, 42, 0.95); border-left: 1px solid rgba(255,255,255,0.1); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+    h1 { font-size: 20px; font-weight: 700; color: #fff; }
+    .subtitle { font-size: 12px; color: #94a3b8; margin-top: 4px; line-height: 1.4; }
 
-  .seg { display: inline-flex; background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
-  .seg button { background: transparent; color: var(--muted); border-radius: 8px; padding: 7px 12px; font-size: .85rem; }
-  .seg button.on { background: var(--gold); color: #111; }
+    .card { background: rgba(30, 41, 59, 0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; }
+    .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; margin-bottom: 10px; }
 
-  button {
-    font: inherit; color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-weight: 700; cursor: pointer;
-    transition: transform .12s, filter .12s, background .2s;
-  }
-  button:hover:not(:disabled) { filter: brightness(1.1); }
-  button:active:not(:disabled) { transform: translateY(1px); }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  .btn-play { background: linear-gradient(135deg, #f59e0b, #d97706); color: #111; min-width: 150px; font-size: 1rem; }
-  .btn-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
-  .btn-ghost { background: rgba(255,255,255,.06); border: 1px solid var(--line); color: var(--text); }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    button { background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+    button:hover { background: #334155; border-color: #fbbf24; }
+    button.active { background: #fbbf24; color: #0f172a; font-weight: 700; border-color: #fbbf24; }
+    button.primary { background: #10b981; color: #064e3b; font-weight: 700; border: none; flex: 1; }
+    button.primary.playing { background: #ef4444; color: #fff; }
 
-  .chords { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-  .chip { background: rgba(255,255,255,.05); border: 1px solid var(--line); color: var(--muted); padding: 6px 12px; border-radius: 8px; font-size: .9rem; }
-  .chip.active { background: var(--gold); color: #111; border-color: var(--gold); }
-  .chip.now { box-shadow: 0 0 0 2px var(--green) inset; }
+    .slider-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; }
+    input[type="range"] { width: 100%; accent-color: #fbbf24; cursor: pointer; }
 
-  .info { display: grid; grid-template-columns: 1fr 1.4fr; gap: 14px; margin-top: 14px; }
-  @media (max-width: 820px) { .info { grid-template-columns: 1fr; } }
-  .box { background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
-  .box h3 { font-size: .76rem; color: var(--gold); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
-  .fingering { font-family: Consolas, 'Courier New', monospace; font-size: .86rem; color: var(--muted); margin-top: 8px; line-height: 1.7; }
-  .fingering b { color: var(--text); }
-  .pname { font-size: .9rem; color: var(--text); margin-bottom: 10px; }
+    .chord-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .chord-btn { padding: 10px; font-size: 15px; font-weight: 700; text-align: center; }
 
-  .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 6px; }
-  .stp { height: 40px; border-radius: 9px; background: rgba(255,255,255,.04); border: 1px solid var(--line);
-    display: grid; place-items: center; font-weight: 800; font-size: .95rem; color: #3b4357; transition: background .08s, transform .08s; }
-  .stp.D.on { background: var(--gold); color: #111; }
-  .stp.U.on { background: var(--blue); color: #fff; }
-  .stp.X.on { background: #475569; color: #e2e8f0; }
-  .stp.F.on { background: #a78bfa; color: #111; }
-  .stp.cur { outline: 2px solid #fff; outline-offset: -2px; transform: translateY(-1px); }
-  .tips { color: var(--muted); font-size: .8rem; margin-top: 12px; line-height: 1.6; }
-  kbd { background: rgba(255,255,255,.08); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; font-family: inherit; font-size: .75rem; color: var(--text); }
-</style>
-<script src="three.min.js"></script>
-<script>
-  if (typeof THREE === 'undefined') {
-    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"><\/script>');
-  }
-</script>
+    .rhythm-steps { display: flex; gap: 5px; margin-top: 10px; }
+    .step-box { flex: 1; text-align: center; padding: 7px 2px; border-radius: 6px; background: #0f172a; font-size: 12px; font-weight: 700; color: #64748b; border: 1px solid rgba(255,255,255,0.06); }
+    .step-box.current { background: #fbbf24; color: #0f172a; transform: scale(1.06); }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Đàn <span>Guitar</span> 3D</h1>
-    <p>Âm thanh Karplus-Strong · dây rung theo từng nốt · điệu quét, finger style và quạt chả</p>
-  </header>
 
-  <div class="stage-box">
-    <div id="stage"></div>
-    <div class="vignette"></div>
-    <div class="hud">
-      <div class="mode" id="hudMode">Điệu quét</div>
-      <div class="chord" id="hudChord">C</div>
-      <div class="pat" id="hudPat"></div>
+  <div id="canvas-container">
+    <div class="hud-top-left">
+      <div class="hud-tag" id="hud-mode">ĐIỆU QUÉT</div>
+      <div class="hud-chord" id="hud-chord">C</div>
+      <div class="hud-pattern" id="hud-pattern">Pop · D - DU - UDU</div>
     </div>
-    <div class="hint">Kéo để xoay · Space: Phát/Dừng · D/U: quét · 1–6: gảy dây · Q: quạt chả</div>
+    <div class="hud-bottom">
+      Kéo chuột để xoay 3D · Cuộn để thu phóng · <b>Space</b>: Phát/Dừng · <b>D/U</b>: Quét · <b>Q</b>: Quạt chả · <b>1–6</b>: Gảy dây · <b>R</b>: Đặt lại góc nhìn
+    </div>
   </div>
 
-  <section class="panel">
-    <div class="row">
-      <button type="button" class="btn-play" id="btnPlay">▶ Phát</button>
-      <label class="lab">Tempo <input type="range" id="bpm" min="50" max="180" value="100"> <span class="val" id="bpmVal">100</span></label>
-      <label class="lab">Âm lượng <input type="range" id="vol" min="0" max="1" step="0.01" value="0.8" style="width:110px"></label>
+  <div class="sidebar">
+    <div>
+      <h1>Đàn Guitar 3D</h1>
+      <p class="subtitle">Âm thanh Karplus-Strong · dây rung theo từng nốt · điệu quét, finger style và quạt chả</p>
     </div>
 
-    <div class="row" style="margin-top:12px">
-      <div class="seg" id="groupSeg">
-        <button type="button" data-g="Strum" class="on">Điệu quét</button>
-        <button type="button" data-g="Quạt chả">Quạt chả</button>
-        <button type="button" data-g="Finger style">Finger style</button>
+    <div class="card">
+      <div class="btn-row">
+        <button id="btn-play" class="primary">▶ Phát</button>
+        <button id="btn-rotate">🔄 Tự xoay: Tắt</button>
+        <button id="btn-reset" title="Đặt lại góc nhìn (R)">⟲ (R)</button>
       </div>
-      <label class="lab">Điệu
-        <select id="pattern"></select>
-      </label>
-      <label class="lab">Chuỗi hợp âm
-        <select id="prog"></select>
-      </label>
+      <div class="slider-group">
+        <div class="slider-label"><span>Tempo</span><span id="val-tempo">100</span></div>
+        <input type="range" id="slider-tempo" min="60" max="160" value="100" />
+      </div>
+      <div class="slider-group">
+        <div class="slider-label"><span>Âm lượng</span><span id="val-vol">0.8</span></div>
+        <input type="range" id="slider-vol" min="0" max="1" step="0.05" value="0.8" />
+      </div>
     </div>
 
-    <div class="row" style="margin-top:12px">
-      <button type="button" class="btn-blue" id="btnD">⬇ Quét xuống (D)</button>
-      <button type="button" class="btn-blue" id="btnU">⬆ Quét lên (U)</button>
-      <button type="button" class="btn-ghost" id="btnQ">⚡ Quạt chả (Q)</button>
-      <div class="grow"></div>
-      <span class="lab" style="font-size:.8rem">Chọn hợp âm để thử: </span>
+    <div class="card">
+      <div class="card-title">Điệu & Kiểu chơi</div>
+      <div class="btn-row">
+        <button class="mode-btn active" data-mode="strum">Điệu quét</button>
+        <button class="mode-btn" data-mode="chuck">Quạt chả</button>
+        <button class="mode-btn" data-mode="finger">Finger style</button>
+      </div>
+      <div class="rhythm-steps" id="rhythm-steps"></div>
     </div>
 
-    <div class="chords" id="chordChips"></div>
-  </section>
-
-  <section class="info">
-    <div class="box">
-      <h3>Hợp âm &amp; thế bấm</h3>
-      <div class="fingering" id="fingering"></div>
+    <div class="card">
+      <div class="card-title">Thao tác nhanh</div>
+      <div class="btn-row">
+        <button id="btn-down">⬇ Quét xuống (D)</button>
+        <button id="btn-up">⬆ Quét lên (U)</button>
+        <button id="btn-chuck">⚡ Quạt chả (Q)</button>
+      </div>
     </div>
-    <div class="box">
-      <h3>Nhịp điệu</h3>
-      <div class="pname" id="pname"></div>
-      <div class="steps" id="steps"></div>
-      <div class="tips" id="tips"></div>
+
+    <div class="card">
+      <div class="card-title">Chọn hợp âm để thử</div>
+      <div class="chord-grid" id="chord-grid"></div>
     </div>
-  </section>
-</div>
+  </div>
 
-<script>
-(function () {
-  'use strict';
+  <script>
+    // ==========================================
+    // 1. DỮ LIỆU HỢP ÂM & NHỊP ĐIỆU
+    // ==========================================
+    const OPEN_FREQS = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63];
 
-  const $ = id => document.getElementById(id);
-  const pad = n => String(n);
-
-  // ---------- Dữ liệu đàn ----------
-  // Chỉ số dây: 0 = dây 6 (E trầm, nằm trên cùng), 5 = dây 1 (E cao, nằm dưới cùng)
-  const STRING_MIDI = [40, 45, 50, 55, 59, 64];
-  const SL = 9;
-  const SEG = 90;
-  const VIS_F = 14;
-  const DECAY = 2.2, DECAY_MUTE = 7;
-  const fretX = n => n === 0 ? 0 : -(SL - SL / Math.pow(2, n / 12));
-  const yOf = s => 0.36 - s * 0.144;
-  const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
-
-  const CHORDS = {
-    C:  [-1, 3, 2, 0, 1, 0],
-    G:  [3, 2, 0, 0, 0, 3],
-    Am: [-1, 0, 2, 2, 1, 0],
-    F:  [1, 3, 3, 2, 1, 1],
-    Em: [0, 2, 2, 0, 0, 0],
-    Dm: [-1, -1, 0, 2, 3, 1],
-    D:  [-1, -1, 0, 2, 3, 2],
-    A:  [-1, 0, 2, 2, 2, 0],
-    E:  [0, 2, 2, 1, 0, 0],
-    G7: [3, 2, 0, 0, 0, 1],
-    Bm: [-1, 2, 4, 4, 3, 2],
-  };
-
-  // Điệu: type = strum | quat | finger. Token: D/U (quét), X (quạt chặn), _ (nghỉ), số (finger: thứ tự dây trong hợp âm), x (nghỉ finger)
-  const PATTERNS = {
-    pop:     { g: 'Strum', name: 'Pop · D-DU-UDU', div: 2, steps: ['D','_','D','U','_','U','D','U'] },
-    ballad:  { g: 'Strum', name: 'Ballad · chậm nhẹ', div: 2, steps: ['D','_','_','U','D','_','U','_'] },
-    bossa:   { g: 'Strum', name: 'Bossa nova', div: 2, steps: ['D','_','U','_','D','_','U','_'] },
-    folk:    { g: 'Strum', name: 'Dân ca · D-UD-UDU', div: 2, steps: ['D','_','U','D','_','U','D','U'] },
-    bolero:  { g: 'Strum', name: 'Bolero', div: 2, steps: ['D','_','_','D','_','U','_','U'] },
-    waltz:   { g: 'Strum', name: 'Valse 3/4', div: 2, steps: ['D','_','U','_','U','_'] },
-    reggae:  { g: 'Strum', name: 'Reggae · off-beat', div: 2, steps: ['_','U','_','U','_','U','_','U'] },
-    rock:    { g: 'Strum', name: 'Rock · quét xuống', div: 2, steps: ['D','D','D','D','D','D','D','D'] },
-
-    quat1:   { g: 'Quạt chả', name: 'Quạt chả · 16 nốt đều', div: 4,
-               steps: ['D','U','D','U','D','U','D','U','D','U','D','U','D','U','D','U'] },
-    quat2:   { g: 'Quạt chả', name: 'Quạt chả · có chặn (X)', div: 4,
-               steps: ['D','U','X','U','D','U','X','U','D','U','D','U','X','U','D','U'] },
-    quat3:   { g: 'Quạt chả', name: 'Quạt chả · dồn dập', div: 4,
-               steps: ['D','D','U','U','D','X','U','D','D','U','X','U','D','D','U','U'] },
-
-    arp1:    { g: 'Finger style', name: 'Arpeggio p-i-m-a', div: 2, steps: [0,1,2,3,2,1,2,3] },
-    travis:  { g: 'Finger style', name: 'Travis (trầm–bổng)', div: 2, steps: [0,2,1,3,0,2,1,3] },
-    alberti: { g: 'Finger style', name: 'Alberti', div: 2, steps: [0,3,1,3,0,3,1,3] },
-    thumb:   { g: 'Finger style', name: 'Đệm ngón cái', div: 2, steps: [0,'x',2,'x',1,'x',3,'x'] },
-    fwaltz:  { g: 'Finger style', name: 'Finger 3/4', div: 2, steps: [0,2,1,'x',3,2] },
-  };
-  const GROUP_KEYS = ['Strum', 'Quạt chả', 'Finger style'];
-  const TYPE_OF = g => g === 'Finger style' ? 'finger' : (g === 'Quạt chả' ? 'quat' : 'strum');
-
-  const PROGS = {
-    p1: { name: 'C – G – Am – F', chords: ['C','G','Am','F'] },
-    p2: { name: 'Am – F – C – G', chords: ['Am','F','C','G'] },
-    p3: { name: 'Em – C – G – D', chords: ['Em','C','G','D'] },
-    p4: { name: 'C – Am – Dm – G7', chords: ['C','Am','Dm','G7'] },
-    p5: { name: 'G – Em – C – D', chords: ['G','Em','C','D'] },
-    p6: { name: 'D – A – Bm – G', chords: ['D','A','Bm','G'] },
-    p7: { name: 'Am – G – C – G', chords: ['Am','G','C','G'] },
-  };
-
-  // ---------- Trạng thái ----------
-  let playing = false, nextT = 0, stepIdx = 0, timer = null;
-  let groupKey = 'Strum', patKey = 'pop', progKey = 'p1';
-  let curChord = 'C', manualChord = 'C', curPos = -1;
-  let events = [];
-
-  // ---------- Điều khiển giao diện ----------
-  function patternsIn(g) { return Object.keys(PATTERNS).filter(k => PATTERNS[k].g === g); }
-
-  function populatePatterns() {
-    const sel = $('pattern');
-    sel.innerHTML = '';
-    patternsIn(groupKey).forEach(k => sel.add(new Option(PATTERNS[k].name, k)));
-    if (PATTERNS[patKey].g !== groupKey) patKey = patternsIn(groupKey)[0];
-    sel.value = patKey;
-    renderPattern();
-    updateHud();
-  }
-
-  function setGroup(g) {
-    if (busy()) return;
-    groupKey = g;
-    document.querySelectorAll('#groupSeg button').forEach(b => b.classList.toggle('on', b.dataset.g === g));
-    populatePatterns();
-  }
-
-  function busy() { return false; }
-
-  function buildProgs() {
-    const sel = $('prog');
-    Object.keys(PROGS).forEach(k => sel.add(new Option(PROGS[k].name, k)));
-    sel.value = progKey;
-  }
-
-  function buildChips() {
-    const box = $('chordChips');
-    box.innerHTML = '';
-    Object.keys(CHORDS).forEach(name => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'chip';
-      b.textContent = name;
-      b.dataset.name = name;
-      b.addEventListener('click', () => {
-        manualChord = name;
-        if (!playing) setChordVisual(name);
-        else flashChip(name);
-      });
-      box.appendChild(b);
-    });
-    markChips();
-  }
-
-  function flashChip(name) {
-    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('now', c.dataset.name === name));
-  }
-
-  function markChips() {
-    const cur = playing ? curChord : manualChord;
-    document.querySelectorAll('.chip').forEach(c => {
-      c.classList.toggle('active', c.dataset.name === cur);
-      c.classList.toggle('now', playing && c.dataset.name === curChord);
-    });
-  }
-
-  function renderPattern() {
-    const p = PATTERNS[patKey];
-    $('pname').textContent = p.name;
-    const box = $('steps');
-    box.innerHTML = '';
-    const type = TYPE_OF(p.g);
-    p.steps.forEach((tok, i) => {
-      const d = document.createElement('div');
-      d.dataset.i = i;
-      if (type === 'finger') {
-        const on = tok !== 'x';
-        d.className = 'stp F' + (on ? ' on' : '');
-        d.textContent = on ? (tok + 1) : '·';
-      } else {
-        const cls = tok === '_' ? '' : (tok === 'D' ? 'D' : tok === 'U' ? 'U' : 'X');
-        d.className = 'stp ' + cls + (tok !== '_' ? ' on' : '');
-        d.textContent = tok === '_' ? '·' : tok;
-      }
-      box.appendChild(d);
-    });
-    const tips = {
-      Strum: 'Quét D (xuống, từ dây 6 đến dây 1) và U (lên). Ô “·” là nghỉ, ô không có nốt vẫn đếm nhịp.',
-      'Quạt chả': 'Quạt chả: quét nhanh 1/16. X là quạt chặn: dây được chặn lại, âm ngắn và trầm hơn.',
-      'Finger style': 'Số trong ô là thứ tự dây của hợp âm (1 = dây trầm nhất đang đánh). Ô “·” là nghỉ.',
+    const CHORDS = {
+      'C':  [-1, 3, 2, 0, 1, 0],
+      'G':  [3, 2, 0, 0, 0, 3],
+      'Am': [-1, 0, 2, 2, 1, 0],
+      'F':  [1, 3, 3, 2, 1, 1],
+      'Dm': [-1, -1, 0, 2, 3, 1],
+      'Em': [0, 2, 2, 0, 0, 0]
     };
-    $('tips').textContent = tips[p.g];
-  }
 
-  function updateHud() {
-    $('hudMode').textContent = groupKey;
-    $('hudPat').textContent = PATTERNS[patKey].name;
-  }
+    const PATTERNS = {
+      strum:  { name: 'Pop · D - DU - UDU', steps: ['D', '-', 'D', 'U', '-', 'U', 'D', 'U'] },
+      chuck:  { name: 'Ballad Quạt Chả · D - X - U - X', steps: ['D', '-', 'X', 'U', '-', 'U', 'X', 'U'] },
+      finger: { name: 'Finger style · P - 3 - 2 - 1 - 2 - 3', steps: ['P', '3', '2', '1', '2', '3', '2', '1'] }
+    };
 
-  function setPosVisual(pos) {
-    document.querySelectorAll('.stp').forEach(el => el.classList.toggle('cur', Number(el.dataset.i) === pos));
-  }
+    let state = {
+      chord: 'C',
+      mode: 'strum',
+      tempo: 100,
+      volume: 0.8,
+      isPlaying: false,
+      autoRotate: false,
+      stepIndex: 0
+    };
 
-  function setChordVisual(name) {
-    curChord = name;
-    $('hudChord').textContent = name;
-    const fr = CHORDS[name];
-    const parts = [];
-    for (let s = 5; s >= 0; s--) {
-      const f = fr[s];
-      parts.push('<b>Dây ' + (6 - s) + '</b>: ' + (f < 0 ? 'x' : (f === 0 ? 'mở' : 'phím ' + f)));
+    // ==========================================
+    // 2. BỘ TỔNG HỢP ÂM THANH KARPLUS-STRONG
+    // ==========================================
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
     }
-    $('fingering').innerHTML = parts.join('<br>');
-    fingerMarkers.forEach((m, s) => {
-      const f = fr[s];
-      if (f < 0) { m.visible = false; return; }
-      m.visible = true;
-      if (f === 0) {
-        m.position.set(0.22, yOf(s), 0.5);
-        m.material.color.set(0x22c55e);
-        m.scale.setScalar(0.6);
-      } else {
-        const x = (fretX(f - 1) + fretX(f)) / 2;
-        m.position.set(x, yOf(s), 0.5);
-        m.material.color.set(0xf5b942);
-        m.scale.setScalar(1);
+
+    function playKarplusStrong(freq, velocity = 0.8, isMuted = false) {
+      ensureAudio();
+      const sampleRate = audioCtx.sampleRate;
+      const duration = isMuted ? 0.14 : 2.2;
+      const totalSamples = Math.floor(sampleRate * duration);
+      const buffer = audioCtx.createBuffer(1, totalSamples, sampleRate);
+      const data = buffer.getChannelData(0);
+
+      const period = Math.max(2, Math.floor(sampleRate / freq));
+      const delayLine = new Float32Array(period);
+
+      for (let i = 0; i < period; i++) {
+        delayLine[i] = (Math.random() * 2 - 1) * velocity * state.volume;
       }
-    });
-    markChips();
-    updateHud();
-  }
 
-  // ---------- Âm thanh (Karplus-Strong) ----------
-  let ctx = null, master = null, lpBuf = null;
-  const bufCache = new Map();
-  function initAudio() {
-    if (ctx) return;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    master = ctx.createGain();
-    master.gain.value = Number($('vol').value);
-    master.connect(ctx.destination);
-  }
-  function pluckBuffer(midi) {
-    if (bufCache.has(midi)) return bufCache.get(midi);
-    const sr = ctx.sampleRate;
-    const N = Math.max(2, Math.round(sr / midiHz(midi)));
-    const L = Math.round(sr * 1.8);
-    const b = ctx.createBuffer(1, L, sr);
-    const d = b.getChannelData(0);
-    for (let i = 0; i < N; i++) d[i] = Math.random() * 2 - 1;
-    for (let i = N; i < L; i++) d[i] = 0.996 * 0.5 * (d[i - N] + d[i - N + 1]);
-    bufCache.set(midi, b);
-    return b;
-  }
-
-  function pluckAt(s, fret, t, vel, mute) {
-    const midi = STRING_MIDI[s] + fret;
-    const src = ctx.createBufferSource();
-    src.buffer = pluckBuffer(midi);
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = mute ? 900 : 4200;
-    const g = ctx.createGain();
-    g.gain.value = vel * 0.7 * (mute ? 0.55 : 1);
-    src.connect(lp).connect(g).connect(master);
-    src.start(t);
-    events.push({ t, type: 'pluck', s, vel, mute: !!mute });
-  }
-
-  // Quét: D từ dây trầm đến bổng, U ngược lại; X là quạt chặn (âm nhẹ, ngắn)
-  function strum(chord, token, t, pos, fast) {
-    const fr = CHORDS[chord];
-    const dir = token === 'U' ? 'U' : 'D';
-    const order = dir === 'D' ? [0, 1, 2, 3, 4, 5] : [5, 4, 3, 2, 1, 0];
-    const mute = token === 'X';
-    const accent = pos % 4 === 0 ? 1 : 0.82;
-    const gap = fast ? 0.007 : 0.014;
-    const base = mute ? 0.4 : (dir === 'D' ? 0.85 : 0.7);
-    events.push({ t, type: 'strum', dir: mute ? 'X' : dir });
-    let k = 0;
-    for (const s of order) {
-      const f = fr[s];
-      if (f < 0) continue;
-      pluckAt(s, f, t + k * gap, base * accent, mute);
-      k++;
-    }
-  }
-
-  // Finger: chọn một dây trong các dây đang đánh theo thứ tự trầm → bổng
-  function fingerPluck(chord, tok, t, pos) {
-    const fr = CHORDS[chord];
-    const plays = [];
-    for (let s = 0; s < 6; s++) if (fr[s] >= 0) plays.push(s);
-    if (!plays.length) return;
-    const s = plays[tok % plays.length];
-    const vel = (pos === 0 ? 0.95 : 0.75);
-    pluckAt(s, fr[s], t, vel, false);
-  }
-
-  // ---------- Bộ lập lịch ----------
-  function stepLen() {
-    const div = PATTERNS[patKey].div;
-    return 60 / Number($('bpm').value) / div;
-  }
-
-  function scheduleStep(i, t) {
-    const p = PATTERNS[patKey];
-    const prog = PROGS[progKey].chords;
-    const L = p.steps.length;
-    const bar = Math.floor(i / L);
-    const pos = i % L;
-    const chord = prog[bar % prog.length];
-    if (pos === 0) events.push({ t, type: 'chord', name: chord });
-    events.push({ t, type: 'pos', pos });
-    const tok = p.steps[pos];
-    const type = TYPE_OF(p.g);
-    if (type === 'finger') {
-      if (tok !== 'x') fingerPluck(chord, tok, t, pos);
-    } else {
-      if (tok !== '_') strum(chord, tok, t, pos, type === 'quat');
-    }
-  }
-
-  function tick() {
-    while (nextT < ctx.currentTime + 0.12) {
-      scheduleStep(stepIdx, nextT);
-      nextT += stepLen();
-      stepIdx++;
-    }
-  }
-
-  function startPlay() {
-    initAudio();
-    ctx.resume();
-    stepIdx = 0;
-    nextT = ctx.currentTime + 0.08;
-    playing = true;
-    timer = setInterval(tick, 25);
-    $('btnPlay').textContent = '⏸ Dừng';
-  }
-
-  function stopPlay() {
-    playing = false;
-    clearInterval(timer);
-    timer = null;
-    events = [];
-    curPos = -1;
-    setPosVisual(-1);
-    $('btnPlay').textContent = '▶ Phát';
-    markChips();
-  }
-
-  // Thử thủ công (khi không phát tự động)
-  function manualStrum(token) {
-    initAudio();
-    ctx.resume();
-    if (playing) return;
-    setChordVisual(manualChord);
-    strum(manualChord, token, ctx.currentTime + 0.01, 0, false);
-  }
-
-  function manualQuat() {
-    initAudio();
-    ctx.resume();
-    if (playing) return;
-    setChordVisual(manualChord);
-    const seq = ['D','U','D','U','D','U','X','U'];
-    const step = 0.085;
-    seq.forEach((tok, i) => strum(manualChord, tok, ctx.currentTime + 0.01 + i * step, i, true));
-  }
-
-  function manualPluck(s) {
-    initAudio();
-    ctx.resume();
-    const f = CHORDS[manualChord][s];
-    if (f < 0) return;
-    setChordVisual(manualChord);
-    pluckAt(s, f, ctx.currentTime + 0.01, 0.9, false);
-  }
-
-  // ---------- Cảnh 3D ----------
-  const stage = $('stage');
-  let renderer;
-  try {
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-  } catch (e) {
-    stage.textContent = 'Trình duyệt không hỗ trợ WebGL.';
-    return;
-  }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setClearColor(0x070a12, 1);
-  renderer.shadowMap.enabled = true;
-  stage.insertBefore(renderer.domElement, stage.firstChild);
-
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x070a12, 0.02);
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
-  camera.position.set(-6, 3, 19);
-  camera.lookAt(-6.5, 0, 0);
-
-  const rig = new THREE.Group();
-  scene.add(rig);
-
-  // Ánh sáng
-  scene.add(new THREE.HemisphereLight(0xfff4e0, 0x1a1020, 0.55));
-  const key = new THREE.DirectionalLight(0xfff1d6, 0.95);
-  key.position.set(-6, 12, 12);
-  key.castShadow = true;
-  key.shadow.mapSize.width = 1024;
-  key.shadow.mapSize.height = 1024;
-  key.shadow.camera.left = -18; key.shadow.camera.right = 12;
-  key.shadow.camera.top = 12; key.shadow.camera.bottom = -12;
-  key.shadow.camera.near = 1; key.shadow.camera.far = 40;
-  key.shadow.bias = -0.0008;
-  scene.add(key);
-  const warm = new THREE.PointLight(0xf5b942, 0.9, 50);
-  warm.position.set(-11, 3, 8);
-  scene.add(warm);
-  const cool = new THREE.PointLight(0x60a5fa, 0.55, 50);
-  cool.position.set(5, 3, -4);
-  scene.add(cool);
-  const rimL = new THREE.PointLight(0xe879f9, 0.35, 40);
-  rimL.position.set(-16, -2, -6);
-  scene.add(rimL);
-
-  // Sàn phản chiếu
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(70, 40),
-    new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.55, metalness: 0.2 }));
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.set(-4, -3.4, 0);
-  floor.receiveShadow = true;
-  scene.add(floor);
-
-  // Vân gỗ cho thân đàn
-  function woodTexture() {
-    const c = document.createElement('canvas');
-    c.width = 512; c.height = 512;
-    const g = c.getContext('2d');
-    const grd = g.createLinearGradient(0, 0, 0, 512);
-    grd.addColorStop(0, '#d89b5a');
-    grd.addColorStop(1, '#b8733a');
-    g.fillStyle = grd;
-    g.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 90; i++) {
-      g.strokeStyle = 'rgba(92,52,20,' + (0.05 + Math.random() * 0.14) + ')';
-      g.lineWidth = 0.6 + Math.random() * 2.2;
-      g.beginPath();
-      const y0 = Math.random() * 512;
-      g.moveTo(0, y0);
-      for (let x = 0; x <= 512; x += 32) g.lineTo(x, y0 + Math.sin(x * 0.02 + i) * (4 + Math.random() * 6));
-      g.stroke();
-    }
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-    return tex;
-  }
-  const woodTex = woodTexture();
-  const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.5, metalness: 0.02 });
-  const neckMat = new THREE.MeshStandardMaterial({ color: 0x7a4a24, roughness: 0.55, metalness: 0.02 });
-  const ebonyMat = new THREE.MeshStandardMaterial({ color: 0x1a120b, roughness: 0.45, metalness: 0.1 });
-  const metalMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.9, roughness: 0.2 });
-  const pearlMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: 0.3, metalness: 0.1 });
-  const pickguardMat = new THREE.MeshStandardMaterial({ color: 0x1b1b22, roughness: 0.3, metalness: 0.3 });
-
-  // Thân đàn: hai "bát" bo tròn ghép lại, có viền mỏng
-  function roundBody(r, x, depth) {
-    const sh = new THREE.Shape();
-    sh.absarc(0, 0, r, 0, Math.PI * 2, false);
-    const geo = new THREE.ExtrudeGeometry(sh, {
-      depth: depth, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.12,
-      bevelSegments: 4, curveSegments: 56
-    });
-    const m = new THREE.Mesh(geo, woodMat);
-    m.position.set(x, 0, -0.7);
-    m.castShadow = true;
-    m.receiveShadow = true;
-    rig.add(m);
-    return m;
-  }
-  roundBody(3.4, -12, 0.8);
-  roundBody(2.6, -8.3, 0.8);
-
-  // Lỗ đàn (sound hole) có viền
-  const hole = new THREE.Mesh(new THREE.CircleGeometry(1.0, 48), new THREE.MeshBasicMaterial({ color: 0x050302 }));
-  hole.position.set(-12, 0, 0.23);
-  rig.add(hole);
-  const holeRing = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.09, 12, 56), pearlMat);
-  holeRing.position.set(-12, 0, 0.26);
-  rig.add(holeRing);
-
-  // Tấm gảy (pickguard)
-  const pickguard = new THREE.Mesh(new THREE.CircleGeometry(1.4, 40), pickguardMat);
-  pickguard.position.set(-10.3, -1.6, 0.24);
-  pickguard.scale.set(1, 0.75, 1);
-  rig.add(pickguard);
-
-  // Cần đàn, khung phím và đầu đàn
-  const neck = new THREE.Mesh(new THREE.BoxGeometry(SL + 0.4, 0.85, 0.22), neckMat);
-  neck.position.set(-SL / 2 + 0.2, 0, 0.1);
-  neck.castShadow = true;
-  rig.add(neck);
-  const board = new THREE.Mesh(new THREE.BoxGeometry(SL, 0.9, 0.05), ebonyMat);
-  board.position.set(-SL / 2, 0, 0.24);
-  rig.add(board);
-  for (let n = 1; n <= 12; n++) {
-    const fr = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.9, 0.06), metalMat);
-    fr.position.set(fretX(n), 0, 0.28);
-    rig.add(fr);
-    if (n === 3 || n === 5 || n === 7 || n === 9) {
-      const dot = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), pearlMat);
-      dot.position.set((fretX(n - 1) + fretX(n)) / 2, 0, 0.29);
-      rig.add(dot);
-    }
-  }
-  const nut = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 0.12), pearlMat);
-  nut.position.set(0.02, 0, 0.3);
-  rig.add(nut);
-  const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.12), ebonyMat);
-  bridge.position.set(-SL - 0.1, 0, 0.3);
-  rig.add(bridge);
-
-  const head = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.05, 0.22), neckMat);
-  head.position.set(1.0, 0, 0.1);
-  rig.add(head);
-  for (let s = 0; s < 6; s++) {
-    const peg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.25, 12), metalMat);
-    peg.rotation.z = Math.PI / 2;
-    peg.position.set(1.85, yOf(s), 0.12);
-    rig.add(peg);
-  }
-
-  // 6 dây: hình học có thể cập nhật, màu đổi theo độ rung
-  const stringColors = [0xd4af37, 0xd4af37, 0xc8a24a, 0xc8a24a, 0xe2e8f0, 0xe2e8f0];
-  const WARM = new THREE.Color(0xfff3c4);
-  const strings = [];
-  for (let s = 0; s < 6; s++) {
-    const arr = new Float32Array((SEG + 1) * 3);
-    for (let i = 0; i <= SEG; i++) {
-      const u = i / SEG;
-      arr[i * 3] = -SL * u;
-      arr[i * 3 + 1] = yOf(s);
-      arr[i * 3 + 2] = 0.55;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.addAttribute('position', new THREE.BufferAttribute(arr, 3));
-    const base = new THREE.Color(stringColors[s]);
-    const mat = new THREE.LineBasicMaterial({ color: base.clone() });
-    const line = new THREE.Line(geo, mat);
-    rig.add(line);
-    strings.push({ geo, arr, mat, base, amp: 0, t0: -100, decay: DECAY });
-  }
-
-  // Chấm ngón tay cho hợp âm hiện tại
-  const fingerMarkers = [];
-  const fingerGeo = new THREE.SphereGeometry(0.2, 16, 12);
-  for (let s = 0; s < 6; s++) {
-    const m = new THREE.Mesh(fingerGeo, new THREE.MeshStandardMaterial({ color: 0xf5b942, emissive: 0x3b2a05 }));
-    m.visible = false;
-    m.castShadow = true;
-    rig.add(m);
-    fingerMarkers.push(m);
-  }
-
-  // Que gảy: di chuyển theo hướng quét
-  const pick = { mesh: new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12),
-    new THREE.MeshStandardMaterial({ color: 0xfff7d6, emissive: 0x6b5a20, roughness: 0.25 })),
-    active: false, t0: 0, dur: 0.16, dir: 'D' };
-  pick.mesh.visible = false;
-  rig.add(pick.mesh);
-
-  // Tia sáng khi dây được gảy
-  const SP_N = 260;
-  const spPos = new Float32Array(SP_N * 3);
-  const spVel = new Float32Array(SP_N * 3);
-  const spLife = new Float32Array(SP_N);
-  for (let i = 0; i < SP_N; i++) spPos[i * 3 + 1] = -100;
-  const spGeo = new THREE.BufferGeometry();
-  spGeo.addAttribute('position', new THREE.BufferAttribute(spPos, 3));
-  const spMat = new THREE.PointsMaterial({ size: 0.14, color: 0xfbbf24, transparent: true, opacity: 0.95,
-    depthWrite: false, blending: THREE.AdditiveBlending });
-  const sparks = new THREE.Points(spGeo, spMat);
-  rig.add(sparks);
-  let spCur = 0;
-
-  function burst(x, y, n, color) {
-    spMat.color.set(color);
-    for (let k = 0; k < n; k++) {
-      const i = spCur; spCur = (spCur + 1) % SP_N;
-      const a = Math.random() * Math.PI * 2;
-      const sp = 0.8 + Math.random() * 2.6;
-      spPos[i * 3] = x; spPos[i * 3 + 1] = y; spPos[i * 3 + 2] = 0.7;
-      spVel[i * 3] = Math.cos(a) * sp;
-      spVel[i * 3 + 1] = Math.sin(a) * sp;
-      spVel[i * 3 + 2] = (Math.random() - 0.5) * sp * 0.5;
-      spLife[i] = 1;
-    }
-  }
-
-  function updateSparks(dt) {
-    for (let i = 0; i < SP_N; i++) {
-      if (spLife[i] <= 0) continue;
-      spLife[i] -= dt * 1.7;
-      const damp = Math.exp(-dt * 2.6);
-      spVel[i * 3] *= damp; spVel[i * 3 + 1] *= damp; spVel[i * 3 + 2] *= damp;
-      spPos[i * 3] += spVel[i * 3] * dt;
-      spPos[i * 3 + 1] += spVel[i * 3 + 1] * dt;
-      spPos[i * 3 + 2] += spVel[i * 3 + 2] * dt;
-      if (spLife[i] <= 0) spPos[i * 3 + 1] = -100;
-    }
-    spGeo.attributes.position.needsUpdate = true;
-  }
-
-  // Sàn lấp lánh
-  const starGeo = new THREE.BufferGeometry();
-  const starN = 220;
-  const starPos = new Float32Array(starN * 3);
-  for (let i = 0; i < starN; i++) {
-    starPos[i * 3] = (Math.random() - 0.5) * 70;
-    starPos[i * 3 + 1] = (Math.random() - 0.5) * 34;
-    starPos[i * 3 + 2] = -14 - Math.random() * 20;
-  }
-  starGeo.addAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.12, color: 0x94a3b8 })));
-
-  function resize() {
-    const w = stage.clientWidth || 600, h = stage.clientHeight || 460;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.domElement.style.width = w + 'px';
-    renderer.domElement.style.height = h + 'px';
-  }
-  window.addEventListener('resize', resize);
-
-  let dragging = false, lastX = 0, lastY = 0, yaw = 0, tilt = 0;
-  stage.addEventListener('pointerdown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
-  window.addEventListener('pointerup', () => { dragging = false; });
-  window.addEventListener('pointermove', e => {
-    if (!dragging) return;
-    yaw = Math.max(-0.6, Math.min(0.6, yaw + (e.clientX - lastX) * 0.005));
-    tilt = Math.max(-0.5, Math.min(0.5, tilt + (e.clientY - lastY) * 0.003));
-    lastX = e.clientX; lastY = e.clientY;
-  });
-
-  // Dao động dây: biên độ theo sự kiện, tắt dần, màu sáng hơn khi rung mạnh
-  function updateStrings(nowSec) {
-    for (let s = 0; s < 6; s++) {
-      const st = strings[s];
-      const age = nowSec - st.t0;
-      const env = st.amp * Math.exp(-age * st.decay);
-      const live = env > 0.002;
-      for (let i = 0; i <= SEG; i++) {
-        const u = i / SEG;
-        const wave = live ? env * 0.14 * Math.sin(Math.PI * u) * Math.sin(2 * Math.PI * VIS_F * age) : 0;
-        st.arr[i * 3] = -SL * u;
-        st.arr[i * 3 + 1] = yOf(s) + wave;
-        st.arr[i * 3 + 2] = 0.55;
+      const decay = isMuted ? 0.76 : 0.994;
+      let ptr = 0;
+      for (let i = 0; i < totalSamples; i++) {
+        const current = delayLine[ptr];
+        const next = delayLine[(ptr + 1) % period];
+        delayLine[ptr] = 0.5 * (current + next) * decay;
+        data[i] = current;
+        ptr = (ptr + 1) % period;
       }
-      st.geo.attributes.position.needsUpdate = true;
-      st.mat.color.copy(st.base).lerp(WARM, Math.min(1, env * 1.4) * 0.7);
-    }
-  }
 
-  function updatePick(nowSec) {
-    if (!pick.active) return;
-    const p = (nowSec - pick.t0) / pick.dur;
-    if (p >= 1) {
-      pick.active = false;
-      pick.mesh.visible = false;
-      return;
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start();
     }
-    const from = pick.dir === 'U' ? 5 : 0;
-    const to = pick.dir === 'U' ? 0 : 5;
-    const k = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-    const y = yOf(from) + (yOf(to) - yOf(from)) * k;
-    pick.mesh.visible = true;
-    pick.mesh.position.set(-11.6, y, 0.85);
-  }
 
-  function handleEvent(ev, nowSec) {
-    switch (ev.type) {
-      case 'pluck': {
-        const st = strings[ev.s];
-        st.amp = ev.vel;
-        st.t0 = nowSec;
-        st.decay = ev.mute ? DECAY_MUTE : DECAY;
-        if (!ev.mute) burst(-5 - Math.random() * 3, yOf(ev.s), 10, 0xfbbf24);
-        else burst(-6, yOf(ev.s), 4, 0x94a3b8);
-        break;
-      }
-      case 'strum':
-        if (ev.dir !== 'X') {
-          pick.active = true;
-          pick.t0 = nowSec;
-          pick.dur = 0.14;
-          pick.dir = ev.dir;
+    // ==========================================
+    // 3. ENGINE RENDER 3D ĐÀN GUITAR TỰ CHỨA (ZERO EXTERNAL DEPS)
+    // ==========================================
+    const container = document.getElementById('canvas-container');
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    let cam = {
+      yaw: -0.35,
+      pitch: 0.25,
+      zoom: 1.0,
+      isDragging: false,
+      lastX: 0,
+      lastY: 0
+    };
+
+    // Tạo đường biên hình số 8 chuẩn dáng đàn Guitar Acoustic
+    function getBodyOutline(steps = 90) {
+      const pts = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * Math.PI * 2;
+        const y = -0.24 + 0.25 * Math.cos(t); // Từ y = +0.01 (vai đàn) xuống y = -0.49 (đáy thùng)
+        const normY = (y + 0.49) / 0.50; // 0 ở đáy, 1 ở vai đàn
+        // Hàm hồ sơ chiều rộng đặc trưng của đàn guitar: bầu dưới rộng, eo thắt giữa, bầu trên gọn
+        let halfW = 0;
+        if (normY <= 0.35) {
+          // Bầu dưới (Lower bout)
+          const u = normY / 0.35;
+          halfW = 0.195 * Math.sin(u * Math.PI * 0.52);
+        } else if (normY <= 0.68) {
+          // Eo thắt (Waist)
+          const u = (normY - 0.35) / 0.33;
+          halfW = 0.155 - 0.042 * Math.sin(u * Math.PI);
+        } else {
+          // Bầu trên (Upper bout)
+          const u = (normY - 0.68) / 0.32;
+          halfW = 0.155 * Math.cos(u * Math.PI * 0.48);
         }
-        break;
-      case 'chord':
-        if (ev.name !== curChord) setChordVisual(ev.name);
-        break;
-      case 'pos':
-        curPos = ev.pos;
-        setPosVisual(ev.pos);
-        break;
+        const x = Math.sin(t) >= 0 ? halfW : -halfW;
+        pts.push({ x, y });
+      }
+      return pts;
     }
-  }
 
-  let last = performance.now();
-  function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    const nowSec = now / 1000;
+    const bodyOutline = getBodyOutline(100);
+    const bodyDepth = 0.105; // Độ dày thùng đàn thực tế (không bị kéo dài như ống)
 
-    if (ctx) {
-      const t = ctx.currentTime;
-      if (events.length && events[0].t <= t) {
-        const due = [];
-        let n = 0;
-        while (n < events.length && events[n].t <= t) { due.push(events[n]); n++; }
-        events = events.slice(n);
-        due.forEach(e => handleEvent(e, nowSec));
+    // Tính vị trí 19 phím đàn theo công thức 12-TET
+    const nutY = 0.45;
+    const saddleY = -0.315;
+    const scaleLen = nutY - saddleY;
+    const fretYs = [nutY];
+    for (let f = 1; f <= 19; f++) {
+      fretYs.push(nutY - scaleLen * (1 - Math.pow(2, -f / 12)));
+    }
+
+    const stringVib = [
+      { amp: 0, phase: 0 },
+      { amp: 0, phase: 0 },
+      { amp: 0, phase: 0 },
+      { amp: 0, phase: 0 },
+      { amp: 0, phase: 0 },
+      { amp: 0, phase: 0 }
+    ];
+
+    // Phép chiếu 3D -> 2D
+    function project(x, y, z) {
+      // Xoay quanh trục Y (yaw)
+      const cosY = Math.cos(cam.yaw), sinY = Math.sin(cam.yaw);
+      let x1 = x * cosY - z * sinY;
+      let z1 = x * sinY + z * cosY;
+
+      // Xoay quanh trục X (pitch)
+      const cosX = Math.cos(cam.pitch), sinX = Math.sin(cam.pitch);
+      let y2 = y * cosX - z1 * sinX;
+      let z2 = y * sinX + z1 * cosX;
+
+      // Nghiêng nhẹ cây đàn cho đẹp mắt
+      const tilt = -0.18;
+      const cosT = Math.cos(tilt), sinT = Math.sin(tilt);
+      let x3 = x1 * cosT - y2 * sinT;
+      let y3 = x1 * sinT + y2 * cosT;
+
+      const fov = 2.6;
+      const dist = fov / (fov + z2 + 1.4);
+      const scale = Math.min(canvas.width, canvas.height) * 0.95 * cam.zoom * dist;
+
+      return {
+        x: canvas.width * 0.5 + x3 * scale,
+        y: canvas.height * 0.52 - y3 * scale,
+        z: z2,
+        scale
+      };
+    }
+
+    function drawPoly(points3D, fillStyle, strokeStyle = null, lineWidth = 1) {
+      const pts2D = points3D.map(p => project(p[0], p[1], p[2]));
+      ctx.beginPath();
+      ctx.moveTo(pts2D[0].x, pts2D[0].y);
+      for (let i = 1; i < pts2D.length; i++) {
+        ctx.lineTo(pts2D[i].x, pts2D[i].y);
+      }
+      ctx.closePath();
+      if (fillStyle) { ctx.fillStyle = fillStyle; ctx.fill(); }
+      if (strokeStyle) { ctx.strokeStyle = strokeStyle; ctx.lineWidth = lineWidth; ctx.stroke(); }
+    }
+
+    function renderScene() {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Hiệu ứng ánh sáng nền dịu
+      const bgGlow = ctx.createRadialGradient(canvas.width * 0.5, canvas.height * 0.5, 20, canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.55);
+      bgGlow.addColorStop(0, 'rgba(251, 191, 36, 0.06)');
+      bgGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = bgGlow;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Kiểm tra hướng nhìn mặt trước hay mặt sau của đàn
+      const pFront = project(0, -0.2, 0.01);
+      const pBack = project(0, -0.2, -bodyDepth);
+      const isFacingFront = pFront.z < pBack.z;
+
+      // 1. Vẽ mặt lưng thùng đàn (nếu nhìn từ phía sau)
+      const backPts = bodyOutline.map(p => [p.x, p.y, -bodyDepth]);
+      const frontPts = bodyOutline.map(p => [p.x, p.y, 0]);
+
+      if (!isFacingFront) {
+        drawPoly(frontPts, '#d98a3c', '#fde68a', 1.5);
+      }
+
+      // 2. Vẽ thành hông thùng đàn (Sides) chia theo từng dải tứ giác có đổ bóng 3D
+      const sideQuads = [];
+      for (let i = 0; i < bodyOutline.length - 1; i++) {
+        const p1 = bodyOutline[i];
+        const p2 = bodyOutline[i + 1];
+        const midZ = (project(p1.x, p1.y, -bodyDepth * 0.5).z + project(p2.x, p2.y, -bodyDepth * 0.5).z) * 0.5;
+        const shade = Math.max(0.35, Math.min(1, 0.75 + p1.x * 2.2));
+        sideQuads.push({
+          z: midZ,
+          pts: [[p1.x, p1.y, 0], [p2.x, p2.y, 0], [p2.x, p2.y, -bodyDepth], [p1.x, p1.y, -bodyDepth]],
+          color: `rgb(${Math.floor(110 * shade)}, ${Math.floor(52 * shade)}, ${Math.floor(24 * shade)})`
+        });
+      }
+      sideQuads.sort((a, b) => b.z - a.z);
+      sideQuads.forEach(q => drawPoly(q.pts, q.color, q.color, 0.6));
+
+      if (!isFacingFront) {
+        drawPoly(backPts, '#5c2d16', '#3e1d0d', 1.5);
+      }
+
+      // 3. Vẽ Cần đàn (Neck) & Đầu đàn (Headstock) phía sau
+      drawPoly([
+        [-0.026, 0.0, 0], [0.026, 0.0, 0], [0.026, nutY, 0], [-0.026, nutY, 0],
+        [-0.026, nutY, -0.022], [0.026, nutY, -0.022], [0.026, 0.0, -0.022], [-0.026, 0.0, -0.022]
+      ], '#4a2311');
+
+      // Đầu đàn (Headstock)
+      drawPoly([
+        [-0.028, nutY, 0.002], [0.028, nutY, 0.002],
+        [0.036, nutY + 0.15, -0.028], [-0.036, nutY + 0.15, -0.028]
+      ], '#4a2311', '#78350f', 1);
+
+      // 6 khóa đàn 2 bên đầu đàn
+      for (let i = 0; i < 6; i++) {
+        const side = i < 3 ? -1 : 1;
+        const row = i % 3;
+        const py = nutY + 0.035 + row * 0.042;
+        const pz = -0.006 - row * 0.008;
+        const pegStart = project(side * 0.031, py, pz);
+        const pegEnd = project(side * 0.047, py, pz);
+        ctx.beginPath();
+        ctx.moveTo(pegStart.x, pegStart.y);
+        ctx.lineTo(pegEnd.x, pegEnd.y);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 3 * cam.zoom;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(pegEnd.x, pegEnd.y, 4 * cam.zoom, 0, Math.PI * 2);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fill();
+      }
+
+      // 4. Vẽ Mặt trước thùng đàn (Soundboard) & Chi tiết
+      if (isFacingFront) {
+        const topGrad = ctx.createLinearGradient(0, project(0, 0.02, 0).y, 0, project(0, -0.49, 0).y);
+        topGrad.addColorStop(0, '#e59a4c');
+        topGrad.addColorStop(0.5, '#d48232');
+        topGrad.addColorStop(1, '#b86820');
+        drawPoly(frontPts, topGrad, '#fef3c7', 1.8);
+
+        // Miếng chống xước (Pickguard)
+        const pgPts = [];
+        for (let a = 0; a <= 20; a++) {
+          const ang = (a / 20) * Math.PI * 2;
+          pgPts.push([0.078 + 0.028 * Math.cos(ang), -0.18 + 0.055 * Math.sin(ang), 0.001]);
+        }
+        drawPoly(pgPts, '#2b1208');
+
+        // Lỗ thoát âm (Soundhole) & Viền Rosette
+        const holeCenter = project(0, -0.135, 0.001);
+        const holeEdge = project(0.052, -0.135, 0.001);
+        const rx = Math.abs(holeEdge.x - holeCenter.x);
+        const ry = rx * Math.max(0.25, Math.cos(cam.pitch));
+
+        ctx.save();
+        ctx.translate(holeCenter.x, holeCenter.y);
+        ctx.rotate(-0.18);
+        // Viền trang trí Rosette
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx * 1.18, ry * 1.18, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fde68a';
+        ctx.lineWidth = 3 * cam.zoom;
+        ctx.stroke();
+
+        // Lòng lỗ thoát âm tối sâu
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#120904';
+        ctx.fill();
+        ctx.restore();
+
+        // Ngựa đàn (Bridge) & Lược dưới (Saddle)
+        drawPoly([
+          [-0.075, -0.305, 0.002], [0.075, -0.305, 0.002],
+          [0.075, -0.335, 0.002], [-0.075, -0.335, 0.002]
+        ], '#24130b', '#451a03', 1);
+
+        drawPoly([
+          [-0.036, -0.312, 0.005], [0.036, -0.312, 0.005],
+          [0.036, -0.318, 0.005], [-0.036, -0.318, 0.005]
+        ], '#f8fafc');
+      }
+
+      // 5. Vẽ Mặt phím gỗ mun (Fretboard) đè lên phần cổ thùng đàn
+      if (isFacingFront) {
+        drawPoly([
+          [-0.027, -0.085, 0.004], [0.027, -0.085, 0.004],
+          [0.023, nutY, 0.004], [-0.023, nutY, 0.004]
+        ], '#1e110a', '#3f2314', 1);
+
+        // Lược đàn trên (Nut)
+        drawPoly([
+          [-0.023, nutY, 0.006], [0.023, nutY, 0.006],
+          [0.023, nutY + 0.007, 0.006], [-0.023, nutY + 0.007, 0.006]
+        ], '#f8fafc');
+
+        // 19 thanh phím kim loại & chấm khảm ngọc trai
+        const markerFrets = [3, 5, 7, 9, 12, 15];
+        for (let f = 1; f <= 19; f++) {
+          const fy = fretYs[f];
+          const t = (nutY - fy) / (nutY + 0.085);
+          const hw = 0.023 + (0.027 - 0.023) * t;
+          const pL = project(-hw, fy, 0.005);
+          const pR = project(hw, fy, 0.005);
+          ctx.beginPath();
+          ctx.moveTo(pL.x, pL.y);
+          ctx.lineTo(pR.x, pR.y);
+          ctx.strokeStyle = '#cbd5e1';
+          ctx.lineWidth = 1.4 * cam.zoom;
+          ctx.stroke();
+
+          if (markerFrets.includes(f)) {
+            const midY = (fretYs[f] + fretYs[f - 1]) * 0.5;
+            const dotP = project(0, midY, 0.005);
+            ctx.beginPath();
+            ctx.arc(dotP.x, dotP.y, 2.5 * cam.zoom, 0, Math.PI * 2);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fill();
+          }
+        }
+
+        // 6. Vẽ 6 dây đàn & hiệu ứng rung vật lý
+        const currentFrets = CHORDS[state.chord];
+        for (let i = 0; i < 6; i++) {
+          const xNut = -0.018 + i * 0.0072;
+          const xBridge = -0.025 + i * 0.010;
+          const vib = stringVib[i];
+          const offsetX = vib.amp > 0.00005 ? Math.sin(vib.phase) * vib.amp : 0;
+
+          const pTop = project(xNut, nutY, 0.008);
+          const pMid = project((xNut + xBridge) * 0.5 + offsetX, (nutY + saddleY) * 0.5, 0.008);
+          const pBot = project(xBridge, saddleY, 0.008);
+
+          ctx.beginPath();
+          ctx.moveTo(pTop.x, pTop.y);
+          ctx.quadraticCurveTo(pMid.x, pMid.y, pBot.x, pBot.y);
+          ctx.strokeStyle = i < 4 ? '#eab308' : '#f1f5f9';
+          ctx.lineWidth = (2.1 - i * 0.22) * cam.zoom;
+          ctx.stroke();
+
+          // Điểm bấm ngón tay của hợp âm hiện tại
+          const fretNum = currentFrets[i];
+          if (fretNum > 0 && fretNum < fretYs.length) {
+            const fy = (fretYs[fretNum] + fretYs[fretNum - 1]) * 0.5;
+            const ratio = (nutY - fy) / scaleLen;
+            const fx = xNut + (xBridge - xNut) * ratio;
+            const fp = project(fx, fy, 0.009);
+
+            ctx.beginPath();
+            ctx.arc(fp.x, fp.y, 5.5 * cam.zoom, 0, Math.PI * 2);
+            ctx.fillStyle = '#fbbf24';
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        }
       }
     }
 
-    updateStrings(nowSec);
-    updatePick(nowSec);
-    updateSparks(dt);
+    // ==========================================
+    // 4. LOGIC CHƠI ĐÀN & ĐIỀU KHIỂN
+    // ==========================================
+    function pluckString(stringIdx, isMuted = false, delayMs = 0) {
+      const fret = CHORDS[state.chord][stringIdx];
+      if (fret === -1) return;
 
-    fingerMarkers.forEach((m, s) => {
-      if (!m.visible) return;
-      m.material.emissive.setScalar(0.12 + 0.1 * Math.sin(nowSec * 3 + s));
+      setTimeout(() => {
+        const freq = OPEN_FREQS[stringIdx] * Math.pow(2, fret / 12);
+        playKarplusStrong(freq, isMuted ? 0.45 : 0.85, isMuted);
+        stringVib[stringIdx].amp = isMuted ? 0.002 : 0.006;
+      }, delayMs);
+    }
+
+    function strum(direction = 'D', isMuted = false) {
+      const order = direction === 'D' ? [0, 1, 2, 3, 4, 5] : [5, 4, 3, 2, 1, 0];
+      order.forEach((strIdx, idx) => {
+        pluckString(strIdx, isMuted, idx * 24);
+      });
+    }
+
+    function renderSteps() {
+      const containerSteps = document.getElementById('rhythm-steps');
+      const pattern = PATTERNS[state.mode];
+      document.getElementById('hud-pattern').textContent = pattern.name;
+      containerSteps.innerHTML = pattern.steps.map((s, idx) =>
+        `<div class="step-box ${idx === state.stepIndex && state.isPlaying ? 'current' : ''}">${s}</div>`
+      ).join('');
+    }
+
+    let timerId = null;
+    function tick() {
+      const pattern = PATTERNS[state.mode].steps;
+      const action = pattern[state.stepIndex];
+      renderSteps();
+
+      if (action === 'D') strum('D', false);
+      else if (action === 'U') strum('U', false);
+      else if (action === 'X') strum('D', true);
+      else if (action === 'P') {
+        const bassIdx = CHORDS[state.chord].findIndex(f => f !== -1);
+        if (bassIdx !== -1) pluckString(bassIdx);
+      } else if (['1', '2', '3'].includes(action)) {
+        pluckString(6 - parseInt(action));
+      }
+
+      state.stepIndex = (state.stepIndex + 1) % pattern.length;
+    }
+
+    function togglePlay() {
+      state.isPlaying = !state.isPlaying;
+      const btn = document.getElementById('btn-play');
+      if (state.isPlaying) {
+        ensureAudio();
+        btn.textContent = '⏸ Dừng';
+        btn.classList.add('playing');
+        state.stepIndex = 0;
+        tick();
+        timerId = setInterval(tick, (60 / state.tempo / 2) * 1000);
+      } else {
+        btn.textContent = '▶ Phát';
+        btn.classList.remove('playing');
+        clearInterval(timerId);
+        renderSteps();
+      }
+    }
+
+    // Khởi tạo nút hợp âm
+    const chordGrid = document.getElementById('chord-grid');
+    Object.keys(CHORDS).forEach(ch => {
+      const b = document.createElement('button');
+      b.className = `chord-btn ${ch === state.chord ? 'active' : ''}`;
+      b.textContent = ch;
+      b.onclick = () => {
+        state.chord = ch;
+        document.querySelectorAll('.chord-btn').forEach(el => el.classList.remove('active'));
+        b.classList.add('active');
+        document.getElementById('hud-chord').textContent = ch;
+        strum('D');
+      };
+      chordGrid.appendChild(b);
     });
 
-    if (!dragging) yaw += dt * 0.07;
-    rig.rotation.y = yaw;
-    rig.rotation.x = tilt;
+    document.getElementById('btn-play').onclick = togglePlay;
+    document.getElementById('btn-down').onclick = () => strum('D', false);
+    document.getElementById('btn-up').onclick = () => strum('U', false);
+    document.getElementById('btn-chuck').onclick = () => strum('D', true);
 
-    renderer.render(scene, camera);
-    requestAnimationFrame(frame);
-  }
+    document.getElementById('btn-rotate').onclick = (e) => {
+      state.autoRotate = !state.autoRotate;
+      e.target.textContent = `🔄 Tự xoay: ${state.autoRotate ? 'Bật' : 'Tắt'}`;
+    };
 
-  // ---------- Điều khiển ----------
-  $('btnPlay').addEventListener('click', () => { playing ? stopPlay() : startPlay(); });
-  $('bpm').addEventListener('input', () => { $('bpmVal').textContent = $('bpm').value; });
-  $('vol').addEventListener('input', () => { if (master) master.gain.value = Number($('vol').value); });
-  $('btnD').addEventListener('click', () => manualStrum('D'));
-  $('btnU').addEventListener('click', () => manualStrum('U'));
-  $('btnQ').addEventListener('click', manualQuat);
-  $('pattern').addEventListener('change', () => {
-    patKey = $('pattern').value;
-    groupKey = PATTERNS[patKey].g;
-    document.querySelectorAll('#groupSeg button').forEach(b => b.classList.toggle('on', b.dataset.g === groupKey));
-    renderPattern();
-    updateHud();
-  });
-  $('prog').addEventListener('change', () => { progKey = $('prog').value; });
-  document.querySelectorAll('#groupSeg button').forEach(b => b.addEventListener('click', () => setGroup(b.dataset.g)));
+    document.getElementById('btn-reset').onclick = () => {
+      cam.yaw = -0.35;
+      cam.pitch = 0.25;
+      cam.zoom = 1.0;
+    };
 
-  window.addEventListener('keydown', e => {
-    const tag = e.target.tagName;
-    if (tag === 'INPUT' || tag === 'SELECT') return;
-    if (e.code === 'Space') { e.preventDefault(); playing ? stopPlay() : startPlay(); return; }
-    if (playing) return;
-    const k = e.key.toLowerCase();
-    if (k === 'd') manualStrum('D');
-    else if (k === 'u') manualStrum('U');
-    else if (k === 'q') manualQuat();
-    else if (e.key >= '1' && e.key <= '6') manualPluck(6 - Number(e.key));
-  });
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.onclick = () => {
+        state.mode = btn.dataset.mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('hud-mode').textContent = btn.textContent.toUpperCase();
+        state.stepIndex = 0;
+        renderSteps();
+      };
+    });
 
-  // ---------- Khởi tạo ----------
-  $('bpmVal').textContent = $('bpm').value;
-  buildProgs();
-  buildChips();
-  populatePatterns();
-  setChordVisual(manualChord);
-  resize();
-  requestAnimationFrame(t => { last = t; frame(t); });
-})();
-</script>
+    document.getElementById('slider-tempo').oninput = (e) => {
+      state.tempo = parseInt(e.target.value);
+      document.getElementById('val-tempo').textContent = state.tempo;
+      if (state.isPlaying) {
+        clearInterval(timerId);
+        timerId = setInterval(tick, (60 / state.tempo / 2) * 1000);
+      }
+    };
+
+    document.getElementById('slider-vol').oninput = (e) => {
+      state.volume = parseFloat(e.target.value);
+      document.getElementById('val-vol').textContent = state.volume;
+    };
+
+    // Điều khiển xoay & thu phóng bằng chuột
+    container.addEventListener('mousedown', (e) => {
+      cam.isDragging = true;
+      cam.lastX = e.clientX;
+      cam.lastY = e.clientY;
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!cam.isDragging) return;
+      cam.yaw += (e.clientX - cam.lastX) * 0.008;
+      cam.pitch = Math.max(-1.2, Math.min(1.2, cam.pitch + (e.clientY - cam.lastY) * 0.008));
+      cam.lastX = e.clientX;
+      cam.lastY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => { cam.isDragging = false; });
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      cam.zoom = Math.max(0.5, Math.min(2.2, cam.zoom - e.deltaY * 0.001));
+    }, { passive: false });
+
+    // Phím tắt
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+      else if (k === 'd') strum('D', false);
+      else if (k === 'u') strum('U', false);
+      else if (k === 'q') strum('D', true);
+      else if (k === 'r') document.getElementById('btn-reset').click();
+      else if (['1','2','3','4','5','6'].includes(k)) pluckString(6 - parseInt(k));
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (state.autoRotate && !cam.isDragging) {
+        cam.yaw += 0.01;
+      }
+      stringVib.forEach(s => {
+        if (s.amp > 0.00005) {
+          s.phase += 1.45;
+          s.amp *= 0.94;
+        }
+      });
+      renderScene();
+    }
+
+    renderSteps();
+    animate();
+  </script>
 </body>
 </html>
