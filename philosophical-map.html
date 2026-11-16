@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bản đồ triết học 3D · 2.500 năm tư tưởng</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg:#070a12; --panel:rgba(16,22,40,.82); --line:rgba(255,255,255,.09); --text:#e8eaf2; --muted:#8b93a7; --gold:#f5b942; --blue:#60a5fa; --red:#f87171; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:radial-gradient(900px 600px at 50% -10%, #1f2a44 0%, transparent 60%), var(--bg); color:var(--text); min-height:100vh; padding:20px 14px 40px; }
+  .wrap { max-width:1200px; margin:0 auto; }
+  header { text-align:center; margin-bottom:14px; }
+  h1 { font-size:1.9rem; letter-spacing:.5px; }
+  h1 span { color:var(--gold); }
+  header p { color:var(--muted); font-size:.92rem; margin-top:4px; }
+
+  .toolbar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:14px; }
+  .toolbar label { font-size:.84rem; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  select, #q { background:rgba(10,14,30,.9); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:.88rem; }
+  #q { width:230px; }
+  input[type=range] { accent-color:var(--gold); width:170px; }
+  .val { color:var(--gold); font-weight:700; min-width:5.5em; font-variant-numeric:tabular-nums; }
+  .chk input { accent-color:var(--gold); }
+  button { font:inherit; color:#111; background:linear-gradient(135deg,#f59e0b,#d97706); border:none; border-radius:9px; padding:8px 14px; font-weight:700; cursor:pointer; }
+  button:hover { filter:brightness(1.08); }
+
+  .layout { display:grid; grid-template-columns:1fr 340px; gap:14px; align-items:start; }
+  @media (max-width:900px) { .layout { grid-template-columns:1fr; } }
+  #stage { position:relative; width:100%; height:580px; border-radius:18px; overflow:hidden; border:1px solid var(--line);
+    background:#070a12; cursor:grab; touch-action:none; box-shadow:0 24px 60px -12px rgba(0,0,0,.7); }
+  #stage:active { cursor:grabbing; }
+  #stage canvas { display:block; width:100%; height:100%; }
+  #labels { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .lbl { position:absolute; left:0; top:0; white-space:nowrap; font-size:.72rem; font-weight:700; color:#e2e8f0;
+    background:rgba(7,10,18,.75); border:1px solid rgba(255,255,255,.12); border-radius:6px; padding:2px 6px;
+    pointer-events:auto; cursor:pointer; will-change:transform; }
+  .lbl.sel { color:#111; background:var(--gold); border-color:var(--gold); }
+  .lbl.dim { opacity:.25; }
+  .lbl.axis { color:var(--muted); background:none; border:none; font-weight:500; cursor:default; pointer-events:none; }
+  .lbl.band { color:#cbd5e1; font-size:.68rem; text-transform:uppercase; letter-spacing:.5px; background:none; border:none; cursor:default; pointer-events:none; opacity:.85; }
+  .legend { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:10px; font-size:.78rem; color:var(--muted); }
+  .legend span { cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+  .legend span:hover { color:var(--text); }
+  .legend i { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .hint { color:#64748b; font-size:.75rem; margin-top:8px; }
+
+  .side { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; height:580px; overflow-y:auto; }
+  .side h2 { font-size:1.15rem; color:var(--gold); margin-bottom:4px; }
+  .side .meta { font-size:.8rem; color:var(--muted); margin-bottom:10px; }
+  .side h3 { font-size:.72rem; color:var(--gold); text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px; }
+  .side p { font-size:.9rem; line-height:1.6; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { font-size:.78rem; background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:7px; padding:3px 8px; }
+  .chip.link { cursor:pointer; color:var(--blue); }
+  .chip.link:hover { border-color:var(--blue); }
+  .chip.red { color:var(--red); }
+  .chip.red:hover { border-color:var(--red); }
+  .muted { color:var(--muted); font-size:.87rem; line-height:1.6; }
+  .note { margin-top:14px; color:var(--muted); font-size:.78rem; line-height:1.6; text-align:center; }
+</style>
+<script src="three.min.js"></script>
+<script>
+  if (typeof THREE === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"><\/script>');
+  }
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Bản đồ <span>triết học</span> 3D</h1>
+    <p>Trục ngang là thời gian · trục dọc là khu vực tư tưởng · đường nối là quan hệ ảnh hưởng và phản biện</p>
+  </header>
+
+  <section class="toolbar">
+    <label>Khu vực
+      <select id="regSel"></select>
+    </label>
+    <label>Tìm
+      <input type="text" id="q" placeholder="Tên trường phái, khái niệm...">
+    </label>
+    <label>Đến năm
+      <input type="range" id="yr" min="-1500" max="2000" step="10" value="2000">
+      <span class="val" id="yrVal">tất cả</span>
+    </label>
+    <label class="chk"><input type="checkbox" id="eInf" checked> Ảnh hưởng</label>
+    <label class="chk"><input type="checkbox" id="eCri" checked> Phản biện</label>
+    <button type="button" id="reset">Đặt lại</button>
+  </section>
+
+  <div class="layout">
+    <div>
+      <div id="stage"><div id="labels"></div></div>
+      <div class="legend" id="legend"></div>
+      <div class="hint">Kéo để xoay · lăn chuột để phóng to/thu nhỏ · bấm nốt hoặc nhãn để xem chi tiết</div>
+    </div>
+    <aside class="side" id="side"></aside>
+  </div>
+
+  <div class="note">
+    Bản đồ tóm tắt một phần nội dung tài liệu “Bản đồ 2.500 năm triết học”. Niên đại là ước lượng để sắp xếp hình ảnh,
+    không phải mốc lịch sử chính xác. Nếu cần tra cứu sâu hơn, hãy đọc tài liệu gốc.
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+
+  // ---------- Khu vực (trục dọc) ----------
+  const REG = ['Ấn Độ', 'Trung Hoa', 'Hy Lạp–La Mã', 'Trung cổ', 'Cận đại', 'Đức', 'Thế kỷ XIX–XX', 'Đương đại'];
+  const COL = ['#f59e0b', '#ef4444', '#38bdf8', '#a78bfa', '#22c55e', '#f472b6', '#facc15', '#94a3b8'];
+
+  // ---------- Dữ liệu trường phái ----------
+  // reg: chỉ số khu vực; y0, y1: khoảng năm (âm = TCN)
+  const D = [
+    { id: 'upan', name: 'Vệ-đà & Upanishad', reg: 0, y0: -1500, y1: -500,
+      thesis: 'Đằng sau thế giới biến đổi có một thực tại tối hậu; Upanishad đặt câu hỏi về mối quan hệ giữa Ātman (ngã) và Brahman.',
+      concepts: ['Brahman', 'Ātman', 'Karma', 'Moksha'],
+      strong: 'Đặt câu hỏi bản thể học rất sâu; gắn triết học với đời sống nội tâm.',
+      weak: 'Nhiều luận đề siêu hình khó kiểm chứng; văn bản đa tầng, không luôn nhất quán.' },
+    { id: 'buddh', name: 'Phật giáo', reg: 0, y0: -500, y1: 100,
+      thesis: 'Khổ phát sinh từ vô minh và ái nhiễm; có thể chấm dứt khổ bằng con đường chuyển hóa nhận thức, hành vi và tâm.',
+      concepts: ['Tứ Diệu Đế', 'Duyên khởi', 'Vô ngã', 'Niết-bàn'],
+      strong: 'Phân tích kinh nghiệm chủ quan tinh tế; có phương pháp thực hành kiểm nghiệm qua thiền.',
+      weak: 'Một số diễn giải siêu hình khó kiểm chứng; các truyền thống về sau rất đa dạng.' },
+    { id: 'confu', name: 'Nho gia', reg: 1, y0: -500, y1: -200,
+      thesis: 'Xã hội tốt bắt đầu từ việc con người tu dưỡng bản thân và thực hiện đúng các quan hệ đạo đức.',
+      concepts: ['Nhân', 'Lễ', 'Nghĩa', 'Chính danh'],
+      strong: 'Đạo đức quan hệ, giáo dục và trách nhiệm xã hội.',
+      weak: 'Có nguy cơ củng cố thứ bậc cứng; dễ biến thành phục tùng quyền lực.' },
+    { id: 'tao', name: 'Đạo gia', reg: 1, y0: -500, y1: -200,
+      thesis: 'Con người nên thuận theo Đạo và tự nhiên thay vì cố kiểm soát mọi thứ.',
+      concepts: ['Đạo', 'Đức', 'Vô vi', 'Tự nhiên'],
+      strong: 'Tư duy hệ thống và cân bằng; nhấn mạnh giới hạn của kiểm soát.',
+      weak: '“Vô vi” dễ bị hiểu nhầm thành thụ động; khó chuyển thành mô hình quản trị hiện đại.' },
+    { id: 'presoc', name: 'Tiền Socrates', reg: 2, y0: -600, y1: -400,
+      thesis: 'Vũ trụ có thể được giải thích bằng nguyên lý tự nhiên (physis) thay vì thần thoại.',
+      concepts: ['Physis', 'Nguyên lý đầu tiên', 'Biến dịch', 'Nguyên tử'],
+      strong: 'Đặt nền móng cho tư duy khoa học và bản thể học.',
+      weak: 'Thiếu phương pháp thực nghiệm hiện đại.' },
+    { id: 'soc', name: 'Socrates', reg: 2, y0: -470, y1: -399,
+      thesis: 'Cuộc đời không được kiểm tra bằng lý trí thì không đáng sống theo nghĩa triết học.',
+      concepts: ['Elenchus', 'Biết mình', 'Đức hạnh'],
+      strong: 'Tư duy phản biện; kiểm tra các giả định.',
+      weak: 'Có thể phá bỏ niềm tin nhanh hơn khả năng xây dựng hệ thống thay thế.' },
+    { id: 'plato', name: 'Platonism', reg: 2, y0: -428, y1: -348,
+      thesis: 'Thế giới kinh nghiệm không phải toàn bộ thực tại; có những Forms ổn định hơn làm nền cho tri thức.',
+      concepts: ['Forms', 'Cái Thiện', 'Biện chứng', 'Triết vương'],
+      strong: 'Bản thể học sâu; ảnh hưởng lớn đến triết học giáo dục và chính trị.',
+      weak: 'Khó giải thích quan hệ giữa Forms và vật thể; nhà nước lý tưởng dễ dẫn đến chuyên quyền.' },
+    { id: 'aris', name: 'Aristotelianism', reg: 2, y0: -384, y1: -322,
+      thesis: 'Để hiểu một vật phải biết nó là gì, cấu tạo từ gì, nguyên nhân nào tạo ra nó và mục đích của nó.',
+      concepts: ['Bốn nguyên nhân', 'Hình thức/Chất liệu', 'Đức hạnh', 'Eudaimonia'],
+      strong: 'Hệ thống hóa logic, sinh học, đạo đức và siêu hình học.',
+      weak: 'Một phần vật lý cổ điển đã bị khoa học hiện đại vượt qua; teleology cần dùng thận trọng.' },
+    { id: 'stoic', name: 'Khắc kỷ (Stoicism)', reg: 2, y0: -300, y1: 180,
+      thesis: 'Hạnh phúc phụ thuộc vào cách ta phán đoán và hành động, không hoàn toàn vào ngoại cảnh.',
+      concepts: ['Logos', 'Phân biệt điều kiểm soát', 'Apatheia', 'Tính toàn cầu'],
+      strong: 'Tăng khả năng tự chủ; có giá trị trong quản lý căng thẳng.',
+      weak: 'Dễ bị hiểu thành kìm nén cảm xúc; không phải vấn đề xã hội nào cũng giải quyết bằng thái độ cá nhân.' },
+    { id: 'epic', name: 'Epicureanism', reg: 2, y0: -341, y1: -270,
+      thesis: 'Đời sống tốt là đời có khoái lạc ổn định, ít sợ hãi và ít đau khổ.',
+      concepts: ['Ataraxia', 'Aponia', 'Tình bạn', 'Không sợ hãi'],
+      strong: 'Phân biệt khoái lạc bền vững với hưởng thụ quá mức; đề cao tình bạn.',
+      weak: 'Dễ bị hiểu nhầm thành chủ nghĩa hưởng lạc.' },
+    { id: 'augus', name: 'Augustine & Kitô giáo Platon', reg: 3, y0: 354, y1: 430,
+      thesis: 'Chân lý tối hậu gắn với Thiên Chúa; nội tâm con người là nơi tìm hiểu bản thân và đức tin.',
+      concepts: ['Chiếu sáng thần thánh', 'Ý chí tự do', 'Thời gian', 'Nội tâm'],
+      strong: 'Phân tích nội tâm sâu; ảnh hưởng lớn đến triết học về thời gian và ý thức.',
+      weak: 'Phụ thuộc tiền đề thần học.' },
+    { id: 'schol', name: 'Kinh viện (Scholasticism)', reg: 3, y0: 1100, y1: 1500,
+      thesis: 'Đức tin và lý trí có thể đối thoại; Aristotle được tích hợp vào thần học.',
+      concepts: ['Luật tự nhiên', 'Bản chất/tồn tại', 'Nguyên nhân thứ nhất', 'Phổ quát'],
+      strong: 'Logic và tranh luận có hệ thống; phát triển luật tự nhiên.',
+      weak: 'Bị giới hạn bởi tiền đề thần học; nhiều tranh luận quá trừu tượng.' },
+    { id: 'hum', name: 'Nhân văn Phục hưng', reg: 4, y0: 1350, y1: 1550,
+      thesis: 'Con người có năng lực tự giáo dục, sáng tạo và định hình đời sống.',
+      concepts: ['Phẩm giá con người', 'Giáo dục', 'Cá tính', 'Phục hưng cổ điển'],
+      strong: 'Đề cao giáo dục và phẩm giá; thúc đẩy khoa học và nghệ thuật.',
+      weak: 'Định nghĩa “con người” đôi khi quá lý tưởng.' },
+    { id: 'ratio', name: 'Duy lý (Descartes, Spinoza, Leibniz)', reg: 4, y0: 1637, y1: 1716,
+      thesis: 'Lý trí và cấu trúc tiên nghiệm có thể cung cấp tri thức quan trọng về thực tại.',
+      concepts: ['Cogito', 'Tiên thiên', 'Thực thể', 'Suy diễn'],
+      strong: 'Logic chặt chẽ; đặt nền cho triết học hiện đại về chủ thể.',
+      weak: 'Khó giải thích nguồn gốc tri thức thực nghiệm; tạo bài toán tâm–thân.' },
+    { id: 'emp', name: 'Kinh nghiệm luận (Locke, Berkeley, Hume)', reg: 4, y0: 1690, y1: 1776,
+      thesis: 'Tri thức phụ thuộc mạnh vào kinh nghiệm; ta suy ra nhân quả từ thói quen, không trực tiếp quan sát nó.',
+      concepts: ['Tabula rasa', 'Nhân quả', 'Quy nạp', 'Thói quen'],
+      strong: 'Tinh thần kiểm chứng; phê phán siêu hình học giáo điều.',
+      weak: 'Bài toán quy nạp; khó giải thích toán học và cấu trúc tiên nghiệm.' },
+    { id: 'contract', name: 'Khế ước xã hội', reg: 4, y0: 1651, y1: 1762,
+      thesis: 'Tính chính đáng của nhà nước phải được giải thích từ quan hệ giữa cá nhân và cộng đồng.',
+      concepts: ['Trạng thái tự nhiên', 'Quyền tự nhiên', 'Ý chí chung'],
+      strong: 'Đặt cá nhân và tính chính đáng chính trị vào trung tâm.',
+      weak: '“Trạng thái tự nhiên” phần lớn là mô hình tư tưởng.' },
+    { id: 'dualism', name: 'Nhị nguyên tâm–thân (Descartes)', reg: 4, y0: 1641, y1: 1700,
+      thesis: 'Tâm trí và vật chất là hai loại thực tại khác nhau.',
+      concepts: ['Tâm / Vật', 'Bài toán tương tác'],
+      strong: 'Giải thích trực giác rằng trải nghiệm chủ quan khác vật thể.',
+      weak: 'Bài toán tương tác: tâm và thân tác động lên nhau thế nào?' },
+    { id: 'kant', name: 'Kant', reg: 5, y0: 1781, y1: 1804,
+      thesis: 'Kinh nghiệm cần dữ liệu từ thế giới nhưng cũng cần cấu trúc của chủ thể để thành kinh nghiệm có tổ chức.',
+      concepts: ['Tiên nghiệm', 'Hiện tượng / Vật tự thân', 'Mệnh lệnh tuyệt đối', 'Tự trị'],
+      strong: 'Tổng hợp duy lý và kinh nghiệm; nền tảng cho đạo đức nghĩa vụ.',
+      weak: 'Khó giải thích “vật tự thân”; hệ thống rất trừu tượng.' },
+    { id: 'hegel', name: 'Hegel', reg: 5, y0: 1807, y1: 1831,
+      thesis: 'Thực tại xã hội và lịch sử phát triển qua mâu thuẫn và quá trình vượt qua chúng.',
+      concepts: ['Biện chứng', 'Tinh thần', 'Aufhebung', 'Công nhận'],
+      strong: 'Nhìn lịch sử như một quá trình; ảnh hưởng lớn đến Marx.',
+      weak: 'Khó kiểm chứng; có nguy cơ biến lịch sử thành câu chuyện tất yếu.' },
+    { id: 'marx', name: 'Marxism', reg: 6, y0: 1848, y1: 1883,
+      thesis: 'Cấu trúc kinh tế và quan hệ sản xuất ảnh hưởng sâu sắc đến xã hội, chính trị và ý thức.',
+      concepts: ['Duy vật lịch sử', 'Đấu tranh giai cấp', 'Tha hóa', 'Giá trị thặng dư'],
+      strong: 'Phân tích quyền lực kinh tế; ảnh hưởng lớn đến xã hội học và kinh tế chính trị.',
+      weak: 'Một số dự đoán lịch sử không diễn ra đơn giản; giảm mọi hiện tượng xã hội về kinh tế có thể quá mức.' },
+    { id: 'util', name: 'Vị lợi (Bentham, Mill)', reg: 6, y0: 1789, y1: 1900,
+      thesis: 'Hành động nên hướng đến tối đa hóa hạnh phúc hoặc lợi ích cho số đông.',
+      concepts: ['Hữu dụng', 'Hạnh phúc lớn nhất', 'Hệ quả'],
+      strong: 'Có tính quyết định rõ; hữu ích trong phân tích chính sách.',
+      weak: 'Có thể hy sinh quyền của thiểu số; khó đo lường hạnh phúc.' },
+    { id: 'nietz', name: 'Nietzsche', reg: 6, y0: 1872, y1: 1900,
+      thesis: 'Các giá trị không hiển nhiên; cần truy nguyên nguồn gốc của chúng và hỏi chúng phục vụ kiểu sống nào.',
+      concepts: ['Ý chí quyền lực', 'Siêu nhân', 'Hư vô', 'Phả hệ', 'Oán hận'],
+      strong: 'Phê phán giá trị sâu sắc; phân tích tâm lý quyền lực.',
+      weak: 'Văn phong châm ngôn dễ bị diễn giải theo nhiều hướng.' },
+    { id: 'pheno', name: 'Hiện tượng học (Husserl)', reg: 6, y0: 1900, y1: 1950,
+      thesis: 'Nghiên cứu cách sự vật xuất hiện trong kinh nghiệm có ý nghĩa của chủ thể.',
+      concepts: ['Tính hướng ý', 'Epoché', 'Thế giới đời sống', 'Thân thể'],
+      strong: 'Mô tả trải nghiệm tinh tế; ảnh hưởng đến tâm lý học và khoa học nhận thức.',
+      weak: 'Khó chuẩn hóa thành phương pháp thực nghiệm.' },
+    { id: 'exist', name: 'Hiện sinh', reg: 6, y0: 1930, y1: 1980,
+      thesis: 'Con người đối diện tự do, hữu hạn, trách nhiệm và câu hỏi về ý nghĩa của đời mình.',
+      concepts: ['Tự do', 'Lo âu', 'Chân thực', 'Phi lý', 'Trách nhiệm'],
+      strong: 'Phân tích sâu kinh nghiệm sống; đặt trách nhiệm cá nhân vào trung tâm.',
+      weak: 'Có thể quá tập trung vào cá nhân; một số dạng mang màu sắc bi quan.' },
+    { id: 'analytic', name: 'Triết học phân tích', reg: 6, y0: 1900, y1: 1970,
+      thesis: 'Nhiều vấn đề triết học có thể được làm rõ bằng phân tích logic, khái niệm và ngôn ngữ.',
+      concepts: ['Phân tích logic', 'Ý nghĩa', 'Quy chiếu', 'Điều kiện chân lý'],
+      strong: 'Chính xác; gần với logic và khoa học.',
+      weak: 'Có thể bỏ qua lịch sử, thân thể và trải nghiệm sống.' },
+    { id: 'popper', name: 'Duy lý phê phán (Popper)', reg: 6, y0: 1934, y1: 1994,
+      thesis: 'Khoa học tiến bộ bằng các giả thuyết có thể bị bác bỏ, không phải bằng việc chứng minh tuyệt đối.',
+      concepts: ['Khả năng bác bỏ', 'Phỏng đoán', 'Bác bỏ'],
+      strong: 'Chống giáo điều; nhấn mạnh kiểm tra nghiêm khắc.',
+      weak: 'Khoa học thực tế phức tạp hơn mô hình một thí nghiệm bác bỏ một lý thuyết.' },
+    { id: 'struct', name: 'Cấu trúc luận & hậu cấu trúc', reg: 6, y0: 1916, y1: 1980,
+      thesis: 'Ý nghĩa nằm trong quan hệ giữa các thành phần của một hệ thống; tri thức gắn chặt với quyền lực.',
+      concepts: ['Cấu trúc', 'Ký hiệu', 'Đối lập nhị nguyên', 'Diễn ngôn', 'Quyền lực'],
+      strong: 'Nhìn hệ thống thay vì cá thể; phân tích quyền lực vi mô.',
+      weak: 'Có thể đánh giá thấp chủ thể; khó giải thích biến đổi lịch sử.' },
+    { id: 'frank', name: 'Lý thuyết phê phán (Frankfurt)', reg: 6, y0: 1930, y1: 2000,
+      thesis: 'Triết học phải phân tích cơ chế thống trị và khả năng giải phóng, không chỉ mô tả xã hội.',
+      concepts: ['Ý thức hệ', 'Công nghiệp văn hóa', 'Hành động giao tiếp', 'Giải phóng'],
+      strong: 'Kết nối triết học với xã hội và truyền thông.',
+      weak: 'Một số phê phán văn hóa mang tính khái quát; khó định lượng vài khái niệm.' },
+    { id: 'physical', name: 'Thuyết vật lý luận', reg: 7, y0: 1950, y1: 2020,
+      thesis: 'Mọi hiện tượng tâm trí cuối cùng đều phụ thuộc vào trạng thái vật lý.',
+      concepts: ['Trạng thái vật lý', 'Vấn đề khó của ý thức', 'Qualia'],
+      strong: 'Phù hợp với khoa học thần kinh; tích hợp tâm trí vào khoa học tự nhiên.',
+      weak: 'Vấn đề khó của ý thức; qualia khó mô tả hoàn toàn bằng vật lý.' },
+    { id: 'util2', name: '', reg: 7, y0: 0, y1: 0, skip: true },
+    { id: 'virtue', name: 'Đạo đức đức hạnh hiện đại', reg: 7, y0: 1958, y1: 2020,
+      thesis: 'Câu hỏi quan trọng không chỉ là “tôi nên làm gì” mà còn là “tôi nên trở thành người thế nào”.',
+      concepts: ['Đức hạnh', 'Nhân cách', 'Khôn ngoan thực hành'],
+      strong: 'Tập trung vào nhân cách lâu dài; phù hợp giáo dục đạo đức.',
+      weak: 'Khó đưa đáp án cụ thể cho mọi tình huống.' },
+    { id: 'aiphil', name: 'Triết học AI', reg: 7, y0: 1950, y1: 2020,
+      thesis: 'Buộc ta làm rõ trí thông minh, ý thức, chủ thể, trách nhiệm và giá trị khi máy có năng lực ngày càng cao.',
+      concepts: ['Trí thông minh', 'Ý thức', 'Tác nhân', 'Trách nhiệm', 'Căn chỉnh'],
+      strong: 'Làm rõ các khái niệm nền tảng về tâm trí và đạo đức.',
+      weak: 'Nhiều vấn đề phụ thuộc vào thực nghiệm trong tương lai.' },
+  ].filter(d => !d.skip);
+
+  // Quan hệ: [từ, đến, loại]
+  const LINKS = [
+    ['upan', 'buddh', 'phản biện'],
+    ['presoc', 'plato', 'ảnh hưởng'],
+    ['soc', 'plato', 'ảnh hưởng'],
+    ['plato', 'aris', 'phản biện'],
+    ['plato', 'augus', 'ảnh hưởng'],
+    ['aris', 'schol', 'ảnh hưởng'],
+    ['aris', 'virtue', 'ảnh hưởng'],
+    ['stoic', 'virtue', 'ảnh hưởng'],
+    ['stoic', 'epic', 'phản biện'],
+    ['confu', 'tao', 'phản biện'],
+    ['hum', 'ratio', 'ảnh hưởng'],
+    ['augus', 'ratio', 'ảnh hưởng'],
+    ['ratio', 'emp', 'phản biện'],
+    ['ratio', 'dualism', 'ảnh hưởng'],
+    ['dualism', 'physical', 'phản biện'],
+    ['emp', 'kant', 'ảnh hưởng'],
+    ['ratio', 'kant', 'ảnh hưởng'],
+    ['emp', 'contract', 'ảnh hưởng'],
+    ['kant', 'hegel', 'phản biện'],
+    ['kant', 'util', 'phản biện'],
+    ['hegel', 'marx', 'ảnh hưởng'],
+    ['contract', 'marx', 'phản biện'],
+    ['marx', 'frank', 'ảnh hưởng'],
+    ['nietz', 'exist', 'ảnh hưởng'],
+    ['nietz', 'struct', 'ảnh hưởng'],
+    ['pheno', 'exist', 'ảnh hưởng'],
+    ['hegel', 'exist', 'phản biện'],
+    ['pheno', 'analytic', 'phản biện'],
+    ['analytic', 'popper', 'ảnh hưởng'],
+    ['analytic', 'aiphil', 'ảnh hưởng'],
+    ['physical', 'aiphil', 'ảnh hưởng'],
+    ['util', 'aiphil', 'ảnh hưởng'],
+    ['struct', 'frank', 'ảnh hưởng'],
+  ];
+
+  const byId = {};
+  D.forEach(d => { byId[d.id] = d; });
+
+  // ---------- Bố trí: x theo thời gian, y theo khu vực, z xen kẽ để tránh chồng nhau ----------
+  D.forEach(d => { d.mid = (d.y0 + d.y1) / 2; d.x = (d.mid + 1500) / 3500 * 36 - 18; d.hidden = false; d.dim = false; });
+  REG.forEach((_, r) => {
+    D.filter(d => d.reg === r).sort((a, b) => a.mid - b.mid).forEach((d, k) => {
+      d.y = (3.5 - r) * 1.9 + ((k % 2) - 0.5) * 0.6;
+      d.z = ((k % 4) - 1.5) * 1.6;
+    });
+  });
+
+  // ---------- Three.js ----------
+  const stage = $('stage'), labelsBox = $('labels');
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+  } catch (e) {
+    stage.textContent = 'Trình duyệt không hỗ trợ WebGL.';
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x070a12, 1);
+  stage.insertBefore(renderer.domElement, labelsBox);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 300);
+  camera.position.set(0, 0, 36);
+  const rig = new THREE.Group();
+  scene.add(rig);
+  scene.add(new THREE.HemisphereLight(0xfff4e0, 0x1a1020, 0.75));
+  const key = new THREE.DirectionalLight(0xffffff, 0.6);
+  key.position.set(-5, 10, 12);
+  scene.add(key);
+
+  const items = [];   // { el, obj, kind, d }
+  function makeLabel(text, cls) {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.textContent = text;
+    labelsBox.appendChild(el);
+    return el;
+  }
+  const fmtYear = v => v < 0 ? ('TCN ' + (-v)) : (v === 0 ? '0' : 'CN ' + v);
+
+  // Dải màu theo khu vực
+  REG.forEach((name, r) => {
+    const band = new THREE.Mesh(new THREE.PlaneGeometry(40, 1.5),
+      new THREE.MeshBasicMaterial({ color: COL[r], transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false }));
+    band.position.set(0, (3.5 - r) * 1.9, -4);
+    rig.add(band);
+    const anchor = new THREE.Object3D();
+    anchor.position.set(-19.6, (3.5 - r) * 1.9, -3.5);
+    rig.add(anchor);
+    items.push({ el: makeLabel(name, 'lbl band'), obj: anchor, kind: 'band' });
+  });
+
+  // Trục thời gian
+  const axis = new THREE.Mesh(new THREE.BoxGeometry(38, 0.05, 0.05), new THREE.MeshBasicMaterial({ color: 0x475569 }));
+  axis.position.set(0, -9.3, 0);
+  rig.add(axis);
+  [-1000, -500, 0, 500, 1000, 1500, 2000].forEach(y => {
+    const tick = new THREE.Object3D();
+    tick.position.set((y + 1500) / 3500 * 36 - 18, -9.5, 0);
+    rig.add(tick);
+    items.push({ el: makeLabel(fmtYear(y), 'lbl axis'), obj: tick, kind: 'axis' });
+  });
+
+  // Nốt (mỗi trường phái)
+  const nodeMeshes = [];
+  const sphereGeo = new THREE.SphereGeometry(0.3, 20, 14);
+  D.forEach(d => {
+    const mat = new THREE.MeshStandardMaterial({ color: COL[d.reg], emissive: 0x111111, roughness: 0.35, metalness: 0.1, transparent: true, opacity: 1 });
+    const m = new THREE.Mesh(sphereGeo, mat);
+    m.position.set(d.x, d.y, d.z);
+    m.userData.d = d;
+    d.node = m;
+    rig.add(m);
+    nodeMeshes.push(m);
+    d.el = makeLabel(d.name, 'lbl');
+    d.el.addEventListener('click', () => select(d));
+    items.push({ el: d.el, obj: m, kind: 'node', d: d });
+  });
+
+  // Đường nối
+  const L = LINKS.map(([a, b, t]) => {
+    const A = byId[a], B = byId[b];
+    const g = new THREE.BufferGeometry();
+    g.addAttribute('position', new THREE.BufferAttribute(new Float32Array([A.x, A.y, A.z, B.x, B.y, B.z]), 3));
+    const line = new THREE.Line(g, new THREE.LineBasicMaterial({
+      color: t === 'phản biện' ? 0xf87171 : 0x60a5fa, transparent: true, opacity: 0.35 }));
+    rig.add(line);
+    return { a: A, b: B, t: t, line: line };
+  });
+
+  // ---------- Lọc, chọn, hiển thị ----------
+  let sel = null;
+
+  function matchQ(d, q) {
+    if (!q) return true;
+    return (d.name + ' ' + d.concepts.join(' ') + ' ' + d.thesis).toLowerCase().indexOf(q) >= 0;
+  }
+
+  function applyFilters() {
+    const q = $('q').value.trim().toLowerCase();
+    const yr = Number($('yr').value);
+    const reg = $('regSel').value;
+    D.forEach(d => {
+      d.hidden = !((reg === 'all' || REG[d.reg] === reg) && d.y0 <= yr);
+      d.node.visible = !d.hidden;
+      d.dim = !!q && !matchQ(d, q);
+      d.node.material.opacity = d.dim ? 0.15 : 1;
+    });
+    const inf = $('eInf').checked, cri = $('eCri').checked;
+    L.forEach(l => {
+      const typeOn = l.t === 'ảnh hưởng' ? inf : cri;
+      l.line.visible = typeOn && !l.a.hidden && !l.b.hidden;
+    });
+    updateSelectionVisual();
+  }
+
+  function updateSelectionVisual() {
+    L.forEach(l => {
+      l.line.material.opacity = sel ? ((l.a === sel || l.b === sel) ? 0.95 : 0.06) : 0.35;
+    });
+    D.forEach(d => {
+      const s = d === sel;
+      d.node.scale.setScalar(s ? 1.7 : 1);
+      d.node.material.emissive.setHex(s ? 0x6b5a20 : 0x111111);
+      d.el.className = 'lbl' + (s ? ' sel' : '') + (d.dim ? ' dim' : '');
+    });
+  }
+
+  function select(d) {
+    sel = (sel === d) ? null : d;
+    updateSelectionVisual();
+    renderSide();
+  }
+
+  function renderSide() {
+    const box = $('side');
+    if (!sel) {
+      box.innerHTML = '<h2>Bản đồ triết học</h2>' +
+        '<div class="muted">Bấm vào một nốt hoặc nhãn để xem luận đề, khái niệm chính, điểm mạnh, điểm yếu và các trường phái liên quan.<br><br>' +
+        'Dùng thanh “Đến năm” để xem các trường phái theo thời gian, ô “Tìm” để làm nổi bật từ khóa, và các ô “Ảnh hưởng”, “Phản biện” để ẩn từng loại đường nối.<br><br>' +
+        'Tổng: <b>' + D.length + '</b> trường phái.</div>';
+      return;
+    }
+    const d = sel;
+    const infFrom = LINKS.filter(x => x[1] === d.id && x[2] === 'ảnh hưởng').map(x => x[0]);
+    const infTo = LINKS.filter(x => x[0] === d.id && x[2] === 'ảnh hưởng').map(x => x[1]);
+    const crit = LINKS.filter(x => x[2] === 'phản biện' && (x[0] === d.id || x[1] === d.id))
+      .map(x => x[0] === d.id ? x[1] : x[0]);
+    const chip = (id, cls) => '<span class="chip link ' + (cls || '') + '" data-id="' + id + '">' + byId[id].name + '</span>';
+    const list = (arr, cls) => arr.length ? arr.map(id => chip(id, cls)).join('') : '<span class="muted">—</span>';
+
+    box.innerHTML =
+      '<h2>' + d.name + '</h2>' +
+      '<div class="meta">' + REG[d.reg] + ' · ' + fmtYear(d.y0) + ' → ' + fmtYear(d.y1) + '</div>' +
+      '<h3>Luận đề cốt lõi</h3><p>' + d.thesis + '</p>' +
+      '<h3>Khái niệm chính</h3><div class="chips">' + d.concepts.map(c => '<span class="chip">' + c + '</span>').join('') + '</div>' +
+      '<h3>Điểm mạnh</h3><p>' + d.strong + '</p>' +
+      '<h3>Điểm yếu</h3><p>' + d.weak + '</p>' +
+      '<h3>Chịu ảnh hưởng từ</h3><div class="chips">' + list(infFrom) + '</div>' +
+      '<h3>Ảnh hưởng tới</h3><div class="chips">' + list(infTo) + '</div>' +
+      '<h3>Đối thoại / phản biện</h3><div class="chips">' + list(crit, 'red') + '</div>';
+    box.querySelectorAll('.chip.link').forEach(c => c.addEventListener('click', () => select(byId[c.dataset.id])));
+    box.scrollTop = 0;
+  }
+
+  // ---------- Nhãn theo vị trí 3D ----------
+  const tmp = new THREE.Vector3();
+  function updateLabels() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    items.forEach(it => {
+      if (it.kind === 'node' && it.d.hidden) { it.el.style.display = 'none'; return; }
+      it.obj.getWorldPosition(tmp);
+      tmp.project(camera);
+      if (tmp.z > 1 || tmp.z < -1) { it.el.style.display = 'none'; return; }
+      const x = (tmp.x + 1) / 2 * w, y = (1 - tmp.y) / 2 * h;
+      const off = it.kind === 'node' ? 'translate(-50%,-160%)' : (it.kind === 'band' ? 'translate(0,-50%)' : 'translate(-50%,0)');
+      it.el.style.display = '';
+      it.el.style.transform = 'translate(' + x + 'px,' + y + 'px) ' + off;
+    });
+  }
+
+  // ---------- Tương tác ----------
+  function resize() {
+    const w = stage.clientWidth || 600, h = stage.clientHeight || 580;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.domElement.style.width = w + 'px';
+    renderer.domElement.style.height = h + 'px';
+  }
+  window.addEventListener('resize', resize);
+
+  let dragging = false, moved = 0, lx = 0, ly = 0, yaw = 0, tilt = 0;
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  stage.addEventListener('pointerdown', e => {
+    if (e.target !== renderer.domElement) return;
+    dragging = true; moved = 0; lx = e.clientX; ly = e.clientY;
+  });
+  window.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly;
+    moved += Math.abs(dx) + Math.abs(dy);
+    yaw += dx * 0.005;
+    tilt = Math.max(-1, Math.min(1, tilt + dy * 0.003));
+    lx = e.clientX; ly = e.clientY;
+  });
+  window.addEventListener('pointerup', e => {
+    if (!dragging) return;
+    dragging = false;
+    if (moved >= 5) return;
+    const r = stage.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    mouse.x = (e.clientX - r.left) / r.width * 2 - 1;
+    mouse.y = -(e.clientY - r.top) / r.height * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(nodeMeshes).filter(h => h.object.visible);
+    if (hits.length) select(hits[0].object.userData.d);
+    else if (sel) { sel = null; updateSelectionVisual(); renderSide(); }
+  });
+
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    camera.position.z = Math.max(18, Math.min(60, camera.position.z + e.deltaY * 0.03));
+  }, { passive: false });
+
+  // ---------- Điều khiển ----------
+  function populate() {
+    const sel = $('regSel');
+    sel.add(new Option('Tất cả khu vực', 'all'));
+    REG.forEach(r => sel.add(new Option(r, r)));
+
+    const legend = $('legend');
+    REG.forEach((r, i) => {
+      const s = document.createElement('span');
+      s.innerHTML = '<i style="background:' + COL[i] + '"></i>' + r;
+      s.addEventListener('click', () => { $('regSel').value = r; applyFilters(); });
+      legend.appendChild(s);
+    });
+  }
+
+  function updateYearLabel() {
+    const v = Number($('yr').value);
+    $('yrVal').textContent = v >= 2000 ? 'tất cả' : fmtYear(v);
+  }
+
+  $('regSel').addEventListener('change', applyFilters);
+  $('q').addEventListener('input', applyFilters);
+  $('yr').addEventListener('input', () => { updateYearLabel(); applyFilters(); });
+  $('eInf').addEventListener('change', applyFilters);
+  $('eCri').addEventListener('change', applyFilters);
+  $('reset').addEventListener('click', () => {
+    $('q').value = '';
+    $('regSel').value = 'all';
+    $('yr').value = 2000;
+    $('eInf').checked = true;
+    $('eCri').checked = true;
+    updateYearLabel();
+    sel = null;
+    yaw = 0; tilt = 0;
+    camera.position.z = 36;
+    applyFilters();
+    renderSide();
+  });
+
+  // ---------- Vòng lặp ----------
+  function frame() {
+    rig.rotation.y = yaw;
+    rig.rotation.x = tilt;
+    renderer.render(scene, camera);
+    updateLabels();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Khởi tạo ----------
+  populate();
+  updateYearLabel();
+  applyFilters();
+  renderSide();
+  resize();
+  frame();
+})();
+</script>
+</body>
+</html>

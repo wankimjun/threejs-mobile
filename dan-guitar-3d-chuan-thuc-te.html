@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đàn Guitar 3D · Điệu quét, Finger style, Quạt chả</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 35%, #1d1612 0%, #0b0908 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f4efe6;
+      user-select: none;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: grab;
+    }
+    #canvas-container:active { cursor: grabbing; }
+
+    .hud-top {
+      position: fixed;
+      top: 18px;
+      left: 22px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud-top h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f4c16d;
+      letter-spacing: 0.4px;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+    }
+    .hud-top p {
+      font-size: 12.5px;
+      color: rgba(244, 239, 230, 0.75);
+      margin-top: 3px;
+    }
+
+    .panel-left {
+      position: fixed;
+      top: 78px;
+      left: 22px;
+      width: 310px;
+      max-width: calc(100vw - 44px);
+      background: rgba(20, 16, 14, 0.84);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(244, 193, 109, 0.25);
+      border-radius: 14px;
+      padding: 14px 16px;
+      z-index: 10;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #f4c16d;
+      margin-bottom: 8px;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    button {
+      background: rgba(255, 255, 255, 0.07);
+      color: #f4efe6;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 6px 11px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    button:hover {
+      background: rgba(244, 193, 109, 0.2);
+      border-color: rgba(244, 193, 109, 0.6);
+    }
+    button.active {
+      background: #f4c16d;
+      color: #16110d;
+      border-color: #f4c16d;
+      font-weight: 700;
+    }
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+    .slider-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    input[type="range"] {
+      flex: 1;
+      accent-color: #f4c16d;
+    }
+
+    .panel-right {
+      position: fixed;
+      top: 18px;
+      right: 22px;
+      width: 260px;
+      background: rgba(20, 16, 14, 0.84);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(244, 193, 109, 0.25);
+      border-radius: 14px;
+      padding: 14px 16px;
+      z-index: 10;
+    }
+    .chord-display {
+      font-size: 28px;
+      font-weight: 800;
+      color: #f4c16d;
+      margin-bottom: 4px;
+    }
+    .fret-info {
+      font-size: 12px;
+      color: rgba(244, 239, 230, 0.78);
+      line-height: 1.5;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div class="hud-top">
+    <h1>Đàn Guitar Acoustic 3D</h1>
+    <p>Mô hình dáng Dreadnought chuẩn thực tế · Kéo để xoay · Cuộn: zoom · Phím 1–6: gảy dây · D/U: quét · Q: quạt chả</p>
+  </div>
+
+  <div class="panel-left">
+    <div class="section-title">Điều khiển & Nhịp điệu</div>
+    <div class="row">
+      <button id="btn-play">▶ Phát</button>
+      <button id="btn-down">⬇ Quét xuống (D)</button>
+      <button id="btn-up">⬆ Quét lên (U)</button>
+      <button id="btn-chuck">⚡ Quạt chả (Q)</button>
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-line">
+        <span>Tempo: <strong id="tempo-val">100</strong></span>
+        <input type="range" id="tempo-slider" min="60" max="160" value="100" />
+      </div>
+      <div class="slider-line">
+        <span>Âm lượng: <strong id="vol-val">0.8</strong></span>
+        <input type="range" id="vol-slider" min="0.1" max="1.0" step="0.1" value="0.8" />
+      </div>
+    </div>
+
+    <div class="section-title">Điệu đàn</div>
+    <div class="row" id="style-row">
+      <button data-style="strum" class="active">Điệu quét</button>
+      <button data-style="chuck">Quạt chả</button>
+      <button data-style="finger">Finger style</button>
+    </div>
+
+    <div class="section-title">Chọn hợp âm</div>
+    <div class="row" id="chord-row">
+      <button data-chord="C" class="active">C</button>
+      <button data-chord="G">G</button>
+      <button data-chord="Am">Am</button>
+      <button data-chord="F">F</button>
+      <button data-chord="Dm">Dm</button>
+      <button data-chord="Em">Em</button>
+    </div>
+  </div>
+
+  <div class="panel-right">
+    <div class="section-title">Hợp âm & Thế bấm</div>
+    <div class="chord-display" id="chord-name">C (Đô trưởng)</div>
+    <div class="fret-info" id="chord-detail">
+      Dây 6 (E): Tắt (X)<br/>
+      Dây 5 (A): Ngăn 3 (Đô)<br/>
+      Dây 4 (D): Ngăn 2 (Mi)<br/>
+      Dây 3 (G): Buông (Sol)<br/>
+      Dây 2 (B): Ngăn 1 (Đô)<br/>
+      Dây 1 (e): Buông (Mi)
+    </div>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <script>
+    // ================== 1. ÂM THANH KARPLUS-STRONG & SYNTH ==================
+    let audioCtx = null;
+    let masterVol = 0.8;
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    const BASE_FREQS = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63]; // E2 A2 D3 G3 B3 E4
+
+    const CHORDS = {
+      C:  { name: "C (Đô trưởng)",   frets: [-1, 3, 2, 0, 1, 0], desc: "Dây 6: X · Dây 5: Ngăn 3 · Dây 4: Ngăn 2 · Dây 3: 0 · Dây 2: Ngăn 1 · Dây 1: 0" },
+      G:  { name: "G (Sol trưởng)",  frets: [3, 2, 0, 0, 0, 3],  desc: "Dây 6: Ngăn 3 · Dây 5: Ngăn 2 · Dây 4: 0 · Dây 3: 0 · Dây 2: 0 · Dây 1: Ngăn 3" },
+      Am: { name: "Am (La thứ)",     frets: [-1, 0, 2, 2, 1, 0], desc: "Dây 6: X · Dây 5: 0 · Dây 4: Ngăn 2 · Dây 3: Ngăn 2 · Dây 2: Ngăn 1 · Dây 1: 0" },
+      F:  { name: "F (Pha trưởng)",  frets: [1, 3, 3, 2, 1, 1],  desc: "Chặn ngăn 1 · Dây 5: Ngăn 3 · Dây 4: Ngăn 3 · Dây 3: Ngăn 2" },
+      Dm: { name: "Dm (Rê thứ)",     frets: [-1, -1, 0, 2, 3, 1],desc: "Dây 6: X · Dây 5: X · Dây 4: 0 · Dây 3: Ngăn 2 · Dây 2: Ngăn 3 · Dây 1: Ngăn 1" },
+      Em: { name: "Em (Mi thứ)",     frets: [0, 2, 2, 0, 0, 0],  desc: "Dây 6: 0 · Dây 5: Ngăn 2 · Dây 4: Ngăn 2 · Dây 3: 0 · Dây 2: 0 · Dây 1: 0" }
+    };
+
+    let currentChordKey = "C";
+
+    function pluckString(stringIdx, muted = false) {
+      ensureAudio();
+      const fret = CHORDS[currentChordKey].frets[stringIdx];
+      if (fret === -1) return;
+
+      // Kích hoạt hiệu ứng rung dây 3D
+      stringVibration[stringIdx] = muted ? 0.35 : 1.0;
+
+      const freq = BASE_FREQS[stringIdx] * Math.pow(2, fret / 12);
+      const sampleRate = audioCtx.sampleRate;
+      const duration = muted ? 0.14 : 2.2;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = audioCtx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+
+      const period = Math.max(2, Math.round(sampleRate / freq));
+      const ring = new Float32Array(period);
+      for (let i = 0; i < period; i++) {
+        ring[i] = (Math.random() * 2 - 1) * masterVol * (muted ? 0.35 : 0.7);
+      }
+
+      const decay = muted ? 0.86 : 0.9945;
+      let idx = 0;
+      for (let i = 0; i < length; i++) {
+        const nextIdx = (idx + 1) % period;
+        const avg = 0.5 * (ring[idx] + ring[nextIdx]) * decay;
+        ring[idx] = avg;
+        data[i] = avg;
+        idx = nextIdx;
+      }
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(audioCtx.destination);
+      src.start();
+    }
+
+    function strum(direction = 1, muted = false) {
+      const order = direction === 1 ? [0, 1, 2, 3, 4, 5] : [5, 4, 3, 2, 1, 0];
+      order.forEach((s, i) => {
+        setTimeout(() => pluckString(s, muted), i * 26);
+      });
+    }
+
+    // ================== 2. DỰNG MÔ HÌNH GUITAR ACOUSTIC 3D CHUẨN THỰC TẾ ==================
+    const container = document.getElementById("canvas-container");
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    container.appendChild(renderer.domElement);
+
+    // Ánh sáng studio ấm áp làm nổi vân gỗ & dây kim loại
+    scene.add(new THREE.AmbientLight(0xfff5e8, 0.55));
+
+    const keyLight = new THREE.DirectionalLight(0xfff0dd, 1.45);
+    keyLight.position.set(18, 28, 24);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.PointLight(0xffb86c, 1.1, 90);
+    fillLight.position.set(-22, -12, 18);
+    scene.add(fillLight);
+
+    const backLight = new THREE.DirectionalLight(0x9ec5ff, 0.65);
+    backLight.position.set(0, 15, -25);
+    scene.add(backLight);
+
+    // Tạo vân gỗ tự nhiên bằng CanvasTexture
+    function createWoodTexture(baseColor, grainColor, isSpruceTop = false) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext("2d");
+
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Vẽ sớ gỗ dọc tinh tế
+      for (let x = 0; x < 512; x += 2) {
+        const wave = Math.sin(x * 0.08) * 6;
+        ctx.strokeStyle = grainColor;
+        ctx.globalAlpha = isSpruceTop ? (0.06 + (x % 6 === 0 ? 0.06 : 0)) : (0.1 + Math.random() * 0.08);
+        ctx.lineWidth = isSpruceTop ? 1 : 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.bezierCurveTo(x + wave, 170, x - wave, 340, x, 512);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      if (isSpruceTop) {
+        // Hiệu ứng Sunburst nhẹ ở rìa mặt đàn
+        const grad = ctx.createRadialGradient(256, 280, 90, 256, 280, 280);
+        grad.addColorStop(0, "rgba(255, 215, 145, 0.15)");
+        grad.addColorStop(0.75, "rgba(180, 95, 30, 0.18)");
+        grad.addColorStop(1, "rgba(65, 25, 8, 0.55)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    const spruceTex = createWoodTexture("#d99343", "#7a3e10", true);
+    const mahoganyTex = createWoodTexture("#592512", "#2b0f05", false);
+    const rosewoodTex = createWoodTexture("#2b1812", "#140906", false);
+
+    const topMat = new THREE.MeshStandardMaterial({
+      map: spruceTex,
+      roughness: 0.28,
+      metalness: 0.05
+    });
+    const backSideMat = new THREE.MeshStandardMaterial({
+      map: mahoganyTex,
+      roughness: 0.35,
+      metalness: 0.05
+    });
+    const fretboardMat = new THREE.MeshStandardMaterial({
+      map: rosewoodTex,
+      roughness: 0.55,
+      metalness: 0.02
+    });
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0xe6ebf0,
+      roughness: 0.18,
+      metalness: 0.92
+    });
+    const brassMat = new THREE.MeshStandardMaterial({
+      color: 0xd9a84e,
+      roughness: 0.25,
+      metalness: 0.85
+    });
+    const boneMat = new THREE.MeshStandardMaterial({
+      color: 0xf7f2e4,
+      roughness: 0.4
+    });
+
+    const guitarGroup = new THREE.Group();
+    scene.add(guitarGroup);
+
+    // --- A. THÂN ĐÀN DÁNG DREADNOUGHT ĐỐI XỨNG CHUẨN XÁC ---
+    // Hệ tọa độ: Y chạy dọc từ đáy thùng đàn (-14) lên đầu cần đàn (+22)
+    function createGuitarBodyShape(scale = 1.0) {
+      const s = new THREE.Shape();
+      // Bắt đầu từ đáy thùng đàn (0, -13.5)
+      s.moveTo(0, -13.5 * scale);
+      // Bầu dưới bên phải (Lower bout)
+      s.bezierCurveTo(6.2 * scale, -13.5 * scale, 9.8 * scale, -10.8 * scale, 9.8 * scale, -7.2 * scale);
+      // Eo đàn bên phải (Waist)
+      s.bezierCurveTo(9.8 * scale, -4.0 * scale, 6.1 * scale, -2.6 * scale, 6.1 * scale, -0.4 * scale);
+      // Bầu trên bên phải (Upper bout)
+      s.bezierCurveTo(6.1 * scale, 2.2 * scale, 7.6 * scale, 4.4 * scale, 7.4 * scale, 6.6 * scale);
+      // Vai đàn nối cần đàn (Shoulder)
+      s.bezierCurveTo(7.2 * scale, 8.3 * scale, 3.6 * scale, 9.2 * scale, 0, 9.2 * scale);
+
+      // Đối xứng sang nửa bên trái
+      s.bezierCurveTo(-3.6 * scale, 9.2 * scale, -7.2 * scale, 8.3 * scale, -7.4 * scale, 6.6 * scale);
+      s.bezierCurveTo(-7.6 * scale, 4.4 * scale, -6.1 * scale, 2.2 * scale, -6.1 * scale, -0.4 * scale);
+      s.bezierCurveTo(-6.1 * scale, -2.6 * scale, -9.8 * scale, -4.0 * scale, -9.8 * scale, -7.2 * scale);
+      s.bezierCurveTo(-9.8 * scale, -10.8 * scale, -6.2 * scale, -13.5 * scale, 0, -13.5 * scale);
+      return s;
+    }
+
+    const bodyShape = createGuitarBodyShape(1.0);
+    const bodyDepth = 4.4;
+
+    // Phần hông và lưng thùng đàn
+    const bodyGeo = new THREE.ExtrudeGeometry(bodyShape, {
+      depth: bodyDepth,
+      bevelEnabled: true,
+      bevelThickness: 0.16,
+      bevelSize: 0.14,
+      bevelSegments: 4,
+      curveSegments: 48
+    });
+    const bodyMesh = new THREE.Mesh(bodyGeo, backSideMat);
+    bodyMesh.position.z = -bodyDepth;
+    bodyMesh.castShadow = true;
+    bodyMesh.receiveShadow = true;
+    guitarGroup.add(bodyMesh);
+
+    // Mặt trước gỗ vân sam (Spruce Top) mỏng tạo độ tương phản màu thực tế
+    const topGeo = new THREE.ShapeGeometry(bodyShape, 48);
+    const topMesh = new THREE.Mesh(topGeo, topMat);
+    topMesh.position.z = 0.17;
+    topMesh.receiveShadow = true;
+    guitarGroup.add(topMesh);
+
+    // Viền chỉ trắng ngà chạy quanh mép mặt đàn (Body Binding)
+    const bindingPts = bodyShape.getPoints(120).map((p) => new THREE.Vector3(p.x, p.y, 0.18));
+    const bindingGeo = new THREE.BufferGeometry().setFromPoints(bindingPts);
+    const bindingLine = new THREE.Line(bindingGeo, new THREE.LineBasicMaterial({ color: 0xf5ebd6 }));
+    guitarGroup.add(bindingLine);
+
+    // --- B. LỖ THOÁT ÂM (SOUNDHOLE), HOA VĂN ROSETTE & MIẾNG CHỐNG XƯỚC (PICKGUARD) ---
+    const soundHoleY = 1.6;
+    const soundHoleR = 2.45;
+
+    // Lòng tối bên trong thùng đàn
+    const holeMesh = new THREE.Mesh(
+      new THREE.CircleGeometry(soundHoleR, 48),
+      new THREE.MeshBasicMaterial({ color: 0x0c0704 })
+    );
+    holeMesh.position.set(0, soundHoleY, 0.185);
+    guitarGroup.add(holeMesh);
+
+    // Vòng họa tiết khảm quanh lỗ thoát âm (Rosette)
+    const rosetteOuter = new THREE.Mesh(
+      new THREE.RingGeometry(soundHoleR + 0.12, soundHoleR + 0.36, 64),
+      new THREE.MeshStandardMaterial({ color: 0xe6be7a, roughness: 0.3 })
+    );
+    rosetteOuter.position.set(0, soundHoleY, 0.188);
+    guitarGroup.add(rosetteOuter);
+
+    const rosetteInner = new THREE.Mesh(
+      new THREE.RingGeometry(soundHoleR + 0.04, soundHoleR + 0.09, 64),
+      new THREE.MeshBasicMaterial({ color: 0x1a0e08 })
+    );
+    rosetteInner.position.set(0, soundHoleY, 0.189);
+    guitarGroup.add(rosetteInner);
+
+    // Miếng chống xước (Teardrop Tortoiseshell Pickguard) đặt chuẩn bên phải dưới lỗ thoát âm
+    const pgShape = new THREE.Shape();
+    pgShape.moveTo(2.4, 2.3);
+    pgShape.bezierCurveTo(3.2, 2.1, 5.4, 0.3, 5.9, -2.5);
+    pgShape.bezierCurveTo(6.2, -4.3, 4.9, -5.6, 3.2, -5.3);
+    pgShape.bezierCurveTo(1.7, -5.0, 1.3, -3.5, 2.1, -1.8);
+    pgShape.bezierCurveTo(2.7, -0.5, 2.6, 1.1, 2.4, 2.3);
+
+    const pgMesh = new THREE.Mesh(
+      new THREE.ShapeGeometry(pgShape, 36),
+      new THREE.MeshStandardMaterial({ color: 0x3b1208, roughness: 0.18, metalness: 0.08 })
+    );
+    pgMesh.position.z = 0.19;
+    guitarGroup.add(pgMesh);
+
+    // --- C. NGỰA ĐÀN (BRIDGE), XƯƠNG NGỰA (SADDLE) & 6 CHỐT DÂY (BRIDGE PINS) ---
+    const bridgeY = -6.8;
+    const bridgeGroup = new THREE.Group();
+    bridgeGroup.position.set(0, bridgeY, 0.18);
+    guitarGroup.add(bridgeGroup);
+
+    // Đế ngựa đàn dáng cánh dơi bằng gỗ cẩm lai
+    const bridgeShape = new THREE.Shape();
+    bridgeShape.moveTo(-3.4, -0.55);
+    bridgeShape.lineTo(3.4, -0.55);
+    bridgeShape.lineTo(3.1, 0.45);
+    bridgeShape.bezierCurveTo(1.5, 0.72, -1.5, 0.72, -3.1, 0.45);
+    bridgeShape.closePath();
+
+    const bridgeBase = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(bridgeShape, { depth: 0.34, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04 }),
+      fretboardMat
+    );
+    bridgeGroup.add(bridgeBase);
+
+    // Xương ngựa trắng (Saddle) hơi nghiêng góc bù cao độ chuẩn guitar thực tế
+    const saddleMesh = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.24), boneMat);
+    saddleMesh.position.set(0, 0.18, 0.38);
+    saddleMesh.rotation.z = -0.04;
+    bridgeGroup.add(saddleMesh);
+
+    // --- D. CẦN ĐÀN (NECK), GÓT CẦN (HEEL), PHÍM ĐÀN (FRETBOARD) & 20 THANH PHÍM ---
+    const neckStartY = 9.0;
+    const nutY = 23.2; // Vị trí lược đàn (Nut)
+    const neckLen = nutY - neckStartY;
+
+    // Cần đàn vát thuôn từ chân cần (rộng 2.6) lên lược đàn (rộng 2.05) + bo tròn mặt sau chữ C
+    const neckGroup = new THREE.Group();
+    guitarGroup.add(neckGroup);
+
+    // Mặt phím gỗ cẩm lai (Fretboard) kéo dài tới mép lỗ thoát âm (y = 4.3)
+    const fbBottomY = 4.3;
+    const fbLen = nutY - fbBottomY;
+    const fbShape = new THREE.Shape();
+    fbShape.moveTo(-1.32, fbBottomY);
+    fbShape.lineTo(1.32, fbBottomY);
+    fbShape.lineTo(1.02, nutY);
+    fbShape.lineTo(-1.02, nutY);
+    fbShape.closePath();
+
+    const fretboardMesh = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(fbShape, { depth: 0.22, bevelEnabled: false }),
+      fretboardMat
+    );
+    fretboardMesh.position.z = 0.19;
+    neckGroup.add(fretboardMesh);
+
+    // Thân cần đàn phía sau (C-shape profile)
+    const backNeckGeo = new THREE.CylinderGeometry(1.02, 1.32, neckLen, 20, 1, false, Math.PI, Math.PI);
+    const backNeckMesh = new THREE.Mesh(backNeckGeo, backSideMat);
+    backNeckMesh.position.set(0, neckStartY + neckLen / 2, 0.19);
+    backNeckMesh.rotation.y = Math.PI / 2;
+    neckGroup.add(backNeckMesh);
+
+    // Gót cần đàn (Neck Heel) nối mượt vào lưng thùng đàn
+    const heelGeo = new THREE.ConeGeometry(1.35, 3.8, 20);
+    const heelMesh = new THREE.Mesh(heelGeo, backSideMat);
+    heelMesh.position.set(0, 9.2, -1.7);
+    heelMesh.rotation.x = Math.PI;
+    neckGroup.add(heelMesh);
+
+    // Lược đàn (Nut) tại đầu cần
+    const nutMesh = new THREE.Mesh(new THREE.BoxGeometry(2.08, 0.22, 0.25), boneMat);
+    nutMesh.position.set(0, nutY + 0.08, 0.42);
+    neckGroup.add(nutMesh);
+
+    // 20 thanh phím kim loại (Fret wires) chia theo đúng tỷ lệ toán học 12-TET (quy tắc 17.817)
+    const scaleLength = nutY - bridgeY; // Tổng chiều dài dây đàn từ lược đàn tới xương ngựa = 30.0
+    const fretYPositions = [nutY];
+    const inlayFrets = new Set([3, 5, 7, 9, 12, 15, 17]);
+
+    for (let f = 1; f <= 20; f++) {
+      const distFromNut = scaleLength * (1 - Math.pow(2, -f / 12));
+      const fy = nutY - distFromNut;
+      fretYPositions.push(fy);
+
+      const t = (fy - fbBottomY) / fbLen;
+      const fretWidth = 2.62 * (1 - t) + 2.04 * t;
+
+      const fretWire = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.035, 0.035, fretWidth, 10),
+        chromeMat
+      );
+      fretWire.rotation.z = Math.PI / 2;
+      fretWire.position.set(0, fy, 0.425);
+      neckGroup.add(fretWire);
+
+      // Chấm khảm xà cừ (Mother-of-Pearl Inlays) tại ngăn 3, 5, 7, 9, 12 (chấm đôi), 15, 17
+      if (inlayFrets.has(f)) {
+        const midY = (fretYPositions[f - 1] + fy) / 2;
+        const dotGeo = new THREE.CircleGeometry(0.14, 20);
+        if (f === 12) {
+          const dotL = new THREE.Mesh(dotGeo, boneMat);
+          dotL.position.set(-0.42, midY, 0.415);
+          const dotR = new THREE.Mesh(dotGeo, boneMat);
+          dotR.position.set(0.42, midY, 0.415);
+          neckGroup.add(dotL, dotR);
+        } else {
+          const dot = new THREE.Mesh(dotGeo, boneMat);
+          dot.position.set(0, midY, 0.415);
+          neckGroup.add(dot);
+        }
+      }
+    }
+
+    // --- E. ĐẦU ĐÀN (HEADSTOCK) NGHIÊNG 13 ĐỘ & 6 KHÓA ĐÀN (TUNING PEGS) ---
+    const headstockGroup = new THREE.Group();
+    headstockGroup.position.set(0, nutY + 0.1, 0.25);
+    headstockGroup.rotation.x = -0.22; // Góc nghiêng thực tế của đầu đàn guitar acoustic (~13 độ)
+    guitarGroup.add(headstockGroup);
+
+    const hsShape = new THREE.Shape();
+    hsShape.moveTo(-1.02, 0);
+    hsShape.lineTo(1.02, 0);
+    hsShape.lineTo(1.38, 4.6);
+    hsShape.quadraticCurveTo(0, 5.05, -1.38, 4.6);
+    hsShape.closePath();
+
+    const hsMesh = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(hsShape, { depth: 0.55, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 }),
+      fretboardMat
+    );
+    hsMesh.position.z = -0.45;
+    headstockGroup.add(hsMesh);
+
+    // 6 Trục quấn dây (Tuning Posts) + 6 Tai vặn khóa (Tuning Buttons) 2 bên (3+3)
+    const tunerPostPositions = [];
+    for (let i = 0; i < 6; i++) {
+      const isLeft = i < 3; // Dây 6, 5, 4 bên trái; Dây 3, 2, 1 bên phải
+      const row = isLeft ? i : (5 - i);
+      const py = 1.15 + row * 1.35;
+      const px = isLeft ? -0.82 : 0.82;
+
+      // Trục quấn dây mặt trước
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.55, 14), chromeMat);
+      post.rotation.x = Math.PI / 2;
+      post.position.set(px, py, 0.28);
+      headstockGroup.add(post);
+
+      // Vòng đệm ốc lục giác
+      const bushing = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.1, 6), chromeMat);
+      bushing.rotation.x = Math.PI / 2;
+      bushing.position.set(px, py, 0.14);
+      headstockGroup.add(bushing);
+
+      // Trục ngang & Tai vặn khóa bên hông đầu đàn
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.75, 10), chromeMat);
+      shaft.rotation.z = Math.PI / 2;
+      shaft.position.set(isLeft ? -1.45 : 1.45, py, -0.18);
+      headstockGroup.add(shaft);
+
+      const knob = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.52, 0.22), chromeMat);
+      knob.position.set(isLeft ? -1.85 : 1.85, py, -0.18);
+      headstockGroup.add(knob);
+
+      // Lưu tọa độ world của trục quấn để kéo dây từ lược đàn lên đúng trục
+      headstockGroup.updateMatrixWorld(true);
+      const worldPost = new THREE.Vector3(px, py, 0.42).applyMatrix4(headstockGroup.matrixWorld);
+      tunerPostPositions[i] = worldPost;
+    }
+
+    // --- F. 6 DÂY ĐÀN KIM LOẠI (ĐỒNG THAU & THÉP) + CHỐT NGỰA + RUNG ĐỘNG THỰC TẾ ---
+    const stringMeshes = [];
+    const stringVibration = [0, 0, 0, 0, 0, 0];
+    const stringBaseXBridge = [];
+    const stringBaseXNut = [];
+
+    // Độ dày thực tế từ dây 6 (E trầm - đồng thau) tới dây 1 (e cao - thép sáng)
+    const stringRadii = [0.044, 0.036, 0.029, 0.023, 0.017, 0.013];
+
+    for (let i = 0; i < 6; i++) {
+      const t = i / 5; // 0 = dây 6 (bên trái), 1 = dây 1 (bên phải)
+      const xBridge = -1.35 + t * 2.7;
+      const xNut = -0.82 + t * 1.64;
+      stringBaseXBridge.push(xBridge);
+      stringBaseXNut.push(xNut);
+
+      // Chốt giữ dây trên ngựa đàn (Bridge Pin)
+      const pin = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 14), boneMat);
+      pin.position.set(xBridge, bridgeY - 0.18, 0.54);
+      guitarGroup.add(pin);
+
+      // Đoạn dây chính từ xương ngựa tới lược đàn (có nhiều đốt để uốn cong khi rung)
+      const mat = i < 4 ? brassMat : chromeMat;
+      const geo = new THREE.CylinderGeometry(stringRadii[i], stringRadii[i], scaleLength, 8, 24);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set((xBridge + xNut) / 2, (bridgeY + nutY) / 2, 0.56);
+      mesh.rotation.z = Math.atan2(xBridge - xNut, scaleLength);
+      guitarGroup.add(mesh);
+      stringMeshes.push(mesh);
+
+      // Đoạn dây phụ từ lược đàn kéo lên đúng trục khóa đàn tương ứng trên Headstock
+      const pNut = new THREE.Vector3(xNut, nutY + 0.08, 0.55);
+      const pTuner = tunerPostPositions[i];
+      const topSegLen = pNut.distanceTo(pTuner);
+      const topSegGeo = new THREE.CylinderGeometry(stringRadii[i], stringRadii[i], topSegLen, 6);
+      const topSegMesh = new THREE.Mesh(topSegGeo, mat);
+      topSegMesh.position.copy(pNut).add(pTuner).multiplyScalar(0.5);
+      topSegMesh.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        pTuner.clone().sub(pNut).normalize()
+      );
+      guitarGroup.add(topSegMesh);
+    }
+
+    // --- G. ĐIỂM ĐÁNH DẤU NGÓN TAY BẤM HỢP ÂM TRÊN CẦN ĐÀN ---
+    const fingerMarkers = [];
+    for (let i = 0; i < 6; i++) {
+      const marker = new THREE.Mesh(
+        new THREE.SphereGeometry(0.24, 18, 18),
+        new THREE.MeshStandardMaterial({
+          color: 0xf4c16d,
+          emissive: 0xd9821e,
+          emissiveIntensity: 0.65,
+          roughness: 0.2
+        })
+      );
+      marker.visible = false;
+      guitarGroup.add(marker);
+      fingerMarkers.push(marker);
+    }
+
+    function updateChordMarkers() {
+      const chord = CHORDS[currentChordKey];
+      document.getElementById("chord-name").textContent = chord.name;
+      document.getElementById("chord-detail").innerHTML = chord.desc.replace(/ · /g, "<br/>");
+
+      chord.frets.forEach((fret, i) => {
+        const m = fingerMarkers[i];
+        if (fret <= 0) {
+          m.visible = false;
+        } else {
+          const yMid = (fretYPositions[fret - 1] + fretYPositions[fret]) / 2;
+          const ratio = (nutY - yMid) / scaleLength;
+          const xPos = stringBaseXNut[i] * (1 - ratio) + stringBaseXBridge[i] * ratio;
+          m.position.set(xPos, yMid, 0.58);
+          m.visible = true;
+        }
+      });
+    }
+    updateChordMarkers();
+
+    // Đặt cây đàn hơi nghiêng góc trưng bày tự nhiên
+    guitarGroup.position.set(1.5, -3.5, 0);
+    guitarGroup.rotation.set(-0.18, -0.25, -0.14);
+
+    // ================== 3. ĐIỀU KHIỂN CAMERA & SỰ KIỆN ==================
+    let isDragging = false;
+    let prevX = 0, prevY = 0;
+    let targetRotY = -0.25;
+    let targetRotX = -0.18;
+    let targetZoom = 46;
+    let currentZoom = 46;
+
+    container.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      prevX = e.clientX;
+      prevY = e.clientY;
+    });
+    window.addEventListener("mouseup", () => { isDragging = false; });
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      targetRotY += (e.clientX - prevX) * 0.007;
+      targetRotX += (e.clientY - prevY) * 0.007;
+      targetRotX = Math.max(-1.2, Math.min(1.2, targetRotX));
+      prevX = e.clientX;
+      prevY = e.clientY;
+    });
+    container.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      targetZoom += e.deltaY * 0.035;
+      targetZoom = Math.max(22, Math.min(85, targetZoom));
+    }, { passive: false });
+
+    // Nhấp chuột trực tiếp vào dây đàn để gảy
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    container.addEventListener("click", (e) => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(stringMeshes);
+      if (hits.length > 0) {
+        const idx = stringMeshes.indexOf(hits[0].object);
+        if (idx !== -1) pluckString(idx);
+      }
+    });
+
+    // Nhịp điệu tự động
+    let isPlaying = false;
+    let playStyle = "strum";
+    let tempo = 100;
+    let stepIndex = 0;
+    let beatTimer = null;
+
+    function runBeatStep() {
+      if (!isPlaying) return;
+      if (playStyle === "strum") {
+        // Ballad 4/4: D - D - U - U - D - U
+        const pattern = ["D", null, "D", "U", null, "U", "D", "U"];
+        const act = pattern[stepIndex % pattern.length];
+        if (act === "D") strum(1, false);
+        if (act === "U") strum(-1, false);
+      } else if (playStyle === "chuck") {
+        // Quạt chả: D - D - X - U - U - X - D - U
+        const pattern = ["D", "D", "X", "U", "U", "X", "D", "U"];
+        const act = pattern[stepIndex % pattern.length];
+        if (act === "D") strum(1, false);
+        if (act === "U") strum(-1, false);
+        if (act === "X") strum(1, true);
+      } else if (playStyle === "finger") {
+        // Finger style: Bass - 3 - 2 - 1 - 2 - 3
+        const bass = CHORDS[currentChordKey].frets[0] !== -1 ? 0 : (CHORDS[currentChordKey].frets[1] !== -1 ? 1 : 2);
+        const pattern = [bass, 3, 4, 5, 4, 3];
+        pluckString(pattern[stepIndex % pattern.length], false);
+      }
+      stepIndex++;
+      const stepMs = (60 / tempo / 2) * 1000;
+      beatTimer = setTimeout(runBeatStep, stepMs);
+    }
+
+    const btnPlay = document.getElementById("btn-play");
+    btnPlay.addEventListener("click", () => {
+      isPlaying = !isPlaying;
+      btnPlay.textContent = isPlaying ? "⏸ Dừng" : "▶ Phát";
+      btnPlay.classList.toggle("active", isPlaying);
+      if (isPlaying) {
+        stepIndex = 0;
+        runBeatStep();
+      } else {
+        clearTimeout(beatTimer);
+      }
+    });
+
+    document.getElementById("btn-down").addEventListener("click", () => strum(1, false));
+    document.getElementById("btn-up").addEventListener("click", () => strum(-1, false));
+    document.getElementById("btn-chuck").addEventListener("click", () => strum(1, true));
+
+    document.getElementById("tempo-slider").addEventListener("input", (e) => {
+      tempo = Number(e.target.value);
+      document.getElementById("tempo-val").textContent = tempo;
+    });
+    document.getElementById("vol-slider").addEventListener("input", (e) => {
+      masterVol = Number(e.target.value);
+      document.getElementById("vol-val").textContent = masterVol.toFixed(1);
+    });
+
+    document.querySelectorAll("#style-row button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        playStyle = btn.dataset.style;
+        document.querySelectorAll("#style-row button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    document.querySelectorAll("#chord-row button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        currentChordKey = btn.dataset.chord;
+        document.querySelectorAll("#chord-row button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        updateChordMarkers();
+        strum(1, false);
+      });
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") { e.preventDefault(); btnPlay.click(); }
+      if (e.key.toLowerCase() === "d") strum(1, false);
+      if (e.key.toLowerCase() === "u") strum(-1, false);
+      if (e.key.toLowerCase() === "q") strum(1, true);
+      if (["1", "2", "3", "4", "5", "6"].includes(e.key)) {
+        pluckString(6 - Number(e.key), false);
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ================== 4. VÒNG LẶP ANIMATION & HIỆU ỨNG RUNG DÂY ==================
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
+
+      guitarGroup.rotation.y += (targetRotY - guitarGroup.rotation.y) * 0.1;
+      guitarGroup.rotation.x += (targetRotX - guitarGroup.rotation.x) * 0.1;
+      currentZoom += (targetZoom - currentZoom) * 0.1;
+      camera.position.set(0, 2, currentZoom);
+      camera.lookAt(0, 2, 0);
+
+      // Mô phỏng sóng đứng hình sin dọc theo dây đàn khi gảy
+      for (let i = 0; i < 6; i++) {
+        const amp = stringVibration[i];
+        const mesh = stringMeshes[i];
+        const posAttr = mesh.geometry.attributes.position;
+        const xMid = (stringBaseXBridge[i] + stringBaseXNut[i]) / 2;
+
+        if (amp > 0.005) {
+          for (let v = 0; v < posAttr.count; v++) {
+            const yLocal = posAttr.getY(v); // từ -scaleLength/2 đến +scaleLength/2
+            const norm = (yLocal + scaleLength / 2) / scaleLength; // 0 -> 1
+            const envelope = Math.sin(norm * Math.PI); // Hai đầu cố định = 0, giữa dây rung mạnh nhất
+            const wave = Math.sin(elapsed * (75 + i * 18)) * amp * 0.16 * envelope;
+            posAttr.setX(v, wave);
+          }
+          posAttr.needsUpdate = true;
+          stringVibration[i] *= Math.pow(0.18, dt);
+        } else if (amp > 0) {
+          for (let v = 0; v < posAttr.count; v++) posAttr.setX(v, 0);
+          posAttr.needsUpdate = true;
+          stringVibration[i] = 0;
+        }
+        mesh.position.x = xMid;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

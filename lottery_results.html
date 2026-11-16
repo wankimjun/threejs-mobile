@@ -3,202 +3,1688 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kết quả xổ số</title>
+<title>Kết quả xổ số & Mua vé</title>
+
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --bg:#0b1120; --panel:#111a2e; --panel2:#18233d; --line:#26324f; --text:#e6ebf5; --muted:#94a3b8;
-    --gold:#fbbf24; --red:#ef4444; --purple:#a855f7; }
-  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
-  .wrap { max-width:1100px; margin:0 auto; padding:20px 16px 40px; }
-  h1 { font-size:1.4rem; }
-  h1 small { color:var(--muted); font-size:.8rem; font-weight:400; }
-  .tabs { display:flex; gap:6px; margin:14px 0; }
-  .tabs button { background:var(--panel); border:1px solid var(--line); color:var(--muted); padding:8px 16px; border-radius:10px; cursor:pointer; font-weight:700; }
-  .tabs button.active { background:var(--gold); color:#111; border-color:var(--gold); }
-  .bar { display:flex; gap:12px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:14px; }
-  .bar label { font-size:.82rem; color:var(--muted); display:flex; gap:6px; align-items:center; }
-  select { background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:.9rem; }
-  .hide { display:none; }
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; overflow-x:auto; }
-  .panel h2 { font-size:1rem; color:var(--gold); margin-bottom:10px; }
-  .muted { color:var(--muted); }
-  .msg { color:#fca5a5; margin-bottom:10px; font-size:.88rem; }
-  table { width:100%; border-collapse:collapse; font-size:.9rem; }
-  th, td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
-  th { color:var(--muted); font-size:.78rem; text-transform:uppercase; white-space:nowrap; }
-  td.prize { color:var(--muted); white-space:nowrap; width:120px; }
-  td.nums span { display:inline-block; margin:2px 8px 2px 0; font-weight:700; letter-spacing:1px; }
-  tr.db td.nums { color:var(--gold); font-size:1.05rem; }
-  .draw { display:flex; gap:14px; flex-wrap:wrap; padding:12px 0; border-bottom:1px solid var(--line); }
-  .draw:last-child { border-bottom:none; }
-  .draw .meta { min-width:140px; font-size:.85rem; color:var(--muted); }
-  .draw .meta b { color:var(--text); }
-  .gt { font-size:.75rem; color:var(--muted); margin:6px 0 4px; text-transform:uppercase; }
-  .balls { display:flex; gap:6px; flex-wrap:wrap; }
-  .ball { width:36px; height:36px; border-radius:50%; background:var(--red); color:#fff; font-weight:800; display:grid; place-items:center; font-size:.9rem; }
-  .ball.sp { background:var(--purple); }
-  .stamp { font-size:.8rem; color:var(--muted); margin-left:8px; }
+* { box-sizing:border-box; margin:0; padding:0; }
+
+:root {
+  --bg:#0b1120;
+  --panel:#111a2e;
+  --panel2:#18233d;
+  --line:#26324f;
+  --text:#e6ebf5;
+  --muted:#94a3b8;
+  --gold:#fbbf24;
+  --red:#ef4444;
+  --purple:#a855f7;
+  --green:#22c55e;
+}
+
+body {
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+}
+
+.wrap { max-width:1100px; margin:0 auto; padding:20px 16px 40px; }
+
+h1 { font-size:1.4rem; }
+h1 small { color:var(--muted); font-size:.8rem; font-weight:400; }
+
+.tabs { display:flex; gap:6px; margin:14px 0; flex-wrap:wrap; }
+
+.tabs button {
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--muted);
+  padding:8px 16px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:700;
+}
+
+.tabs button.active {
+  background:var(--gold);
+  color:#111;
+  border-color:var(--gold);
+}
+
+.bar {
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px 14px;
+  margin-bottom:14px;
+}
+
+.bar label { font-size:.82rem; color:var(--muted); display:flex; gap:6px; align-items:center; }
+
+select, input {
+  background:var(--panel2);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:.9rem;
+  font-family:inherit;
+}
+
+.hide { display:none !important; }
+
+.panel {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:16px;
+  overflow-x:auto;
+}
+
+.panel h2 { font-size:1rem; color:var(--gold); margin-bottom:10px; }
+
+.muted { color:var(--muted); }
+.small { font-size:.8rem; }
+
+.msg { color:#fca5a5; margin-bottom:10px; font-size:.88rem; }
+.okmsg { color:#86efac; margin-bottom:10px; font-size:.88rem; }
+
+table { width:100%; border-collapse:collapse; font-size:.9rem; }
+
+th,td {
+  padding:8px 10px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  vertical-align:top;
+}
+
+th { color:var(--muted); font-size:.78rem; text-transform:uppercase; white-space:nowrap; }
+
+td.prize { color:var(--muted); white-space:nowrap; width:120px; }
+
+td.nums span {
+  display:inline-block;
+  margin:2px 8px 2px 0;
+  font-weight:700;
+  letter-spacing:1px;
+}
+
+tr.db td.nums { color:var(--gold); font-size:1.05rem; }
+
+.draw {
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+}
+
+.draw:last-child { border-bottom:none; }
+.draw .meta { min-width:140px; font-size:.85rem; color:var(--muted); }
+.draw .meta b { color:var(--text); }
+
+.gt {
+  font-size:.75rem;
+  color:var(--muted);
+  margin:6px 0 4px;
+  text-transform:uppercase;
+}
+
+.balls { display:flex; gap:6px; flex-wrap:wrap; }
+
+.ball {
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:var(--red);
+  color:#fff;
+  font-weight:800;
+  display:grid;
+  place-items:center;
+  font-size:.9rem;
+}
+
+.ball.sp { background:var(--purple); }
+.ball.hit { box-shadow:0 0 0 3px var(--gold); }
+
+.status {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--muted);
+  font-size:.78rem;
+  margin-top:12px;
+}
+
+.status::before {
+  content:'';
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--green);
+}
+
+.status.error::before { background:var(--red); }
+
+.keno-card {
+  margin-bottom:16px;
+  padding:16px;
+  background:var(--panel2);
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+
+.keno-numbers {
+  display:grid;
+  grid-template-columns:repeat(10, minmax(0, 1fr));
+  gap:8px;
+  margin-top:16px;
+}
+
+.keno-numbers .ball {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  aspect-ratio:1;
+  width:auto;
+  height:auto;
+  min-width:0;
+  border-radius:50%;
+  background:#eab308;
+  color:#111827;
+  font-weight:700;
+  font-size:13px;
+}
+
+.draw-header { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+.draw-date { margin-top:12px; color:#94a3b8; font-size:12px; }
+
+/* ---------- Mua vé ---------- */
+
+.game-btns { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+
+.game-btns button {
+  background:var(--panel2);
+  border:1px solid var(--line);
+  color:var(--muted);
+  padding:8px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:700;
+}
+
+.game-btns button.active {
+  background:var(--purple);
+  color:#fff;
+  border-color:var(--purple);
+}
+
+.game-note { font-size:.85rem; color:var(--muted); margin-bottom:10px; }
+
+.numgrid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(42px, 1fr));
+  gap:6px;
+  margin:8px 0 12px;
+}
+
+.nb {
+  background:var(--panel2);
+  border:1px solid var(--line);
+  color:var(--text);
+  border-radius:8px;
+  padding:8px 0;
+  cursor:pointer;
+  font-weight:700;
+}
+
+.nb.on { background:var(--gold); color:#111; border-color:var(--gold); }
+.nb.spec.on { background:var(--purple); color:#fff; border-color:var(--purple); }
+
+.digitIn {
+  width:140px;
+  text-align:center;
+  letter-spacing:4px;
+  font-size:1.2rem;
+  font-weight:700;
+}
+
+.ghost, .primary {
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:700;
+  font-family:inherit;
+  font-size:.88rem;
+}
+
+.ghost { background:transparent; border:1px solid var(--line); color:var(--text); }
+
+.primary {
+  background:var(--gold);
+  color:#111;
+  border:none;
+  padding:10px 18px;
+  font-weight:800;
+}
+
+.actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; align-items:center; }
+.summary-line { margin-top:10px; color:var(--muted); font-size:.9rem; }
+
+.buy-row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+.buy-row label { display:flex; gap:6px; align-items:center; font-size:.85rem; color:var(--muted); }
+
+/* ---------- Vé của tôi ---------- */
+
+.stats {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.stats div {
+  background:var(--panel2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+}
+
+.stats b { font-size:1.2rem; }
+.stats span { font-size:.78rem; color:var(--muted); }
+.win-t { color:#4ade80; }
+
+.tk {
+  background:var(--panel2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:10px;
+}
+
+.tk-head {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-bottom:8px;
+}
+
+.badge { font-size:.78rem; padding:3px 10px; border-radius:999px; font-weight:700; }
+.badge.win { background:#16a34a; color:#fff; }
+.badge.lose { background:#334155; color:#e2e8f0; }
+.badge.pending { background:#78350f; color:#fde68a; }
+.badge.info { background:#1e3a8a; color:#dbeafe; }
+
+.digits-row { display:flex; gap:18px; flex-wrap:wrap; margin:6px 0; }
+
+.digits { font-size:1.8rem; font-weight:800; letter-spacing:6px; }
+.digits.hit { color:var(--gold); }
+
+.tk .actions { margin-top:10px; }
+
+/* ---------- Responsive ---------- */
+
+@media (max-width:480px) {
+  .keno-numbers { grid-template-columns:repeat(5, minmax(0, 1fr)); }
+  .numgrid { grid-template-columns:repeat(auto-fill, minmax(34px, 1fr)); }
+}
+
+@media (max-width:600px) {
+  .wrap { padding:14px 10px 30px; }
+  .panel { padding:12px; }
+  .tabs button { flex:1; padding:9px 8px; }
+  .game-btns button { flex:1; padding:8px 6px; }
+  .draw .meta { min-width:100%; }
+  .ball { width:33px; height:33px; }
+  .digitIn { width:120px; }
+}
 </style>
 </head>
+
 <body>
 <div class="wrap">
-  <h1>Kết quả xổ số <small id="updated"></small></h1>
 
-  <div class="tabs">
-    <button type="button" data-tab="xsmn" class="active">Xổ số miền Nam</button>
-    <button type="button" data-tab="vietlott">Vietlott</button>
+  <h1>
+    Kết quả xổ số & Mua vé
+    <small id="updated"></small>
+  </h1>
+
+  <div class="tabs" id="navTabs">
+    <button type="button" data-view="results" class="active">Kết quả</button>
+    <button type="button" data-view="buy">Mua vé</button>
+    <button type="button" data-view="mine">Vé của tôi</button>
   </div>
 
-  <div class="bar">
-    <label>Ngày <select id="dateSel"></select></label>
-    <label id="stWrap">Đài <select id="stSel"></select></label>
-    <label id="pdWrap" class="hide">Sản phẩm <select id="pdSel"></select></label>
-  </div>
+  <!-- ====================== KẾT QUẢ ====================== -->
+  <section id="view-results" class="view">
 
-  <div id="msg"></div>
-  <div class="panel" id="out"></div>
+    <div class="tabs" id="subTabs">
+      <button type="button" data-tab="xsmn" class="active">Xổ số miền Nam</button>
+      <button type="button" data-tab="vietlott">Vietlott</button>
+    </div>
+
+    <div class="bar">
+      <label>
+        Ngày
+        <select id="dateSel"></select>
+      </label>
+
+      <label id="stWrap">
+        Đài
+        <select id="stSel"></select>
+      </label>
+
+      <label id="pdWrap" class="hide">
+        Sản phẩm
+        <select id="pdSel"></select>
+      </label>
+    </div>
+
+    <div id="msg"></div>
+
+    <div class="panel" id="out"></div>
+
+    <div class="status" id="status">Đang tải dữ liệu</div>
+  </section>
+
+  <!-- ====================== MUA VÉ ====================== -->
+  <section id="view-buy" class="view hide">
+    <div class="panel">
+      <h2>Mua vé</h2>
+
+      <div class="game-btns" id="gameBtns">
+        <button type="button" data-game="mega645" class="active">Mega 6/45</button>
+        <button type="button" data-game="power655">Power 6/55</button>
+        <button type="button" data-game="lotto535">Lotto 5/35</button>
+        <button type="button" data-game="keno">Keno</button>
+        <button type="button" data-game="max3d">Max 3D</button>
+        <button type="button" data-game="max3d_pro">Max 3D Pro</button>
+        <button type="button" data-game="xsmn">XSMN</button>
+      </div>
+
+      <div class="game-note" id="gameNote"></div>
+
+      <div class="buy-row">
+        <label>
+          Ngày quay
+          <input type="date" id="buyDate">
+        </label>
+
+        <label>
+          Số lượng vé
+          <select id="buyQty">
+            <option value="1">1 vé</option>
+            <option value="2">2 vé</option>
+            <option value="3">3 vé</option>
+            <option value="4">4 vé</option>
+            <option value="5">5 vé</option>
+            <option value="10">10 vé</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="buyForm"></div>
+
+      <div id="buyMsg"></div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="buyBtn">Mua vé</button>
+        <span class="summary-line" id="buySummary"></span>
+      </div>
+
+      <p class="small muted" style="margin-top:14px">
+        Đây là bản mô phỏng để thử nghiệm. Không có thanh toán thật và không bán vé thật.
+        Vé được lưu trong trình duyệt này. Muốn mua vé thật, hãy dùng kênh chính thức.
+      </p>
+    </div>
+  </section>
+
+  <!-- ====================== VÉ CỦA TÔI ====================== -->
+  <section id="view-mine" class="view hide">
+    <div class="panel">
+      <h2>Vé của tôi</h2>
+
+      <div id="mySummary"></div>
+      <div id="myList"></div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="recheckBtn">Đối chiếu với kết quả mới nhất</button>
+        <button type="button" class="ghost" id="clearAllBtn">Xóa tất cả vé</button>
+      </div>
+    </div>
+  </section>
+
 </div>
 
 <script>
 (function () {
-  'use strict';
+'use strict';
 
-  const PRIZES = [['G8','Giải tám'],['G7','Giải bảy'],['G6','Giải sáu'],['G5','Giải năm'],
-    ['G4','Giải tư'],['G3','Giải ba'],['G2','Giải nhì'],['G1','Giải nhất'],['DB','Giải đặc biệt']];
-  const VL_NAMES = { mega645: 'Mega 6/45', power655: 'Power 6/55', max3d: 'Max 3D', lotto535: 'Lotto 5/35' };
-  const MAX3D_GROUPS = [['n1','Nhất'],['n2','Nhì'],['n3','Ba'],['kk','Khuyến khích']];
-  const REFRESH_MS = 5 * 60 * 1000;
+// ============================================================
+// CONFIGURATION
+// ============================================================
 
-  const $ = id => document.getElementById(id);
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
-    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const DATA_URL = 'data/results.json';
+const REFRESH_MS = 5 * 60 * 1000;
+const TICKET_KEY = 'lottery_tickets_v2';
 
-  let data = { updatedAt: null, xsmn: {}, vietlott: {} };
-  let tab = 'xsmn';
+const PRIZES = [
+  ['G8','Giải tám'],
+  ['G7','Giải bảy'],
+  ['G6','Giải sáu'],
+  ['G5','Giải năm'],
+  ['G4','Giải tư'],
+  ['G3','Giải ba'],
+  ['G2','Giải nhì'],
+  ['G1','Giải nhất'],
+  ['DB','Giải đặc biệt']
+];
 
-  // ---------- Dữ liệu ----------
-  function dates() {
-    return [...new Set([...Object.keys(data.xsmn || {}), ...Object.keys(data.vietlott || {})])].sort().reverse();
+const VL_NAMES = {
+  mega645: 'Mega 6/45',
+  power655: 'Power 6/55',
+  lotto535: 'Lotto 5/35',
+  max3d: 'Max 3D',
+  max3d_pro: 'Max 3D Pro',
+  keno: 'Keno'
+};
+
+// Cấu hình các sản phẩm mua vé. Giá là giá tham khảo, nên kiểm tra lại.
+const GAMES = {
+  mega645: {
+    label:'Mega 6/45', price:10000,
+    pick:6, max:45,
+    note:'Chọn đúng 6 số trong khoảng 01 đến 45.'
+  },
+  power655: {
+    label:'Power 6/55', price:10000,
+    pick:6, max:55,
+    special:{ max:55 },
+    note:'Chọn 6 số trong khoảng 01 đến 55, và thêm 1 số đặc biệt trong khoảng 01 đến 55.'
+  },
+  lotto535: {
+    label:'Lotto 5/35', price:10000,
+    pick:5, max:35,
+    special:{ max:12 },
+    note:'Sản phẩm quay nhanh. Chọn đúng 5 số trong khoảng 01 đến 35, và thêm 1 số đặc biệt trong khoảng 01 đến 12.'
+  },
+  keno: {
+    label:'Keno', price:10000,
+    keno:true, min:1, maxPick:10, max:80,
+    randomMin:2, randomMax:10,
+    note:'Sản phẩm quay nhanh. Chọn từ 1 đến 10 số trong khoảng 01 đến 80. Nút ngẫu nhiên tạo từ 2 đến 10 số.'
+  },
+  max3d: {
+    label:'Max 3D', price:10000,
+    multi:{ count:2, digits:3 },
+    note:'Mỗi vé gồm 1 dãy 2 số. Mỗi số gồm 3 chữ số từ 000 đến 999.'
+  },
+  max3d_pro: {
+    label:'Max 3D Pro', price:10000,
+    multi:{ count:2, digits:3 },
+    note:'Mỗi vé gồm 1 dãy 2 số. Mỗi số gồm 3 chữ số từ 000 đến 999.'
+  },
+  xsmn: {
+    label:'XSMN', price:10000,
+    digits:6, station:true,
+    note:'Chọn đài, rồi nhập 6 chữ số. Khi đối chiếu, trang so 2 đến 6 chữ số cuối với các giải của đài đã chọn (đơn giản hóa).'
+  }
+};
+
+const MAX3D_GROUPS = [
+  { label:'Giải đặc biệt', keys:['special','db','Giải Đặc biệt','Giải đặc biệt'] },
+  { label:'Giải nhất',     keys:['first','n1','Giải Nhất','Giải nhất'] },
+  { label:'Giải nhì',      keys:['second','n2','Giải Nhì','Giải nhì'] },
+  { label:'Giải ba',       keys:['third','n3','Giải ba','Giải Ba'] }
+];
+
+const $ = id => document.getElementById(id);
+
+const esc = value =>
+  String(value == null ? '' : value).replace(
+    /[&<>"']/g,
+    c => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    })[c]
+  );
+
+const pad2 = v => String(v).padStart(2, '0');
+const pad3 = v => String(v).padStart(3, '0');
+
+const fmt = n => Number(n).toLocaleString('vi-VN') + ' đ';
+
+const fmtTime = iso => {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleString('vi-VN');
+};
+
+const uid = () =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    pad2(d.getMonth() + 1) + '-' +
+    pad2(d.getDate());
+}
+
+let data = { updatedAt:null, xsmn:{}, vietlott:{} };
+
+let tab = 'xsmn';
+let view = 'results';
+let loading = false;
+let lastLatestDate = null;
+
+// Trạng thái mua vé
+let buyGame = 'mega645';
+let picked = new Set();
+let pickedSpecial = null;
+
+// Vé đã mua
+let tickets = [];
+
+// ============================================================
+// STORAGE
+// ============================================================
+
+function loadTickets() {
+  try {
+    const raw = localStorage.getItem(TICKET_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveTickets() {
+  try {
+    localStorage.setItem(TICKET_KEY, JSON.stringify(tickets));
+  } catch (e) {
+    console.error('Không lưu được vé:', e);
+  }
+}
+
+// ============================================================
+// DATA HELPERS
+// ============================================================
+
+function normalizeNumbers(value) {
+  if (Array.isArray(value)) return value;
+  if (value === null || value === undefined) return [];
+  return [value];
+}
+
+function getDateKeys(source) {
+  return Object.keys(source || {})
+    .filter(key => /^\d{4}-\d{2}-\d{2}$/.test(key))
+    .sort()
+    .reverse();
+}
+
+function dates() {
+  const source = tab === 'xsmn' ? data.xsmn : data.vietlott;
+  return getDateKeys(source);
+}
+
+function products(date) {
+  const day = (data.vietlott || {})[date] || {};
+
+  return Object.keys(VL_NAMES)
+    .filter(k => Array.isArray(day[k]) && day[k].length)
+    .map(k => [k, VL_NAMES[k]]);
+}
+
+function allStations() {
+  const set = new Set();
+
+  Object.values(data.xsmn || {}).forEach(day => {
+    Object.keys(day || {}).forEach(s => set.add(s));
+  });
+
+  return [...set].sort();
+}
+
+function findPrize(prizes, keys) {
+  if (!prizes || typeof prizes !== 'object') return [];
+
+  for (const key of keys) {
+    if (prizes[key] !== undefined) {
+      return normalizeNumbers(prizes[key]);
+    }
   }
 
-  function products() {
-    const seen = new Set();
-    Object.values(data.vietlott || {}).forEach(day => Object.keys(day || {}).forEach(k => seen.add(k)));
-    return Object.keys(VL_NAMES).filter(k => seen.has(k));
+  return [];
+}
+
+// ============================================================
+// KẾT QUẢ: SELECTORS
+// ============================================================
+
+function setOptions(select, items, placeholder) {
+  const previous = select.value;
+
+  if (!items.length) {
+    select.innerHTML = `<option value="">${esc(placeholder)}</option>`;
+    select.disabled = true;
+    return;
   }
 
-  // Đặt lại danh sách lựa chọn nhưng giữ giá trị đang chọn nếu còn tồn tại
-  function setOptions(sel, items, placeholder) {
-    const prev = sel.value;
-    if (!items.length) {
-      sel.innerHTML = `<option value="">${esc(placeholder)}</option>`;
-      sel.disabled = true;
+  select.disabled = false;
+
+  select.innerHTML = items.map(([value, label]) =>
+    `<option value="${esc(value)}">${esc(label)}</option>`
+  ).join('');
+
+  if (items.some(([value]) => value === previous)) {
+    select.value = previous;
+  }
+}
+
+function fillSelectors() {
+  const dateItems = dates().map(date => [date, date]);
+  const newestDate = dateItems.length ? dateItems[0][0] : null;
+
+  const previousDate = $('dateSel').value;
+  const followLatest = !previousDate || previousDate === lastLatestDate;
+
+  setOptions($('dateSel'), dateItems, '(chưa có dữ liệu)');
+
+  if (followLatest && newestDate) {
+    $('dateSel').value = newestDate;
+  }
+
+  lastLatestDate = newestDate;
+
+  const date = $('dateSel').value;
+  const xsmnDay = (data.xsmn || {})[date] || {};
+
+  const stations = Object.keys(xsmnDay).map(s => [s, s]);
+
+  setOptions(
+    $('stSel'),
+    [['__all', 'Tất cả các đài'], ...stations],
+    '(chưa có đài)'
+  );
+
+  setOptions($('pdSel'), products(date), '(chưa có sản phẩm)');
+}
+
+// ============================================================
+// KẾT QUẢ: RENDER
+// ============================================================
+
+function balls(numbers, special = false) {
+  const list = normalizeNumbers(numbers);
+
+  if (!list.length) {
+    return '<span class="muted">Chưa có dữ liệu</span>';
+  }
+
+  return `
+    <div class="balls">
+      ${list.map(number => `
+        <div class="ball ${special ? 'sp' : ''}">${esc(number)}</div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderXsmn(date) {
+  const day = (data.xsmn || {})[date];
+
+  if (!day || !Object.keys(day).length) {
+    $('out').innerHTML = `
+      <div class="muted">Chưa có kết quả XSMN ngày ${esc(date)}.</div>
+    `;
+    return;
+  }
+
+  const selectedStation = $('stSel').value;
+
+  const stations =
+    selectedStation && selectedStation !== '__all' && day[selectedStation]
+      ? [selectedStation]
+      : Object.keys(day);
+
+  let html = `
+    <h2>XSMN · ${esc(date)}</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Giải</th>
+          ${stations.map(station => `<th>${esc(station)}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  PRIZES.forEach(([key, label]) => {
+    html += `
+      <tr class="${key === 'DB' ? 'db' : ''}">
+        <td class="prize">${label}</td>
+        ${stations.map(station => {
+          const numbers = (day[station] || {})[key] || [];
+
+          return `
+            <td class="nums">
+              ${normalizeNumbers(numbers)
+                .map(number => `<span>${esc(number)}</span>`)
+                .join('')}
+            </td>
+          `;
+        }).join('')}
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+
+  $('out').innerHTML = html;
+}
+
+function renderMax3D(draw) {
+  const prizes = draw.prizes || draw.result || {};
+
+  let html = '';
+
+  MAX3D_GROUPS.forEach(group => {
+    const numbers = findPrize(prizes, group.keys);
+
+    if (!numbers.length) return;
+
+    html += `
+      <div class="gt">${esc(group.label)}</div>
+      ${balls(numbers)}
+    `;
+  });
+
+  return html || '<div class="muted">Không có dữ liệu giải thưởng.</div>';
+}
+
+function renderKeno(draws) {
+  const list = Array.isArray(draws) ? draws : draws ? [draws] : [];
+
+  if (!list.length) {
+    return '<div class="muted">Chưa có kết quả Keno.</div>';
+  }
+
+  return list
+    .filter(draw => draw && Array.isArray(draw.numbers))
+    .map(draw => {
+      const numbers = draw.numbers.map(pad2);
+
+      return `
+        <div class="draw-card keno-card">
+          <div class="draw-header">
+            <strong>Keno</strong>
+            <span>${esc(draw.ky || 'Chưa có mã kỳ quay')}</span>
+          </div>
+
+          <div class="draw-numbers keno-numbers">
+            ${numbers.map(n => `<span class="ball">${esc(n)}</span>`).join('')}
+          </div>
+
+          <div class="draw-date">${esc(draw.date || '')}</div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function renderVl(date) {
+  const pd = $('pdSel').value;
+  const day = (data.vietlott || {})[date] || {};
+  const list = Array.isArray(day[pd]) ? day[pd] : [];
+
+  if (!pd || !list.length) {
+    $('out').innerHTML = `
+      <div class="muted">
+        Chưa có kết quả ${esc(VL_NAMES[pd] || 'Vietlott')} ngày ${esc(date)}.
+      </div>
+    `;
+    return;
+  }
+
+  let html = `<h2>${esc(VL_NAMES[pd])} · ${esc(date)}</h2>`;
+
+  list.forEach(draw => {
+    if (pd === 'keno') {
+      html += renderKeno(draw);
       return;
     }
-    sel.disabled = false;
-    sel.innerHTML = items.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('');
-    if (items.some(([v]) => v === prev)) sel.value = prev;
-  }
 
-  function fillSelectors() {
-    setOptions($('dateSel'), dates().map(d => [d, d]), '(chưa có dữ liệu)');
+    const drawId = draw.ky || draw.id || '';
 
-    const date = $('dateSel').value;
-    const day = (data.xsmn || {})[date] || {};
-    const stations = Object.keys(day).map(s => [s, s]);
-    setOptions($('stSel'), [['__all', 'Tất cả các đài'], ...stations], '(chưa có đài)');
+    html += `
+      <div class="draw">
+        <div class="meta">
+          Kỳ <b>${esc(drawId)}</b>
+          ${draw.time ? '<br>' + esc(draw.time) : ''}
+          ${draw.date ? '<br>' + esc(draw.date) : ''}
+        </div>
+        <div>
+    `;
 
-    setOptions($('pdSel'), products().map(k => [k, VL_NAMES[k]]), '(chưa có dữ liệu)');
-  }
+    if (pd === 'max3d' || pd === 'max3d_pro') {
+      html += renderMax3D(draw);
+    } else {
+      html += `
+        <div class="gt">Các số trúng thưởng</div>
+        ${balls(draw.numbers || [])}
+      `;
 
-  // ---------- Hiển thị ----------
-  function balls(arr, sp) {
-    return '<div class="balls">' + arr.map(n => `<div class="ball ${sp ? 'sp' : ''}">${esc(n)}</div>`).join('') + '</div>';
-  }
-
-  function renderXsmn(date) {
-    const day = (data.xsmn || {})[date];
-    if (!day || !Object.keys(day).length) {
-      $('out').innerHTML = `<div class="muted">Chưa có kết quả XSMN ngày ${esc(date)}.</div>`;
-      return;
-    }
-    const st = $('stSel').value;
-    const stations = (st && st !== '__all' && day[st]) ? [st] : Object.keys(day);
-
-    let h = `<h2>XSMN · ${esc(date)}</h2><table><thead><tr><th>Giải</th>` +
-      stations.map(s => `<th>${esc(s)}</th>`).join('') + '</tr></thead><tbody>';
-    PRIZES.forEach(([k, label]) => {
-      h += `<tr class="${k === 'DB' ? 'db' : ''}"><td class="prize">${label}</td>` +
-        stations.map(s => {
-          const nums = (day[s] || {})[k] || [];
-          return `<td class="nums">${nums.map(n => `<span>${esc(n)}</span>`).join('')}</td>`;
-        }).join('') + '</tr>';
-    });
-    $('out').innerHTML = h + '</tbody></table>';
-  }
-
-  function renderVl(date) {
-    const pd = $('pdSel').value;
-    const list = (((data.vietlott || {})[date]) || {})[pd] || [];
-    if (!pd || !list.length) {
-      $('out').innerHTML = `<div class="muted">Chưa có kết quả ${esc(VL_NAMES[pd] || 'Vietlott')} ngày ${esc(date)}.</div>`;
-      return;
-    }
-    let h = `<h2>${esc(VL_NAMES[pd])} · ${esc(date)}</h2>`;
-    list.forEach(d => {
-      h += `<div class="draw"><div class="meta">Kỳ <b>${esc(d.ky)}</b>${d.time ? '<br>' + esc(d.time) : ''}</div><div>`;
-      if (pd === 'max3d') {
-        const p = d.prizes || {};
-        MAX3D_GROUPS.forEach(([k, l]) => { h += `<div class="gt">${l}</div>${balls(p[k] || [])}`; });
-      } else {
-        h += balls(d.numbers || []);
-        if (d.special !== undefined) h += `<div class="gt">Đặc biệt</div>${balls([d.special], true)}`;
+      if (draw.special !== undefined && draw.special !== null) {
+        html += `
+          <div class="gt">Số đặc biệt</div>
+          ${balls([draw.special], true)}
+        `;
       }
-      h += '</div></div>';
-    });
-    $('out').innerHTML = h;
+    }
+
+    html += `
+        </div>
+      </div>
+    `;
+  });
+
+  $('out').innerHTML = html;
+}
+
+function render() {
+  fillSelectors();
+
+  $('updated').textContent = data.updatedAt
+    ? '· cập nhật lúc ' + new Date(data.updatedAt).toLocaleString('vi-VN')
+    : '';
+
+  $('stWrap').classList.toggle('hide', tab !== 'xsmn');
+  $('pdWrap').classList.toggle('hide', tab !== 'vietlott');
+
+  const date = $('dateSel').value;
+
+  if (!date) {
+    $('out').innerHTML = `
+      <div class="muted">
+        Chưa có dữ liệu. Hãy chạy workflow cập nhật kết quả trong GitHub Actions.
+      </div>
+    `;
+    return;
   }
 
-  function render() {
-    fillSelectors();
-    $('updated').textContent = data.updatedAt
-      ? '· cập nhật lúc ' + new Date(data.updatedAt).toLocaleString('vi-VN') : '';
-    $('stWrap').classList.toggle('hide', tab !== 'xsmn');
-    $('pdWrap').classList.toggle('hide', tab !== 'vietlott');
+  if (tab === 'xsmn') {
+    renderXsmn(date);
+  } else {
+    renderVl(date);
+  }
+}
 
-    const date = $('dateSel').value;
-    if (!date) {
-      $('out').innerHTML = '<div class="muted">Chưa có dữ liệu. Hãy chạy workflow "Cập nhật kết quả" trong GitHub Actions.</div>';
+// ============================================================
+// MUA VÉ
+// ============================================================
+
+function isPickGame(g) {
+  return !!(g.pick || g.keno);
+}
+
+function say(message, type = 'error') {
+  $('buyMsg').innerHTML = `
+    <div class="${type === 'ok' ? 'okmsg' : 'msg'}">${esc(message)}</div>
+  `;
+}
+
+function updateBuySummary() {
+  const g = GAMES[buyGame];
+  const qty = parseInt($('buyQty').value, 10) || 1;
+
+  $('buySummary').textContent =
+    `Giá ${fmt(g.price)} / vé · Tổng ${fmt(g.price * qty)}`;
+}
+
+function renderNumGrids() {
+  const g = GAMES[buyGame];
+  if (!isPickGame(g)) return;
+
+  const grid = $('numGrid');
+  if (!grid) return;
+
+  let html = '';
+  for (let i = 1; i <= g.max; i++) {
+    const n = pad2(i);
+    html += `
+      <button type="button" class="nb${picked.has(n) ? ' on' : ''}"
+              data-num="${n}">${n}</button>
+    `;
+  }
+  grid.innerHTML = html;
+
+  if (g.special) {
+    let spHtml = '';
+    for (let i = 1; i <= g.special.max; i++) {
+      const n = pad2(i);
+      spHtml += `
+        <button type="button"
+                class="nb spec${pickedSpecial === n ? ' on' : ''}"
+                data-spec="${n}">${n}</button>
+      `;
+    }
+    $('specGrid').innerHTML = spHtml;
+  }
+
+  const count = $('pickCount');
+  if (count) count.textContent = picked.size;
+}
+
+function updateStationOptions() {
+  const sel = $('stationSel');
+  if (!sel) return;
+
+  const previous = sel.value;
+  const stations = allStations();
+
+  sel.innerHTML = stations.length
+    ? stations.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')
+    : '<option value="">(chưa có đài)</option>';
+
+  if (stations.includes(previous)) {
+    sel.value = previous;
+  }
+}
+
+function renderBuyForm() {
+  const g = GAMES[buyGame];
+
+  document.querySelectorAll('#gameBtns button').forEach(b => {
+    b.classList.toggle('active', b.dataset.game === buyGame);
+  });
+
+  $('gameNote').textContent = g.note;
+
+  let html = '';
+
+  if (g.keno) {
+    html += `
+      <div class="gt">
+        Chọn từ ${g.min} đến ${g.maxPick} số trong 01 đến ${g.max}
+        (đã chọn <span id="pickCount">${picked.size}</span>)
+      </div>
+      <div class="numgrid" id="numGrid"></div>
+      <div class="actions">
+        <button type="button" class="ghost" id="quickBtn">Chọn ngẫu nhiên</button>
+        <button type="button" class="ghost" id="clearBtn">Bỏ chọn</button>
+      </div>
+    `;
+
+  } else if (g.pick) {
+    html += `
+      <div class="gt">
+        Chọn ${g.pick} số từ 01 đến ${g.max}
+        (đã chọn <span id="pickCount">${picked.size}</span>/${g.pick})
+      </div>
+      <div class="numgrid" id="numGrid"></div>
+    `;
+
+    if (g.special) {
+      html += `
+        <div class="gt">Số đặc biệt (01 đến ${g.special.max})</div>
+        <div class="numgrid" id="specGrid"></div>
+      `;
+    }
+
+    html += `
+      <div class="actions">
+        <button type="button" class="ghost" id="quickBtn">Chọn ngẫu nhiên</button>
+        <button type="button" class="ghost" id="clearBtn">Bỏ chọn</button>
+      </div>
+    `;
+
+  } else if (g.multi) {
+    const inputs = Array.from({ length:g.multi.count }, () => `
+      <input type="text" class="digitIn"
+             inputmode="numeric" maxlength="${g.multi.digits}"
+             placeholder="${'0'.repeat(g.multi.digits)}">
+    `).join('');
+
+    html += `
+      <div class="gt">
+        Nhập ${g.multi.count} số, mỗi số gồm ${g.multi.digits} chữ số từ 000 đến 999
+      </div>
+      <div class="buy-row">${inputs}</div>
+      <div class="actions">
+        <button type="button" class="ghost" id="quickBtn">Ngẫu nhiên</button>
+      </div>
+    `;
+
+  } else if (g.digits) {
+    html += `
+      <div class="gt">Nhập ${g.digits} chữ số</div>
+      <div class="buy-row">
+        <input type="text" class="digitIn"
+               inputmode="numeric" maxlength="${g.digits}"
+               placeholder="${'0'.repeat(g.digits)}">
+        ${g.station ? `
+          <label>
+            Đài
+            <select id="stationSel"></select>
+          </label>
+        ` : ''}
+      </div>
+      <div class="actions">
+        <button type="button" class="ghost" id="quickBtn">Ngẫu nhiên</button>
+      </div>
+    `;
+  }
+
+  $('buyForm').innerHTML = html;
+
+  renderNumGrids();
+  updateStationOptions();
+}
+
+function togglePick(n) {
+  const g = GAMES[buyGame];
+  const max = g.keno ? g.maxPick : g.pick;
+
+  if (picked.has(n)) {
+    picked.delete(n);
+  } else if (picked.size >= max) {
+    say(g.keno
+      ? `Keno chỉ cho chọn tối đa ${max} số.`
+      : `Chỉ được chọn tối đa ${max} số.`);
+    return;
+  } else {
+    picked.add(n);
+  }
+
+  renderNumGrids();
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomDigits(n) {
+  return Array.from({ length:n }, () => randomInt(0, 9)).join('');
+}
+
+// Lấy count số khác nhau ngẫu nhiên từ from đến to
+function shuffleTake(from, to, count) {
+  const pool = [];
+  for (let i = from; i <= to; i++) pool.push(pad2(i));
+
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  return pool.slice(0, count);
+}
+
+function quickPick() {
+  const g = GAMES[buyGame];
+
+  if (g.keno) {
+    picked.clear();
+    const count = randomInt(g.randomMin, g.randomMax);
+    shuffleTake(1, g.max, count).forEach(n => picked.add(n));
+    renderNumGrids();
+    return;
+  }
+
+  if (g.pick) {
+    picked.clear();
+    shuffleTake(1, g.max, g.pick).forEach(n => picked.add(n));
+
+    if (g.special) {
+      pickedSpecial = shuffleTake(1, g.special.max, 1)[0];
+    }
+
+    renderNumGrids();
+    return;
+  }
+
+  if (g.multi) {
+    document.querySelectorAll('.digitIn').forEach(input => {
+      input.value = randomDigits(g.multi.digits);
+    });
+    return;
+  }
+
+  if (g.digits) {
+    const input = document.querySelector('.digitIn');
+    if (input) input.value = randomDigits(g.digits);
+  }
+}
+
+function buyTickets() {
+  const g = GAMES[buyGame];
+  const date = $('buyDate').value;
+  const qty = parseInt($('buyQty').value, 10) || 1;
+
+  if (!date) {
+    say('Vui lòng chọn ngày quay.');
+    return;
+  }
+
+  let numbers;
+  let special = null;
+  let station = null;
+
+  if (g.keno) {
+    if (picked.size < g.min || picked.size > g.maxPick) {
+      say(`Keno cần chọn từ ${g.min} đến ${g.maxPick} số.`);
       return;
     }
-    if (tab === 'xsmn') renderXsmn(date); else renderVl(date);
-  }
 
-  // ---------- Tải dữ liệu ----------
-  async function load() {
-    try {
-      const r = await fetch('data/results.json?t=' + Date.now(), { cache: 'no-store' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      data = await r.json();
-      $('msg').innerHTML = '';
-    } catch (e) {
-      $('msg').innerHTML = `<div class="msg">Không tải được data/results.json (${esc(e.message)}).</div>`;
+    numbers = [...picked].sort();
+
+  } else if (g.pick) {
+    if (picked.size !== g.pick) {
+      say(`Cần chọn đủ ${g.pick} số.`);
+      return;
     }
-    render();
+
+    numbers = [...picked].sort();
+
+    if (g.special) {
+      if (!pickedSpecial) {
+        say('Chưa chọn số đặc biệt.');
+        return;
+      }
+      special = pickedSpecial;
+    }
+
+  } else if (g.multi) {
+    const values = [...document.querySelectorAll('.digitIn')]
+      .map(input => input.value.trim());
+
+    const re = new RegExp('^\\d{' + g.multi.digits + '}$');
+
+    if (values.length !== g.multi.count || values.some(v => !re.test(v))) {
+      say(`Vui lòng nhập đủ ${g.multi.count} số, mỗi số gồm ${g.multi.digits} chữ số.`);
+      return;
+    }
+
+    numbers = values;
+
+  } else if (g.digits) {
+    const v = ($('digitInput') || document.querySelector('.digitIn') || { value:'' })
+      .value.trim();
+
+    const re = new RegExp('^\\d{' + g.digits + '}$');
+
+    if (!re.test(v)) {
+      say(`Vui lòng nhập đúng ${g.digits} chữ số.`);
+      return;
+    }
+
+    numbers = [v];
+
+    if (g.station) {
+      station = $('stationSel') ? $('stationSel').value : '';
+
+      if (!station) {
+        say('Vui lòng chọn đài.');
+        return;
+      }
+    }
   }
 
-  // ---------- Sự kiện ----------
-  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
-    tab = b.dataset.tab;
-    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
-    render();
-  }));
-  $('dateSel').addEventListener('change', render);
-  $('stSel').addEventListener('change', render);
-  $('pdSel').addEventListener('change', render);
+  const total = g.price * qty;
 
-  load();
-  setInterval(load, REFRESH_MS);
+  const ok = confirm(
+    `Xác nhận mua ${qty} vé ${g.label}, tổng ${fmt(total)}?\n` +
+    `(Đây là bản mô phỏng, không thanh toán thật.)`
+  );
+
+  if (!ok) return;
+
+  for (let i = 0; i < qty; i++) {
+    tickets.push({
+      id: uid(),
+      game: buyGame,
+      numbers: [...numbers],
+      special,
+      station,
+      drawDate: date,
+      price: g.price,
+      boughtAt: new Date().toISOString()
+    });
+  }
+
+  saveTickets();
+
+  picked.clear();
+  pickedSpecial = null;
+
+  renderBuyForm();
+  updateBuySummary();
+
+  say(`Đã thêm ${qty} vé ${g.label} vào danh sách.`, 'ok');
+
+  renderMine();
+}
+
+// ============================================================
+// VÉ CỦA TÔI: ĐỐI CHIẾU
+// ============================================================
+
+function result(status, text, hits = [], specialHit = false) {
+  return { status, text, hits, specialHit };
+}
+
+function checkXsmnTicket(t) {
+  const day = ((data.xsmn || {})[t.drawDate] || {})[t.station];
+
+  if (!day) {
+    return result('pending', `Chưa có kết quả đài ${t.station} ngày ${t.drawDate}`);
+  }
+
+  const num = t.numbers[0];
+
+  // Duyệt từ giải nhỏ đến giải lớn để ưu tiên giải lớn nhất khi trùng
+  for (const [key, label] of [...PRIZES].reverse()) {
+    for (const w of normalizeNumbers(day[key]).map(String)) {
+      if (w && num.endsWith(w)) {
+        return result('win', `${label} (${w.length} số cuối)`, [w]);
+      }
+    }
+  }
+
+  return result('lose', 'Không trúng');
+}
+
+function checkTicket(t) {
+  const g = GAMES[t.game];
+
+  if (!g) {
+    return result('info', 'Sản phẩm không còn được hỗ trợ');
+  }
+
+  if (t.game === 'xsmn') {
+    return checkXsmnTicket(t);
+  }
+
+  const draws = ((data.vietlott || {})[t.drawDate] || {})[t.game];
+  const list = Array.isArray(draws) ? draws : [];
+
+  if (!list.length) {
+    return result('pending', `Chưa có kết quả ${g.label} ngày ${t.drawDate}`);
+  }
+
+  // Max 3D và Max 3D Pro: mỗi số trong dãy so khớp đúng 3 chữ số với một nhóm giải
+  if (g.multi) {
+    const matches = [];
+
+    t.numbers.forEach(num => {
+      let found = null;
+
+      for (const draw of list) {
+        const prizes = draw.prizes || draw.result || {};
+
+        for (const group of MAX3D_GROUPS) {
+          const nums = findPrize(prizes, group.keys).map(pad3);
+
+          if (nums.includes(num)) {
+            found = { num, label: group.label };
+            break;
+          }
+        }
+
+        if (found) break;
+      }
+
+      if (found) matches.push(found);
+    });
+
+    if (matches.length) {
+      return result(
+        'win',
+        matches.map(m => `${m.label} (${m.num})`).join(', '),
+        matches.map(m => m.num)
+      );
+    }
+
+    return result('lose', 'Không trúng');
+  }
+
+  // Keno: đếm số trùng cao nhất với các kỳ trong ngày.
+  // Chưa tính tiền thưởng vì cơ cấu giải theo bậc chưa được kiểm chứng.
+  if (g.keno) {
+    let best = { hits:[] };
+
+    for (const draw of list) {
+      const winning = normalizeNumbers(draw.numbers).map(pad2);
+      const hits = t.numbers.filter(n => winning.includes(n));
+
+      if (hits.length > best.hits.length) best = { hits };
+    }
+
+    return result(
+      'info',
+      `Trùng ${best.hits.length}/${t.numbers.length} số (tham khảo)`,
+      best.hits
+    );
+  }
+
+  // Mega, Power, Lotto: chỉ hiển thị số trùng, không kết luận trúng hay không
+  let best = { hits:[], specialHit:false, score:-1 };
+
+  for (const draw of list) {
+    const winning = normalizeNumbers(draw.numbers).map(pad2);
+    const hits = t.numbers.filter(n => winning.includes(n));
+
+    const specialHit =
+      !!t.special &&
+      draw.special != null &&
+      pad2(draw.special) === t.special;
+
+    const score = hits.length * 10 + (specialHit ? 1 : 0);
+
+    if (score > best.score) {
+      best = { hits, specialHit, score };
+    }
+  }
+
+  const extra = best.specialHit ? ' + đặc biệt' : '';
+
+  return result(
+    'info',
+    `Trùng ${best.hits.length} số${extra} (tham khảo)`,
+    best.hits,
+    best.specialHit
+  );
+}
+
+function ballRow(list, special, hits) {
+  return `
+    <div class="balls">
+      ${list.map(n => `
+        <div class="ball${special ? ' sp' : ''}${hits.includes(n) ? ' hit' : ''}">
+          ${esc(n)}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderTicketCard({ t, r }) {
+  const g = GAMES[t.game];
+  let label = g ? g.label : t.game;
+  if (t.station) label += ' · ' + t.station;
+
+  let body = '';
+
+  if (!g) {
+    body = `<div class="muted">${esc(t.numbers.join(' '))}</div>`;
+
+  } else if (t.game === 'xsmn') {
+    const num = t.numbers[0];
+    const L = r.hits[0] ? r.hits[0].length : 0;
+
+    body = `
+      <div class="digits-row">
+        <span class="digits">
+          ${esc(num.slice(0, num.length - L))}<span class="hit">${esc(num.slice(num.length - L))}</span>
+        </span>
+      </div>
+    `;
+
+  } else if (g.multi) {
+    body = `
+      <div class="digits-row">
+        ${t.numbers.map(n => `
+          <span class="digits${r.hits.includes(n) ? ' hit' : ''}">${esc(n)}</span>
+        `).join('')}
+      </div>
+    `;
+
+  } else {
+    body = ballRow(t.numbers, false, r.hits);
+
+    if (t.special) {
+      body += ballRow([t.special], true, r.specialHit ? [t.special] : []);
+    }
+  }
+
+  return `
+    <div class="tk">
+      <div class="tk-head">
+        <b>${esc(label)}</b>
+        <span class="badge ${r.status}">${esc(r.text)}</span>
+      </div>
+
+      ${body}
+
+      <div class="muted small">
+        Ngày quay ${esc(t.drawDate)} · Mua lúc ${esc(fmtTime(t.boughtAt))} · ${fmt(t.price)}
+      </div>
+
+      <div class="actions">
+        <button type="button" class="ghost small" data-del="${esc(t.id)}">Xóa vé</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMine() {
+  const list = [...tickets].sort((a, b) =>
+    String(b.boughtAt).localeCompare(String(a.boughtAt))
+  );
+
+  const results = list.map(t => ({ t, r: checkTicket(t) }));
+
+  const wins = results.filter(x => x.r.status === 'win').length;
+  const withHits = results.filter(x => x.r.hits.length > 0).length;
+  const pending = results.filter(x => x.r.status === 'pending').length;
+  const spent = list.reduce((sum, t) => sum + (t.price || 0), 0);
+
+  $('mySummary').innerHTML = `
+    <div class="stats">
+      <div><b>${list.length}</b><span>Vé đã mua</span></div>
+      <div><b>${fmt(spent)}</b><span>Tổng chi</span></div>
+      <div><b class="win-t">${wins}</b><span>Vé trúng</span></div>
+      <div><b>${withHits}</b><span>Vé có số trùng</span></div>
+      <div><b>${pending}</b><span>Chờ kết quả</span></div>
+    </div>
+  `;
+
+  $('myList').innerHTML = list.length
+    ? results.map(renderTicketCard).join('')
+    : '<div class="muted">Chưa có vé nào. Hãy vào tab Mua vé.</div>';
+}
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+
+function refreshAll() {
+  render();
+  updateStationOptions();
+  renderMine();
+}
+
+async function load() {
+  if (loading) return;
+
+  loading = true;
+
+  try {
+    const response = await fetch(DATA_URL + '?t=' + Date.now(), { cache:'no-store' });
+
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+
+    const json = await response.json();
+
+    if (!json || typeof json !== 'object' || !json.xsmn || !json.vietlott) {
+      throw new Error('Cấu trúc results.json không hợp lệ');
+    }
+
+    data = {
+      updatedAt: json.updatedAt || null,
+      xsmn: json.xsmn || {},
+      vietlott: json.vietlott || {}
+    };
+
+    $('msg').innerHTML = '';
+    $('status').textContent = 'Đã tải dữ liệu thành công';
+    $('status').classList.remove('error');
+
+  } catch (error) {
+    console.error('Load data error:', error);
+
+    $('msg').innerHTML = `
+      <div class="msg">
+        Không tải được data/results.json: ${esc(error.message)}
+      </div>
+    `;
+
+    $('status').textContent = 'Lỗi tải dữ liệu';
+    $('status').classList.add('error');
+
+  } finally {
+    loading = false;
+    refreshAll();
+  }
+}
+
+// ============================================================
+// VIEW SWITCHING
+// ============================================================
+
+function setView(name) {
+  view = name;
+
+  document.querySelectorAll('.view').forEach(v => {
+    v.classList.toggle('hide', v.id !== 'view-' + name);
+  });
+
+  document.querySelectorAll('#navTabs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === name);
+  });
+
+  if (name === 'mine') renderMine();
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+
+document.querySelectorAll('#navTabs button').forEach(button => {
+  button.addEventListener('click', () => setView(button.dataset.view));
+});
+
+document.querySelectorAll('#subTabs button').forEach(button => {
+  button.addEventListener('click', () => {
+    tab = button.dataset.tab;
+
+    document.querySelectorAll('#subTabs button').forEach(item => {
+      item.classList.toggle('active', item === button);
+    });
+
+    render();
+  });
+});
+
+$('dateSel').addEventListener('change', render);
+$('stSel').addEventListener('change', render);
+$('pdSel').addEventListener('change', render);
+
+$('gameBtns').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-game]');
+  if (!btn) return;
+
+  buyGame = btn.dataset.game;
+  picked.clear();
+  pickedSpecial = null;
+
+  renderBuyForm();
+  updateBuySummary();
+  $('buyMsg').innerHTML = '';
+});
+
+$('buyQty').addEventListener('change', updateBuySummary);
+
+$('buyForm').addEventListener('click', e => {
+  const t = e.target;
+
+  if (t.dataset.num) {
+    togglePick(t.dataset.num);
+
+  } else if (t.dataset.spec) {
+    pickedSpecial = pickedSpecial === t.dataset.spec ? null : t.dataset.spec;
+    renderNumGrids();
+
+  } else if (t.id === 'quickBtn') {
+    quickPick();
+
+  } else if (t.id === 'clearBtn') {
+    picked.clear();
+    pickedSpecial = null;
+    renderNumGrids();
+  }
+});
+
+// Chỉ cho nhập chữ số vào các ô số
+$('buyForm').addEventListener('input', e => {
+  if (!e.target.classList.contains('digitIn')) return;
+
+  const g = GAMES[buyGame];
+  const maxLen = g.multi ? g.multi.digits : (g.digits || 3);
+
+  e.target.value = e.target.value
+    .replace(/\D/g, '')
+    .slice(0, maxLen);
+});
+
+$('buyBtn').addEventListener('click', buyTickets);
+
+$('recheckBtn').addEventListener('click', load);
+
+$('clearAllBtn').addEventListener('click', () => {
+  if (!tickets.length) return;
+  if (!confirm('Xóa toàn bộ vé đã mua?')) return;
+
+  tickets = [];
+  saveTickets();
+  renderMine();
+});
+
+$('myList').addEventListener('click', e => {
+  const id = e.target.dataset.del;
+  if (!id) return;
+  if (!confirm('Xóa vé này?')) return;
+
+  tickets = tickets.filter(t => t.id !== id);
+  saveTickets();
+  renderMine();
+});
+
+// ============================================================
+// START
+// ============================================================
+
+tickets = loadTickets();
+$('buyDate').value = todayStr();
+
+renderBuyForm();
+updateBuySummary();
+setView('results');
+
+load();
+setInterval(load, REFRESH_MS);
+
 })();
 </script>
 </body>

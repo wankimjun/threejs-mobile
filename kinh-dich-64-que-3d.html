@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>64 Quẻ Dịch - 2D / 3D - Warehouse 3D</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #050508; font-family: system-ui, sans-serif; color: #e5e7eb; }
+  canvas { display: block; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  canvas.hidden { display: none; }
+
+  #info { position: absolute; top: 16px; left: 16px; right: 170px; color: #fff; z-index: 10; pointer-events: none; }
+  #info .title { font-size: 18px; font-weight: 600; line-height: 1.3; }
+  #info .sub { font-size: 13px; opacity: 0.7; margin-top: 4px; line-height: 1.4; }
+  #info .hint { font-size: 12px; opacity: 0.45; margin-top: 8px; }
+
+  #legend { position: absolute; top: 110px; left: 16px; z-index: 10; font-size: 12px; line-height: 1.7; pointer-events: none; }
+  #legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+
+  #back { position: absolute; top: 16px; right: 16px; z-index: 10; }
+  #back a {
+    display: inline-block; color: #22d3ee; text-decoration: none; font-size: 14px;
+    padding: 8px 14px; border: 1px solid rgba(34,211,238,0.4); border-radius: 8px; background: rgba(15,23,42,0.4);
+  }
+  #back a:hover, #back a:focus-visible { background: rgba(34,211,238,0.12); border-color: #22d3ee; outline: none; }
+
+  /* ---- Chế độ 2D ---- */
+  #grid2d {
+    position: absolute; inset: 0; z-index: 5; overflow: auto; display: none;
+    padding: 150px 16px 110px; box-sizing: border-box;
+  }
+  #grid2d.show { display: block; }
+  #grid2d .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px;
+    max-width: 1000px; margin: 0 auto;
+  }
+  #grid2d button {
+    font-family: inherit; color: #e5e7eb; cursor: pointer; text-align: center;
+    background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+    padding: 8px 4px 6px;
+  }
+  #grid2d button:hover { background: rgba(255,255,255,0.08); }
+  #grid2d button:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+  #grid2d button[aria-pressed="true"] { border-color: #22d3ee; background: rgba(34,211,238,0.12); }
+  #grid2d svg { display: block; margin: 0 auto 4px; }
+  #grid2d .no { font-size: 11px; opacity: 0.6; }
+  #grid2d .zh { font-size: 15px; }
+  #grid2d .en { font-size: 11px; opacity: 0.8; line-height: 1.2; }
+
+  #controls {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center;
+    width: max-content; max-width: calc(100vw - 24px);
+  }
+  #controls button, #controls select {
+    font-family: inherit; font-size: 13px; color: #e5e7eb;
+    padding: 8px 12px; border-radius: 8px; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.15);
+  }
+  #controls button { cursor: pointer; }
+  #controls button:hover { background: rgba(255,255,255,0.08); }
+  #controls button:focus-visible, #controls select:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+  #controls button[aria-pressed="true"] { background: rgba(255,255,255,0.14); border-color: #22d3ee; color: #fff; }
+  #controls select { max-width: 52vw; }
+  #controls select option { background: #0f172a; }
+  #controls .only3d.hidden { display: none; }
+
+  #panel {
+    position: absolute; bottom: 70px; right: 16px; z-index: 11;
+    background: rgba(15,23,42,0.92); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+    padding: 14px 16px; width: 300px; max-height: 60vh; overflow: auto; display: none; font-size: 14px; line-height: 1.6;
+  }
+  #panel.show { display: block; }
+  #panel .zh { font-size: 30px; font-weight: 600; color: #fff; }
+  #panel .en { font-size: 16px; font-weight: 600; }
+  #panel .row { opacity: 0.8; }
+  #panel .lines { font-size: 22px; line-height: 1.1; margin: 8px 0 4px; white-space: pre; font-family: "Noto Sans Symbols", "Segoe UI Symbol", system-ui, sans-serif; }
+  #panel .meaning { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.12); }
+  #panel .meaning .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; margin-bottom: 4px; }
+  #panel .src { font-size: 11px; opacity: 0.5; margin-top: 10px; }
+  #panel .src a { color: #7dd3fc; }
+  #panel button.close { position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; }
+
+  @media (max-width: 600px) {
+    #info { right: 16px; top: 64px; }
+    #info .title { font-size: 16px; }
+    #info .sub { font-size: 12px; }
+    #legend { top: auto; bottom: 150px; font-size: 11px; }
+    #back { top: 12px; right: 12px; }
+    #panel { bottom: 170px; left: 16px; right: 16px; width: auto; max-height: 45vh; }
+    #controls select { max-width: 90vw; }
+    #grid2d { padding-top: 130px; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="info">
+  <div class="title">64 Quẻ Dịch &mdash; Kinh Dịch</div>
+  <div class="sub">64 quẻ xếp theo thứ tự Văn Vương. Mỗi quẻ gồm 6 hào, hào dương (liền) và hào âm (đứt), ghép từ hai quẻ đơn (quẻ trên và quẻ dưới).</div>
+  <div class="hint">3D: kéo để xoay, cuộn để zoom &bull; 2D: nhấn quẻ để xem chi tiết &bull; Space: tạm dừng (chỉ 3D)</div>
+</div>
+
+<div id="legend" aria-label="Chú giải màu quẻ đơn">
+  <div><span class="dot" style="background:#facc15"></span>Càn (Trời)</div>
+  <div><span class="dot" style="background:#38bdf8"></span>Đoài (Đầm)</div>
+  <div><span class="dot" style="background:#ef4444"></span>Ly (Lửa)</div>
+  <div><span class="dot" style="background:#a78bfa"></span>Chấn (Sấm)</div>
+  <div><span class="dot" style="background:#34d399"></span>Tốn (Gió)</div>
+  <div><span class="dot" style="background:#3b82f6"></span>Khảm (Nước)</div>
+  <div><span class="dot" style="background:#a16207"></span>Cấn (Núi)</div>
+  <div><span class="dot" style="background:#d6d3d1"></span>Khôn (Đất)</div>
+</div>
+
+<div id="back"><a href="index.html">← Trở về menu</a></div>
+
+<div id="grid2d" aria-label="Lưới 64 quẻ 2D"><div class="grid" id="grid"></div></div>
+
+<div id="controls" role="toolbar" aria-label="Điều khiển">
+  <button type="button" id="btnMode" aria-pressed="false">Chế độ: 3D</button>
+  <select id="pick" aria-label="Chọn quẻ"></select>
+  <button type="button" id="btnLayout" class="only3d" aria-pressed="false">Dạng: Hình cầu</button>
+  <button type="button" id="btnPause" class="only3d" aria-pressed="false">⏸ Tạm dừng</button>
+  <button type="button" id="btnReset" class="only3d">Đặt lại góc nhìn</button>
+</div>
+
+<div id="panel" role="dialog" aria-live="polite">
+  <button class="close" type="button" aria-label="Đóng">×</button>
+  <div class="zh" id="pZh"></div>
+  <div class="en" id="pEn"></div>
+  <div class="row" id="pPy"></div>
+  <div class="lines" id="pLines"></div>
+  <div class="row" id="pUpper"></div>
+  <div class="row" id="pLower"></div>
+  <div class="row" id="pNo"></div>
+  <div class="meaning">
+    <div class="label">Ý nghĩa</div>
+    <div id="pMeaning"></div>
+  </div>
+  <div class="src">Tóm tắt ý nghĩa tham khảo từ <a href="https://ichingailandingpage.pages.dev/en/hexagrams/" target="_blank" rel="noopener">The 64 Hexagrams of the I Ching</a>, dịch sang tiếng Việt.</div>
+</div>
+
+<canvas id="gl"></canvas>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// Dữ liệu: 64 quẻ theo thứ tự Văn Vương
+// [chữ Hán, phiên âm, tên Anh, quẻ trên, quẻ dưới]
+// Nguồn: Wikipedia tiếng Anh "List of hexagrams of the I Ching"
+// ============================================================
+const HEX = [
+  ['乾','qián','Force','Heaven','Heaven'],
+  ['坤','kūn','Field','Earth','Earth'],
+  ['屯','zhūn','Sprouting','Water','Thunder'],
+  ['蒙','méng','Enveloping','Mountain','Water'],
+  ['需','xū','Attending','Water','Heaven'],
+  ['訟','sòng','Arguing','Heaven','Water'],
+  ['師','shī','Leading','Earth','Water'],
+  ['比','bǐ','Grouping','Water','Earth'],
+  ['小畜','xiǎo xù','Small Accumulating','Wind','Heaven'],
+  ['履','lǚ','Treading','Heaven','Lake'],
+  ['泰','tài','Pervading','Earth','Heaven'],
+  ['否','pǐ','Obstruction','Heaven','Earth'],
+  ['同人','tóng rén','Concording People','Heaven','Fire'],
+  ['大有','dà yǒu','Great Possessing','Fire','Heaven'],
+  ['謙','qiān','Humbling','Earth','Mountain'],
+  ['豫','yù','Providing-For','Thunder','Earth'],
+  ['隨','suí','Following','Lake','Thunder'],
+  ['蠱','gǔ','Correcting','Mountain','Wind'],
+  ['臨','lín','Nearing','Earth','Lake'],
+  ['觀','guān','Viewing','Wind','Earth'],
+  ['噬嗑','shì kè','Gnawing Bite','Fire','Thunder'],
+  ['賁','bì','Adorning','Mountain','Fire'],
+  ['剝','bō','Stripping','Mountain','Earth'],
+  ['復','fù','Returning','Earth','Thunder'],
+  ['无妄','wú wàng','Without Embroiling','Heaven','Thunder'],
+  ['大畜','dà xù','Great Accumulating','Mountain','Heaven'],
+  ['頤','yí','Swallowing','Mountain','Thunder'],
+  ['大過','dà guò','Great Exceeding','Lake','Wind'],
+  ['坎','kǎn','Gorge','Water','Water'],
+  ['離','lí','Radiance','Fire','Fire'],
+  ['咸','xián','Conjoining','Lake','Mountain'],
+  ['恆','héng','Persevering','Thunder','Wind'],
+  ['遯','dùn','Retiring','Heaven','Mountain'],
+  ['大壯','dà zhuàng','Great Invigorating','Thunder','Heaven'],
+  ['晉','jìn','Prospering','Fire','Earth'],
+  ['明夷','míng yí','Darkening of the Light','Earth','Fire'],
+  ['家人','jiā rén','Dwelling People','Wind','Fire'],
+  ['睽','kuí','Polarising','Fire','Lake'],
+  ['蹇','jiǎn','Limping','Water','Mountain'],
+  ['解','jiě','Taking-Apart','Thunder','Water'],
+  ['損','sǔn','Diminishing','Mountain','Lake'],
+  ['益','yì','Augmenting','Wind','Thunder'],
+  ['夬','guài','Displacement','Lake','Heaven'],
+  ['姤','gòu','Coupling','Heaven','Wind'],
+  ['萃','cuì','Clustering','Lake','Earth'],
+  ['升','shēng','Ascending','Earth','Wind'],
+  ['困','kùn','Confining','Lake','Water'],
+  ['井','jǐng','Welling','Water','Wind'],
+  ['革','gé','Skinning','Lake','Fire'],
+  ['鼎','dǐng','Holding','Fire','Wind'],
+  ['震','zhèn','Shake','Thunder','Thunder'],
+  ['艮','gèn','Bound','Mountain','Mountain'],
+  ['漸','jiàn','Infiltrating','Wind','Mountain'],
+  ['歸妹','guī mèi','Converting the Maiden','Thunder','Lake'],
+  ['豐','fēng','Abounding','Thunder','Fire'],
+  ['旅','lǚ','Sojourning','Fire','Mountain'],
+  ['巽','xùn','Ground','Wind','Wind'],
+  ['兌','duì','Open','Lake','Lake'],
+  ['渙','huàn','Dispersing','Wind','Water'],
+  ['節','jié','Articulating','Water','Lake'],
+  ['中孚','zhōng fú','Center Returning','Wind','Lake'],
+  ['小過','xiǎo guò','Small Exceeding','Thunder','Mountain'],
+  ['既濟','jì jì','Already Fording','Water','Fire'],
+  ['未濟','wèi jì','Not Yet Fording','Fire','Water']
+];
+
+// Ý nghĩa cốt lõi (tiếng Việt, dịch từ tóm tắt tiếng Anh tại ichingailandingpage.pages.dev)
+const MEANING = [
+  'Sức mạnh thuần khiết của trời: thuận theo dòng lớn và kiên trì thì thành công.',
+  'Tiếp nhận, nuôi dưỡng và định hình điều đã khởi đầu; cần theo sau bằng sức bền nhẫn nại.',
+  'Khởi đầu gian nan: tiến chậm và tìm người phụ giúp.',
+  'Non dại trong học tập: người học phải tìm thầy và hỏi với lòng thành, không hỏi dồn dập.',
+  'Thời cơ đang chín; chờ đợi có lòng thành và kiên nhẫn là việc làm chủ động, không phải buông xuôi.',
+  'Dù mình đúng, tranh chấp không nên đẩy đến cùng; dừng nửa chừng là khôn ngoan hơn.',
+  'Hành động tập thể cần một trung tâm vững và kỷ luật rõ ràng.',
+  'Liên kết cần những người chân thành và đủ năng lực; thời điểm hợp nhất ngắn ngủi.',
+  'Những kiềm chế nhỏ có thể cản một lực lớn trong thời gian; nhẫn nại và tinh tế sẽ thắng.',
+  'Đi qua chỗ nguy hiểm an toàn nhờ hành xử cẩn trọng và lễ độ.',
+  'Sự hài hòa hiếm có khi các lực đối lập gặp nhau; hãy dùng khi nó còn.',
+  'Các nguyên tắc đối lập không còn thông nhau, gây trì trệ; hãy lui và giữ đức.',
+  'Cộng đồng cởi mở xây trên nguyên tắc chung và hợp tác minh bạch.',
+  'Sự dồi dào và ưu ái nên dùng rộng rãi, đừng ôm giữ.',
+  'Người có thực lực mà khiêm nhường làm được nhiều hơn; mọi hào đều thuận.',
+  'Năng lượng tập thể mạnh khi được dẫn vào hình thức bền vững.',
+  'Thích nghi với thực tế là một hình thức làm chủ, không phải yếu đuối.',
+  'Sửa chữa những việc bị bỏ lâu bằng nỗ lực kiên nhẫn và quyết đoán.',
+  'Xu thế thuận lợi đang lên; hãy tận dụng và chuẩn bị cho lúc nó đảo chiều.',
+  'Nhìn rõ và sự xứng đáng bên trong đi trước hành động hiệu quả; chuẩn bị nội tâm là quan trọng nhất.',
+  'Phải đối mặt trực tiếp và dứt khoát với chướng ngại, bằng công lý rõ ràng và cân xứng.',
+  'Chú ý hình thức giúp ích nhưng không thể thay thế thực chất.',
+  'Điều gì đó đang tan rã; hãy chấp nhận, giữ phần thiết yếu và đừng cố tiến ép.',
+  'Đổi mới bắt đầu từ mầm nhỏ sau suy thoái; cần nuôi dưỡng cẩn thận.',
+  'Sự chân thành, không toan tính thì thành công; động cơ rối rắm làm hỏng kế hoạch.',
+  'Sức mạnh lớn được tích lũy dưới kiềm chế và phát huy khi đã sẵn sàng.',
+  'Điều ta nạp vào và trao ra định hình nhân cách; cần biết phân biệt.',
+  'Quá tải làm căng cấu trúc, đòi hỏi hành động quyết đoán, đôi khi phi thường.',
+  'Nguy hiểm kéo dài phải vượt qua bằng sự chân thành, uyển chuyển như nước.',
+  'Sự sáng rõ phụ thuộc vào điều nuôi dưỡng nó; hãy chăm sóc những điều kiện ấy.',
+  'Sự hút nhau của hai lực bổ sung; ảnh hưởng nên được chọn lựa cẩn thận.',
+  'Điều bền lâu tồn tại nhờ biến đổi bên trong trong khi giữ hình thức bên ngoài ổn định.',
+  'Rút lui duyên dáng khỏi tình thế xấu đi là khôn ngoan nhất, nếu làm sớm.',
+  'Sức mạnh ở đỉnh cao mang rủi ro; chỉ nên dùng cho mục đích xứng đáng.',
+  'Tiến nhanh và được ghi nhận không nên vượt quá nền tảng giữ chất lượng.',
+  'Thời đen tối, nên giấu quan điểm thật nhưng giữ ánh sáng bên trong.',
+  'Trật tự trong gia đình là nền của trật tự rộng hơn; mỗi người phải làm tròn vai của mình.',
+  'Không nên ép hòa giải khi khác biệt lớn, nhưng có thể hợp tác ở những việc nhỏ.',
+  'Chướng ngại không thể vượt bằng sức mạnh thì nên dừng lại, tìm lời khuyên và chuẩn bị bên trong.',
+  'Khi căng thẳng qua đi, hãy giải quyết nốt việc còn lại nhanh chóng và đừng cứ nghĩ mãi về khó khăn.',
+  'Giảm một cách chân thành và tự nguyện, nhất là ham muốn, mang lợi cho tất cả.',
+  'Người trên cho người dưới để cả hai cùng phát triển; nên hành động táo bạo khi thuận lợi còn.',
+  'Vấn đề lâu dài phải được đối mặt công khai, không hận thù, và quan tâm đến cộng đồng.',
+  'Một ảnh hưởng nhỏ, yếu đang xâm nhập có thể lớn dần và gây hại; cần xử lý sớm.',
+  'Người và nguồn lực được gắn kết bởi một trung tâm đáng tin và mục đích chung rõ ràng.',
+  'Tăng trưởng đều đặn, tự nhiên thì bền; không nên vội vàng cũng không bỏ cuộc.',
+  'Gian khó mà ít người giúp đòi hỏi giữ vững nội tâm, hạn chế lời nói và kiên trì.',
+  'Nguồn nuôi dưỡng chung và lâu dài cần được giữ gìn và chăm sóc.',
+  'Thay đổi sâu phải đúng thời điểm và có lý do thực sự, không phải do nóng vội.',
+  'Nguyên liệu thô được biến thành nuôi dưỡng, như một khí cụ thiêng của sự tinh luyện và dâng cúng.',
+  'Cú sốc đột ngột phải được đón nhận bình tĩnh để công việc thiêng không bị gián đoạn.',
+  'Tĩnh lặng hoàn toàn và không tranh giành là nền tảng để hành động đúng.',
+  'Tiến bộ từ từ qua từng giai đoạn đúng đắn sẽ cho kết quả vững chắc.',
+  'Sự sắp đặt thiếu cân bằng đòi hỏi chấp nhận vị trí của mình và sống tốt trong đó.',
+  'Đỉnh đầy đủ tất yếu sẽ suy giảm; hãy tận hưởng trọn vẹn mà không tiếc nuối.',
+  'Đời sống của người xa xứ đòi hỏi hành xử nhỏ, cẩn thận, lễ độ và khiêm tốn.',
+  'Ảnh hưởng mềm, bền bỉ như gió, sẽ định hình lại môi trường theo thời gian.',
+  'Niềm vui chia sẻ qua giao tiếp và tình bạn có giá trị khi có chiều sâu.',
+  'Sự cứng nhắc tan đi nhờ những cử chỉ rộng lượng và mang tính nghi lễ.',
+  'Điều độ trong giới hạn phù hợp, hiệu chỉnh theo khả năng duy trì được.',
+  'Chân thành chạm đến và làm người khác cảm động; chỉ trái tim thật mới ảnh hưởng sâu.',
+  'Chú ý việc nhỏ, giữ tham vọng khiêm tốn; việc lớn chưa đúng thời.',
+  'Mọi thứ đã sẵn sàng, nhưng sự hoàn tất rất mong manh và cần cảnh giác để không suy thoái.',
+  'Vượt qua giai đoạn chưa hoàn tất cần cẩn trọng, đặc biệt ở những bước cuối nơi dễ sai sót nhất.'
+];
+
+// Ba hào của quẻ đơn, từ dưới lên (1 = dương, 0 = âm)
+const TRIGRAM_BITS = {
+  Heaven: [1, 1, 1], Lake: [1, 1, 0], Fire: [1, 0, 1], Thunder: [1, 0, 0],
+  Wind: [0, 1, 1], Water: [0, 1, 0], Mountain: [0, 0, 1], Earth: [0, 0, 0]
+};
+
+const TRIGRAM_VI = {
+  Heaven: 'Càn (Trời)', Lake: 'Đoài (Đầm)', Fire: 'Ly (Lửa)', Thunder: 'Chấn (Sấm)',
+  Wind: 'Tốn (Gió)', Water: 'Khảm (Nước)', Mountain: 'Cấn (Núi)', Earth: 'Khôn (Đất)'
+};
+
+const TRIGRAM_COLOR = {
+  Heaven: 0xfacc15, Lake: 0x38bdf8, Fire: 0xef4444, Thunder: 0xa78bfa,
+  Wind: 0x34d399, Water: 0x3b82f6, Mountain: 0xa16207, Earth: 0xd6d3d1
+};
+const TRIGRAM_HEX = {
+  Heaven: '#facc15', Lake: '#38bdf8', Fire: '#ef4444', Thunder: '#a78bfa',
+  Wind: '#34d399', Water: '#3b82f6', Mountain: '#a16207', Earth: '#d6d3d1'
+};
+
+// Hào từ dưới lên: 3 bit quẻ dưới + 3 bit quẻ trên
+function linesOf(upper, lower) {
+  return [...TRIGRAM_BITS[lower], ...TRIGRAM_BITS[upper]];
+}
+
+// ============================================================
+// Điều khiển chung: panel chi tiết, danh sách chọn, chế độ 2D/3D
+// ============================================================
+let selected = null;
+let mode = '3d';
+
+const panel = document.getElementById('panel');
+const pZh = document.getElementById('pZh');
+const pEn = document.getElementById('pEn');
+const pPy = document.getElementById('pPy');
+const pLines = document.getElementById('pLines');
+const pUpper = document.getElementById('pUpper');
+const pLower = document.getElementById('pLower');
+const pNo = document.getElementById('pNo');
+const pMeaning = document.getElementById('pMeaning');
+const pick = document.getElementById('pick');
+const grid2d = document.getElementById('grid2d');
+const gridEl = document.getElementById('grid');
+const canvas = document.getElementById('gl');
+const btnMode = document.getElementById('btnMode');
+const btnLayout = document.getElementById('btnLayout');
+const btnPause = document.getElementById('btnPause');
+const btnReset = document.getElementById('btnReset');
+const only3d = document.querySelectorAll('.only3d');
+
+HEX.forEach((h, i) => {
+  const opt = document.createElement('option');
+  opt.value = String(i);
+  opt.textContent = `${i + 1}. ${h[2]} (${h[0]})`;
+  pick.appendChild(opt);
+});
+
+// Lưới 2D: mỗi ô là một quẻ với sáu hào vẽ bằng SVG
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function hexagramSvg(index) {
+  const [, , , upper, lower] = HEX[index];
+  const lines = linesOf(upper, lower);
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('width', '60');
+  svg.setAttribute('height', '56');
+  svg.setAttribute('viewBox', '0 0 60 56');
+  svg.setAttribute('aria-hidden', 'true');
+  lines.forEach((bit, i) => {
+    const y = 52 - i * 9;
+    const color = TRIGRAM_HEX[i < 3 ? lower : upper];
+    if (bit === 1) {
+      const r = document.createElementNS(SVG_NS, 'rect');
+      r.setAttribute('x', '6'); r.setAttribute('y', String(y - 2.5));
+      r.setAttribute('width', '48'); r.setAttribute('height', '5');
+      r.setAttribute('rx', '1'); r.setAttribute('fill', color);
+      svg.appendChild(r);
+    } else {
+      [6, 34].forEach((x) => {
+        const r = document.createElementNS(SVG_NS, 'rect');
+        r.setAttribute('x', String(x)); r.setAttribute('y', String(y - 2.5));
+        r.setAttribute('width', '20'); r.setAttribute('height', '5');
+        r.setAttribute('rx', '1'); r.setAttribute('fill', color);
+        svg.appendChild(r);
+      });
+    }
+  });
+  return svg;
+}
+
+const cards = [];
+HEX.forEach((h, i) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.setAttribute('aria-pressed', 'false');
+  b.setAttribute('aria-label', `${i + 1}. ${h[2]} (${h[0]})`);
+  const no = document.createElement('div'); no.className = 'no'; no.textContent = String(i + 1);
+  const zh = document.createElement('div'); zh.className = 'zh'; zh.textContent = h[0];
+  const en = document.createElement('div'); en.className = 'en'; en.textContent = h[2];
+  b.append(no, hexagramSvg(i), zh, en);
+  b.addEventListener('click', () => selectHex(i));
+  gridEl.appendChild(b);
+  cards.push(b);
+});
+
+function selectHex(index) {
+  selected = index;
+  cards.forEach((c, i) => c.setAttribute('aria-pressed', String(i === index)));
+  if (index === null) {
+    panel.classList.remove('show');
+    pick.value = '';
+    return;
+  }
+  const [zh, py, en, upper, lower] = HEX[index];
+  const lines = linesOf(upper, lower);
+  pZh.textContent = zh;
+  pEn.textContent = `${index + 1}. ${en}`;
+  pPy.textContent = `Phiên âm: ${py}`;
+  pLines.textContent = [...lines].reverse().map((b) => (b ? '⚊' : '⚋')).join('\n');
+  pUpper.textContent = `Quẻ trên: ${TRIGRAM_VI[upper]}`;
+  pLower.textContent = `Quẻ dưới: ${TRIGRAM_VI[lower]}`;
+  pNo.textContent = `Thứ tự Văn Vương: ${index + 1} / 64`;
+  pMeaning.textContent = MEANING[index];
+  panel.classList.add('show');
+  pick.value = String(index);
+  if (mode === '2d') cards[index].scrollIntoView({ block: 'nearest' });
+}
+
+panel.querySelector('.close').addEventListener('click', () => selectHex(null));
+pick.addEventListener('change', () => {
+  if (pick.value === '') return;
+  selectHex(Number(pick.value));
+});
+
+function setMode(next) {
+  mode = next;
+  const is2d = mode === '2d';
+  grid2d.classList.toggle('show', is2d);
+  canvas.classList.toggle('hidden', is2d);
+  only3d.forEach((el) => el.classList.toggle('hidden', is2d));
+  btnMode.textContent = is2d ? 'Chế độ: 2D' : 'Chế độ: 3D';
+  btnMode.setAttribute('aria-pressed', String(is2d));
+  if (selected !== null) panel.classList.add('show');
+}
+btnMode.addEventListener('click', () => setMode(mode === '3d' ? '2d' : '3d'));
+
+pick.addEventListener('keydown', (e) => e.stopPropagation());
+
+// ============================================================
+// Chế độ 3D
+// ============================================================
+const OMEGA = 0.12;
+const SPHERE_R = 62;
+const TORUS_R = 56;
+const TORUS_r = 22;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050508);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
+const HOME_POS = new THREE.Vector3(0, 40, 170);
+camera.position.copy(HOME_POS);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 80;
+controls.maxDistance = 420;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.25;
+
+scene.add(new THREE.AmbientLight(0x505060, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+sun.position.set(60, 90, 120);
+scene.add(sun);
+
+const trigramMats = {};
+for (const k of Object.keys(TRIGRAM_COLOR)) {
+  trigramMats[k] = new THREE.MeshStandardMaterial({
+    color: TRIGRAM_COLOR[k], emissive: TRIGRAM_COLOR[k], emissiveIntensity: 0.35,
+    metalness: 0.2, roughness: 0.45
+  });
+}
+const LINE_W = 11, LINE_H = 1.5, LINE_D = 1.5, GAP = 2.5;
+const solidGeo = new THREE.BoxGeometry(LINE_W, LINE_H, LINE_D);
+const brokenGeo = new THREE.BoxGeometry((LINE_W - GAP) / 2, LINE_H, LINE_D);
+
+const bars = [];
+const hexes = [];
+
+function buildHexagram(index) {
+  const [, , , upper, lower] = HEX[index];
+  const lines = linesOf(upper, lower);
+  const group = new THREE.Group();
+  group.userData.index = index;
+  lines.forEach((bit, i) => {
+    const y = (i - 2.5) * 3.2;
+    const mat = trigramMats[i < 3 ? lower : upper];
+    if (bit === 1) {
+      const m = new THREE.Mesh(solidGeo, mat);
+      m.position.set(0, y, 0);
+      m.userData.index = index;
+      group.add(m);
+      bars.push(m);
+    } else {
+      const left = new THREE.Mesh(brokenGeo, mat);
+      const right = new THREE.Mesh(brokenGeo, mat);
+      const off = (LINE_W + GAP) / 4;
+      left.position.set(-off, y, 0);
+      right.position.set(off, y, 0);
+      left.userData.index = index;
+      right.userData.index = index;
+      group.add(left, right);
+      bars.push(left, right);
+    }
+  });
+  return group;
+}
+
+const sphereTargets = [];
+const torusTargets = [];
+const dummy = new THREE.Object3D();
+const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+
+for (let i = 0; i < 64; i++) {
+  const y = 1 - (2 * (i + 0.5)) / 64;
+  const r = Math.sqrt(1 - y * y);
+  const th = i * GOLDEN;
+  sphereTargets.push(new THREE.Vector3(Math.cos(th) * r, y, Math.sin(th) * r).multiplyScalar(SPHERE_R));
+
+  const ring = Math.floor(i / 8);
+  const j = i % 8;
+  const u = (ring / 8) * Math.PI * 2;
+  const v = (j / 8) * Math.PI * 2;
+  const rr = TORUS_R + TORUS_r * Math.cos(v);
+  torusTargets.push(new THREE.Vector3(rr * Math.cos(u), TORUS_r * Math.sin(v), rr * Math.sin(u)));
+}
+
+function outwardQuat(p) {
+  dummy.position.set(0, 0, 0);
+  dummy.lookAt(p.clone().multiplyScalar(2));
+  return dummy.quaternion.clone();
+}
+
+const hexRing = new THREE.Group();
+scene.add(hexRing);
+
+for (let i = 0; i < 64; i++) {
+  const hex = buildHexagram(i);
+  const sTarget = sphereTargets[i];
+  const tTarget = torusTargets[i];
+  hex.userData.targets = {
+    sphere: { pos: sTarget, q: outwardQuat(sTarget) },
+    torus:  { pos: tTarget, q: outwardQuat(tTarget) }
+  };
+  hex.position.copy(sTarget);
+  hex.quaternion.copy(hex.userData.targets.sphere.q);
+  hexRing.add(hex);
+  hexes.push(hex);
+}
+
+const taiji = new THREE.Group();
+scene.add(taiji);
+taiji.add(
+  new THREE.Mesh(
+    new THREE.SphereGeometry(10, 40, 24, 0, Math.PI * 2, 0, Math.PI),
+    new THREE.MeshStandardMaterial({ color: 0xf8fafc, emissive: 0x334155, emissiveIntensity: 0.4 })
+  ),
+  new THREE.Mesh(
+    new THREE.SphereGeometry(10, 40, 24, 0, Math.PI * 2, Math.PI, Math.PI),
+    new THREE.MeshStandardMaterial({ color: 0x0f172a, emissive: 0x0f172a, emissiveIntensity: 0.2 })
+  )
+);
+const dotW = new THREE.Mesh(new THREE.SphereGeometry(2.6, 20, 20), new THREE.MeshStandardMaterial({ color: 0x0f172a }));
+dotW.position.set(0, 5, 9.2);
+const dotB = new THREE.Mesh(new THREE.SphereGeometry(2.6, 20, 20), new THREE.MeshStandardMaterial({ color: 0xf8fafc }));
+dotB.position.set(0, -5, 9.2);
+taiji.add(dotW, dotB);
+
+// Chọn quẻ trong 3D bằng raycast
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let downAt = null;
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  downAt = { x: e.clientX, y: e.clientY };
+});
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+  downAt = null;
+  if (moved > 5) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(bars, false);
+  if (hits.length) selectHex(hits[0].object.userData.index);
+  else selectHex(null);
+});
+
+let paused = false;
+let layoutTorus = false;
+
+btnLayout.addEventListener('click', () => {
+  layoutTorus = !layoutTorus;
+  btnLayout.textContent = layoutTorus ? 'Dạng: Vòng xuyến' : 'Dạng: Hình cầu';
+  btnLayout.setAttribute('aria-pressed', String(layoutTorus));
+});
+
+function togglePause() {
+  paused = !paused;
+  controls.autoRotate = !paused;
+  btnPause.textContent = paused ? '▶ Tiếp tục' : '⏸ Tạm dừng';
+  btnPause.setAttribute('aria-pressed', String(paused));
+}
+btnPause.addEventListener('click', togglePause);
+
+btnReset.addEventListener('click', () => {
+  camera.position.copy(HOME_POS);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLButtonElement || e.target instanceof HTMLSelectElement) return;
+  if (e.code === 'Space' && mode === '3d') { e.preventDefault(); togglePause(); }
+  if (e.key === 'Escape') selectHex(null);
+});
+
+const clock = new THREE.Clock();
+let elapsed = 0;
+const tmpScale = new THREE.Vector3();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  if (mode !== '3d') return;   // 2D: không cần vẽ khung 3D
+
+  if (!paused) {
+    elapsed += dt;
+    hexRing.rotation.y = elapsed * OMEGA;
+    taiji.rotation.y = -elapsed * OMEGA * 2;
+  }
+
+  const target = layoutTorus ? 'torus' : 'sphere';
+  hexes.forEach((hex) => {
+    const t = hex.userData.targets[target];
+    hex.position.lerp(t.pos, 0.05);
+    hex.quaternion.slerp(t.q, 0.05);
+    const s = hex.userData.index === selected ? 1.8 : 1.0;
+    hex.scale.lerp(tmpScale.set(s, s, s), 0.12);
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+setMode('3d');
+animate();
+</script>
+</body>
+</html>

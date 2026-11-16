@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nhị Thập Bát Tú 3D - Warehouse 3D</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #050508; font-family: system-ui, sans-serif; }
+  canvas { display: block; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+
+  #info {
+    position: absolute; top: 16px; left: 16px; right: 170px; color: #fff; z-index: 10; pointer-events: none;
+  }
+  #info .title { font-size: 18px; font-weight: 600; line-height: 1.3; }
+  #info .sub { font-size: 13px; opacity: 0.7; margin-top: 4px; line-height: 1.4; }
+  #info .hint { font-size: 12px; opacity: 0.45; margin-top: 8px; }
+
+  #legend {
+    position: absolute; top: 96px; left: 16px; z-index: 10; color: #e5e7eb; font-size: 13px;
+    pointer-events: none; line-height: 1.8;
+  }
+  #legend span.dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle;
+  }
+
+  #back { position: absolute; top: 16px; right: 16px; z-index: 10; }
+  #back a {
+    display: inline-block; color: #22d3ee; text-decoration: none; font-size: 14px;
+    padding: 8px 14px; border: 1px solid rgba(34,211,238,0.4); border-radius: 8px;
+    background: rgba(15,23,42,0.4);
+  }
+  #back a:hover, #back a:focus-visible { background: rgba(34,211,238,0.12); border-color: #22d3ee; outline: none; }
+
+  #controls {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: max-content; max-width: calc(100vw - 24px);
+  }
+  #controls button {
+    font-family: inherit; font-size: 13px; color: #e5e7eb; cursor: pointer;
+    padding: 8px 12px; border-radius: 8px; background: rgba(15,23,42,0.6);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  #controls button:hover { background: rgba(255,255,255,0.08); }
+  #controls button:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+  #controls button[aria-pressed="true"] { background: rgba(255,255,255,0.14); border-color: #22d3ee; color: #fff; }
+
+  #panel {
+    position: absolute; bottom: 70px; right: 16px; z-index: 11; color: #e5e7eb;
+    background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
+    padding: 14px 16px; min-width: 220px; max-width: 280px; display: none; font-size: 14px; line-height: 1.6;
+  }
+  #panel.show { display: block; }
+  #panel .big { font-size: 26px; font-weight: 600; color: #fff; }
+  #panel .vi { font-size: 16px; font-weight: 600; }
+  #panel .row { opacity: 0.8; }
+  #panel button.close {
+    position: absolute; top: 6px; right: 8px; background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    #info { right: 16px; top: 64px; }
+    #info .title { font-size: 16px; }
+    #info .sub { font-size: 12px; }
+    #legend { top: auto; bottom: 110px; font-size: 12px; line-height: 1.6; }
+    #back { top: 12px; right: 12px; }
+    #panel { bottom: 120px; left: 16px; right: 16px; max-width: none; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="info">
+  <div class="title">Nhị Thập Bát Tú &mdash; 28 Tinh Tú</div>
+  <div class="sub">Hệ 28 chòm sao (nhị thập bát tú) chia thành 4 phương, mỗi phương 7 tú, gắn với Thanh Long, Chu Tước, Bạch Hổ, Huyền Vũ.</div>
+  <div class="hint">Kéo chuột: xoay &bull; Cuộn: zoom &bull; Nhấn vào một tú để xem chi tiết &bull; Space: tạm dừng</div>
+</div>
+
+<div id="legend">
+  <div><span class="dot" style="background:#22c55e"></span>Đông &middot; Thanh Long (1–7: Giác → Cơ)</div>
+  <div><span class="dot" style="background:#64748b"></span>Bắc &middot; Huyền Vũ (8–14: Đẩu → Bích)</div>
+  <div><span class="dot" style="background:#e2e8f0"></span>Tây &middot; Bạch Hổ (15–21: Khuê → Sâm)</div>
+  <div><span class="dot" style="background:#ef4444"></span>Nam &middot; Chu Tước (22–28: Tỉnh → Chẩn)</div>
+</div>
+
+<div id="back"><a href="index.html">← Trở về menu</a></div>
+
+<div id="controls" role="toolbar" aria-label="Điều khiển">
+  <button type="button" id="btnPause" aria-pressed="false">⏸ Tạm dừng</button>
+  <button type="button" id="btnLabels" aria-pressed="true">Hiện nhãn</button>
+  <button type="button" id="btnMoon" aria-pressed="true">Mặt trăng</button>
+  <button type="button" id="btnReset">Đặt lại góc nhìn</button>
+</div>
+
+<div id="panel" role="dialog" aria-live="polite">
+  <button class="close" type="button" aria-label="Đóng">×</button>
+  <div class="big" id="pZh"></div>
+  <div class="vi" id="pVi"></div>
+  <div class="row" id="pEn"></div>
+  <div class="row" id="pAnimal"></div>
+  <div class="row" id="pDir"></div>
+  <div class="row" id="pNo"></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// Dữ liệu 28 tú (nguồn: Wikipedia tiếng Anh "Twenty-Eight Mansions")
+// dir: 0 Đông (Thanh Long), 1 Bắc (Huyền Vũ), 2 Tây (Bạch Hổ), 3 Nam (Chu Tước)
+// ============================================================
+const DIRS = [
+  { name: 'Đông · Thanh Long', short: 'Thanh Long', color: 0x22c55e, hex: '#22c55e' },
+  { name: 'Bắc · Huyền Vũ',    short: 'Huyền Vũ',   color: 0x64748b, hex: '#94a3b8' },
+  { name: 'Tây · Bạch Hổ',     short: 'Bạch Hổ',    color: 0xe2e8f0, hex: '#e2e8f0' },
+  { name: 'Nam · Chu Tước',    short: 'Chu Tước',   color: 0xef4444, hex: '#ef4444' }
+];
+
+const MANSIONS = [
+  { zh: '角', vi: 'Giác', en: 'Horn',               animal: 'Jiaolong',            dir: 0 },
+  { zh: '亢', vi: 'Cang', en: 'Neck',               animal: 'Dragon',              dir: 0 },
+  { zh: '氐', vi: 'Đê',   en: 'Root',               animal: 'Raccoon dog',         dir: 0 },
+  { zh: '房', vi: 'Phòng',en: 'Room',               animal: 'Rabbit',              dir: 0 },
+  { zh: '心', vi: 'Tâm',  en: 'Heart',              animal: 'Fox',                 dir: 0 },
+  { zh: '尾', vi: 'Vĩ',   en: 'Tail',               animal: 'Tiger',               dir: 0 },
+  { zh: '箕', vi: 'Cơ',   en: 'Winnowing Basket',   animal: 'Leopard',             dir: 0 },
+  { zh: '斗', vi: 'Đẩu',  en: '(Southern) Dipper',  animal: 'Xiezhi',              dir: 1 },
+  { zh: '牛', vi: 'Ngưu', en: 'Ox',                 animal: 'Bovini',              dir: 1 },
+  { zh: '女', vi: 'Nữ',   en: 'Girl',               animal: 'Bat',                 dir: 1 },
+  { zh: '虛', vi: 'Hư',   en: 'Emptiness',          animal: 'Muroidea',            dir: 1 },
+  { zh: '危', vi: 'Nguy', en: 'Rooftop',            animal: 'Swallow',             dir: 1 },
+  { zh: '室', vi: 'Thất', en: 'Encampment',         animal: 'Pig',                 dir: 1 },
+  { zh: '壁', vi: 'Bích', en: 'Wall',               animal: 'Yayu',                dir: 1 },
+  { zh: '奎', vi: 'Khuê', en: 'Legs',               animal: 'Wolf',                dir: 2 },
+  { zh: '婁', vi: 'Lâu',  en: 'Bond',               animal: 'Dog',                 dir: 2 },
+  { zh: '胃', vi: 'Vị',   en: 'Stomach',            animal: 'Pheasant',            dir: 2 },
+  { zh: '昴', vi: 'Mão',  en: 'Hairy Head',         animal: 'Rooster',             dir: 2 },
+  { zh: '畢', vi: 'Tất',  en: 'Net',                animal: 'Crow',                dir: 2 },
+  { zh: '觜', vi: 'Chủy', en: 'Turtle Beak',        animal: 'Monkey',              dir: 2 },
+  { zh: '參', vi: 'Sâm',  en: 'Three Stars',        animal: 'Ape',                 dir: 2 },
+  { zh: '井', vi: 'Tỉnh', en: 'Well',               animal: 'Bian (giant turtle)', dir: 3 },
+  { zh: '鬼', vi: 'Quỷ',  en: 'Ghost',              animal: 'Caprinae (goat)',     dir: 3 },
+  { zh: '柳', vi: 'Liễu', en: 'Willow',             animal: 'Water deer',          dir: 3 },
+  { zh: '星', vi: 'Tinh', en: 'Star',               animal: 'Horse',               dir: 3 },
+  { zh: '張', vi: 'Trương',en: 'Extended Net',      animal: 'Deer',                dir: 3 },
+  { zh: '翼', vi: 'Dực',  en: 'Wings',              animal: 'Snake',               dir: 3 },
+  { zh: '軫', vi: 'Chẩn', en: 'Chariot',            animal: 'Earthworm',           dir: 3 }
+];
+
+// ============================================================
+// Scene
+// ============================================================
+const OMEGA = 0.15;   // tốc độ cơ sở (rad/s), dùng chung cho mọi lớp
+const R = 60;         // bán kính vòng hoàng đạo
+const STEP = (Math.PI * 2) / 28;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050508);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
+const HOME_POS = new THREE.Vector3(0, -110, 150);
+camera.position.copy(HOME_POS);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 70;
+controls.maxDistance = 400;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.25;
+
+scene.add(new THREE.AmbientLight(0x505060, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+sun.position.set(60, 80, 120);
+scene.add(sun);
+const core = new THREE.PointLight(0xfff4d6, 1.6, 300);
+core.position.set(0, 0, 0);
+scene.add(core);
+
+// ============================================================
+// Helpers
+// ============================================================
+function M(hex, o = {}) {
+  return new THREE.MeshStandardMaterial({
+    color: hex, emissive: hex, emissiveIntensity: o.ei ?? 0.3,
+    metalness: 0.2, roughness: 0.5, transparent: o.opacity !== undefined, opacity: o.opacity ?? 1,
+    side: THREE.DoubleSide
+  });
+}
+
+// Lớp xoay: nhóm có tốc độ = dir * speed * OMEGA, xoay quanh trục z.
+function layer(parent, dir = 0, speed = 1) {
+  const l = new THREE.Group();
+  l.userData.rate = dir * speed * OMEGA;
+  parent.add(l);
+  return l;
+}
+
+// Nhãn dạng sprite: chữ Hán + tên tiếng Việt.
+function makeLabel(zh, vi, color) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 128;
+  const x = c.getContext('2d');
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.fillStyle = color;
+  x.font = 'bold 48px "Noto Sans CJK SC", "Microsoft YaHei", sans-serif';
+  x.fillText(zh, 128, 46);
+  x.fillStyle = '#e5e7eb';
+  x.font = '600 26px system-ui, sans-serif';
+  x.fillText(vi, 128, 100);
+  const tex = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.scale.set(22, 11, 1);
+  return sp;
+}
+
+// Vòng cung đoạn từ tú thứ `start` đến `start+6` (7 tú) trên bán kính r.
+function sectorArc(start, r, color) {
+  const theta0 = Math.PI / 2 - (start + 7) * STEP;
+  const geo = new THREE.TorusGeometry(r, 1.4, 8, 96, STEP * 7);
+  const mesh = new THREE.Mesh(geo, M(color, { ei: 0.4 }));
+  mesh.rotation.z = theta0;
+  return mesh;
+}
+
+// ============================================================
+// Cấu trúc: nghiêng nhẹ cả hệ để nhìn thấy độ sâu 3D
+// ============================================================
+const system = new THREE.Group();
+system.rotation.x = -0.45;
+scene.add(system);
+
+// Vòng hoàng đạo (đứng yên)
+system.add(new THREE.Mesh(
+  new THREE.TorusGeometry(R, 0.4, 8, 220),
+  new THREE.MeshBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.8 })
+));
+
+// 4 cung phương (đứng yên, màu theo phương)
+DIRS.forEach((d, idx) => {
+  system.add(sectorArc(idx * 7, R + 3.5, d.color));
+});
+
+// Lớp 1: 28 tú, quay thuận (chậm)
+const starsLayer = layer(system, 1, 0.6);
+const markers = [];
+
+MANSIONS.forEach((m, i) => {
+  const a = Math.PI / 2 - (i + 0.5) * STEP;
+  const x = Math.cos(a) * R, y = Math.sin(a) * R;
+  const d = DIRS[m.dir];
+
+  const marker = new THREE.Mesh(
+    new THREE.SphereGeometry(2.1, 20, 20),
+    M(d.color, { ei: 0.7 })
+  );
+  marker.position.set(x, y, 0);
+  marker.userData.m = { ...m, no: i + 1 };
+  starsLayer.add(marker);
+  markers.push(marker);
+
+  const label = makeLabel(m.zh, m.vi, d.hex);
+  label.position.set(Math.cos(a) * (R + 13), Math.sin(a) * (R + 13), 2);
+  label.userData.isLabel = true;
+  starsLayer.add(label);
+});
+
+// Lớp 2: đường nối từ tâm tới 28 tú + vòng trong, quay ngược chậm
+const dialLayer = layer(system, -1, 0.35);
+const linePts = [];
+MANSIONS.forEach((_, i) => {
+  const a = Math.PI / 2 - (i + 0.5) * STEP;
+  linePts.push(0, 0, 0, Math.cos(a) * R, Math.sin(a) * R, 0);
+});
+const lineGeo = new THREE.BufferGeometry();
+lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePts, 3));
+dialLayer.add(new THREE.LineSegments(
+  lineGeo, new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.45 })
+));
+[22, 40].forEach((r) => {
+  dialLayer.add(new THREE.Mesh(
+    new THREE.TorusGeometry(r, 0.25, 6, 180),
+    new THREE.MeshBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.5 })
+  ));
+});
+
+// Lớp 3: Mặt trăng đi qua các tú
+const moonLayer = layer(system, 1, 1.2);
+const moonMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(2.4, 24, 24),
+  M(0xfef9c3, { ei: 0.9 })
+);
+moonMesh.position.set(R - 16, 0, 0);
+moonLayer.add(moonMesh);
+
+// Lõi: Bắc Thần (Bắc Đẩu) ở tâm, đứng yên
+const pole = new THREE.Mesh(
+  new THREE.SphereGeometry(3.2, 28, 28),
+  M(0xfff7d6, { ei: 1.0 })
+);
+system.add(pole);
+
+// ============================================================
+// Tương tác
+// ============================================================
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let downAt = null;
+
+const panel = document.getElementById('panel');
+const pZh = document.getElementById('pZh');
+const pVi = document.getElementById('pVi');
+const pEn = document.getElementById('pEn');
+const pAnimal = document.getElementById('pAnimal');
+const pDir = document.getElementById('pDir');
+const pNo = document.getElementById('pNo');
+
+function showInfo(m) {
+  const d = DIRS[m.dir];
+  pZh.textContent = m.zh;
+  pZh.style.color = d.hex;
+  pVi.textContent = `Tú ${m.vi}`;
+  pEn.textContent = `Tên Anh: ${m.en}`;
+  pAnimal.textContent = `Con vật: ${m.animal}`;
+  pDir.textContent = `Phương: ${d.name}`;
+  pNo.textContent = `Số thứ tự: ${m.no} / 28`;
+  panel.classList.add('show');
+}
+function hideInfo() { panel.classList.remove('show'); }
+
+panel.querySelector('.close').addEventListener('click', hideInfo);
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  downAt = { x: e.clientX, y: e.clientY };
+});
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+  downAt = null;
+  if (moved > 5) return;   // đó là kéo, không phải nhấn
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(markers, false);
+  if (hits.length) showInfo(hits[0].object.userData.m);
+  else hideInfo();
+});
+
+// ============================================================
+// Nút điều khiển
+// ============================================================
+let paused = false;
+const btnPause = document.getElementById('btnPause');
+const btnLabels = document.getElementById('btnLabels');
+const btnMoon = document.getElementById('btnMoon');
+const btnReset = document.getElementById('btnReset');
+
+function togglePause() {
+  paused = !paused;
+  controls.autoRotate = !paused;
+  btnPause.textContent = paused ? '▶ Tiếp tục' : '⏸ Tạm dừng';
+  btnPause.setAttribute('aria-pressed', String(paused));
+}
+btnPause.addEventListener('click', togglePause);
+
+btnLabels.addEventListener('click', () => {
+  const on = btnLabels.getAttribute('aria-pressed') !== 'true';
+  btnLabels.setAttribute('aria-pressed', String(on));
+  starsLayer.children.forEach((c) => { if (c.userData.isLabel) c.visible = on; });
+});
+
+btnMoon.addEventListener('click', () => {
+  const on = btnMoon.getAttribute('aria-pressed') !== 'true';
+  btnMoon.setAttribute('aria-pressed', String(on));
+  moonMesh.visible = on;
+});
+
+btnReset.addEventListener('click', () => {
+  camera.position.copy(HOME_POS);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLButtonElement) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+  if (e.key === 'Escape') hideInfo();
+});
+
+// ============================================================
+// Vòng lặp
+// ============================================================
+const clock = new THREE.Clock();
+let elapsed = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  if (!paused) {
+    elapsed += dt;
+    system.traverse((o) => {
+      if (o.userData.rate !== undefined) o.rotation.z = elapsed * o.userData.rate;
+    });
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>

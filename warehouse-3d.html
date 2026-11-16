@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Digital Twin WMS - Three.js Demo</title>
+  <style>
+    :root {
+      --bg-body: #020617;
+      --panel-bg: rgba(15, 23, 42, 0.9);
+      --panel-surface: rgba(30, 41, 59, 0.7);
+      --panel-border: rgba(34, 211, 238, 0.35);
+      --accent: #22d3ee;
+      --accent-hover: #67e8f9;
+      --accent-dim: rgba(34, 211, 238, 0.12);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --status-empty: #95a5a6;
+      --status-occupied: #2ecc71;
+      --status-alert: #e74c3c;
+      --status-reserved: #9b59b6;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-body); color: var(--text-main);
+    }
+
+    /* ── Header ── */
+    #app-header {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 56px; background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; z-index: 50;
+      backdrop-filter: blur(8px);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .app-title {
+      font-size: 17px; font-weight: 700; color: var(--accent);
+      letter-spacing: 0.04em; margin: 0;
+    }
+    .app-title span { color: var(--text-main); font-weight: 500; }
+    .system-status {
+      font-size: 12px; color: var(--text-muted); background: rgba(34, 211, 238, 0.1);
+      border: 1px solid var(--panel-border); border-radius: 20px;
+      padding: 2px 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .alert-count {
+      font-size: 12px; color: var(--text-muted); background: rgba(34, 211, 238, 0.1);
+      border: 1px solid var(--panel-border); border-radius: 20px;
+      padding: 2px 10px;
+    }
+    .alert-count.warn { color: var(--warning); }
+
+    /* ── Body layout ── */
+    .app-body {
+      position: absolute; top: 56px; left: 0; right: 0; bottom: 0;
+      display: flex; height: calc(100vh - 56px);
+    }
+    .sidebar-left {
+      width: 300px; background: var(--panel-bg);
+      border-right: 1px solid var(--panel-border);
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 14px; overflow-y: auto; z-index: 40; pointer-events: auto;
+    }
+    .sidebar-right {
+      width: 300px; background: var(--panel-bg);
+      border-left: 1px solid var(--panel-border);
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 14px; overflow-y: auto; z-index: 40; pointer-events: auto;
+    }
+    .canvas-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      pointer-events: auto;
+    }
+
+    /* ── Panels ── */
+    .panel {
+      background: var(--panel-surface); border: 1px solid var(--panel-border);
+      border-radius: 10px; padding: 14px;
+    }
+    .panel h2 {
+      margin: 0 0 10px 0; font-size: 13px; color: var(--accent);
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel h2::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 8px var(--accent);
+    }
+    .empty-state {
+      font-size: 12px; color: var(--text-muted); text-align: center;
+      padding: 12px; font-style: italic;
+    }
+
+    /* ── Dashboard stat cards ── */
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .dash-stat {
+      background: rgba(15, 23, 42, 0.5); border: 1px solid var(--panel-border);
+      border-radius: 8px; padding: 10px;
+    }
+    .dash-stat .label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .dash-stat .value { font-size: 18px; font-weight: 700; color: var(--text-main); margin-top: 3px; }
+    .dash-sep { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 8px 0; }
+
+    /* ── Bin info panel ── */
+    #bin-info-panel { display: none; }
+    .bin-info-row { display: flex; justify-content: space-between; margin: 7px 0; font-size: 12.5px; }
+    .bin-info-label { color: var(--text-muted); }
+    .bin-info-value { color: var(--text-main); font-weight: 600; min-width: 110px; text-align: right; }
+    .status-badge {
+      display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .status-EMPTY { background: rgba(149,165,166,0.15); color: var(--status-empty); }
+    .status-OCCUPIED { background: rgba(46,204,113,0.15); color: var(--status-occupied); }
+    .status-ALERT { background: rgba(231,76,60,0.15); color: var(--status-alert); }
+    .status-RESERVED { background: rgba(155,89,182,0.15); color: var(--status-reserved); }
+
+    /* ── Form inputs ── */
+    .input-group { margin: 9px 0; }
+    .input-group label {
+      display: block; font-size: 10.5px; color: var(--text-muted);
+      margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .input-group input {
+      width: 100%; padding: 7px 9px; border-radius: 6px; border: 1px solid var(--panel-border);
+      background: rgba(2, 6, 23, 0.5); color: var(--text-main); font-size: 13px;
+    }
+    .input-group input:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 7px 12px; border-radius: 6px; border: none; font-size: 12.5px;
+      font-weight: 600; cursor: pointer; transition: all 0.18s;
+    }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
+    .btn-secondary:hover { background: rgba(34, 211, 238, 0.25); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-sm { padding: 4px 9px; font-size: 11px; }
+    .btn-full { width: 100%; }
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+
+    /* ── Commands panel ── */
+    .cmd-item {
+      background: rgba(15, 23, 42, 0.5); border: 1px solid var(--panel-border);
+      border-radius: 8px; padding: 10px; margin: 8px 0;
+    }
+    .cmd-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .cmd-type { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+    .cmd-badge {
+      font-size: 9.5px; padding: 1px 6px; border-radius: 4px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .cmd-detail { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .cmd-actions { display: flex; gap: 6px; margin-top: 7px; }
+    .cmd-actions .btn { flex: 1; }
+
+    /* ── Alerts ── */
+    .alert-row { display: flex; gap: 8px; margin: 6px 0; font-size: 12px; align-items: flex-start; }
+    .alert-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--danger);
+      flex-shrink: 0; margin-top: 3px; box-shadow: 0 0 6px var(--danger);
+    }
+    .alert-text { color: var(--text-main); line-height: 1.4; flex: 1; }
+
+    /* ── Modal kiểm kê ── */
+    #cycle-modal {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(2, 6, 23, 0.95); color: var(--text-main);
+      padding: 20px 24px; border-radius: 12px; width: 340px;
+      border: 1px solid var(--panel-border); z-index: 100; display: none;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    #cycle-modal h3 { margin: 0 0 14px 0; font-size: 16px; color: var(--accent); }
+    .cyc-row { margin: 10px 0; }
+    .cyc-label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .cyc-value { font-size: 13px; color: var(--text-main); margin-bottom: 6px; }
+    .cyc-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .cyc-btn { flex: 1; padding: 7px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 12.5px; }
+    .cyc-btn.confirm { background: var(--success); color: #fff; }
+    .cyc-btn.confirm:hover { background: #059669; }
+    .cyc-btn.cancel { background: var(--panel-surface); color: var(--text-main); border: 1px solid var(--panel-border); }
+    .cyc-btn.cancel:hover { background: rgba(255,255,255,0.05); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+      background: var(--bg-body); color: #fff; padding: 9px 16px;
+      border-radius: 8px; border: 1px solid var(--panel-border);
+      font-size: 13px; pointer-events: none; z-index: 200;
+      display: none; white-space: nowrap; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+    #toast.ok { color: var(--success); border-color: var(--success); }
+    #toast.err { color: var(--danger); border-color: var(--danger); }
+
+    /* ── Responsive cơ bản ── */
+    @media (max-width: 900px) {
+      .sidebar-right { display: none; }
+      .sidebar-left { width: 250px; padding: 10px; }
+      #app-header { padding: 0 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header id="app-header">
+    <div class="header-left">
+      <h1 class="app-title">Digital Twin <span>WMS</span></h1>
+      <div class="system-status">
+        <div class="status-dot"></div>
+        <span id="system-status-text">Hệ thống đang hoạt động</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="alert-count" id="alert-count">0 cảnh báo</div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="sidebar-left">
+      <section class="panel" id="dashboard-panel">
+        <h2>Bảng điều khiển</h2>
+        <div class="dash-grid">
+          <div class="dash-stat"><div class="label">Tỷ lệ sử dụng</div><div class="value" id="dash-occupancy">0%</div></div>
+          <div class="dash-stat"><div class="label">Ô trống</div><div class="value" id="dash-empty">0</div></div>
+          <div class="dash-stat"><div class="label">Đã xếp hàng</div><div class="value" id="dash-occupied">0</div></div>
+          <div class="dash-stat"><div class="label">Cảnh báo</div><div class="value" id="dash-alert">0</div></div>
+        </div>
+        <div class="dash-sep"></div>
+        <div class="dash-grid">
+          <div class="dash-stat"><div class="label">Lệnh hoàn thành</div><div class="value" id="dash-completed">0</div></div>
+          <div class="dash-stat"><div class="label">Xe nâng</div><div class="value" id="dash-forklift">Đang chờ</div></div>
+        </div>
+      </section>
+
+      <section class="panel" id="alerts-panel">
+        <h2>Cảnh báo kho</h2>
+        <div id="alerts-list" class="empty-state">Không có cảnh báo</div>
+      </section>
+
+      <section class="panel" id="bin-info-panel">
+        <h2>Chi tiết ô hàng</h2>
+        <div class="bin-info-row"><span class="bin-info-label">Ô hàng</span><span class="bin-info-value" id="info-binid">-</span></div>
+        <div class="bin-info-row"><span class="bin-info-label">Trạng thái</span><span class="bin-info-value status-badge" id="info-status">-</span></div>
+        <div class="bin-info-row"><span class="bin-info-label">SKU</span><span class="bin-info-value" id="info-sku">-</span></div>
+        <div class="bin-info-row"><span class="bin-info-label">Số lượng</span><span class="bin-info-value" id="info-qty">-</span></div>
+        <div class="bin-info-row"><span class="bin-info-label">Batch</span><span class="bin-info-value" id="info-batch">-</span></div>
+        <div class="bin-info-row"><span class="bin-info-label">Hạn sử dụng</span><span class="bin-info-value" id="info-expiry">-</span></div>
+        <div style="margin-top:14px; display:flex; gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="openCycleCount(selectedBin || '')">Kiểm kê</button>
+        </div>
+      </section>
+    </aside>
+
+    <main class="canvas-wrap"></main>
+
+    <aside class="sidebar-right">
+      <section class="panel" id="inventory-panel">
+        <h2>Nhập kho (Putaway)</h2>
+        <div class="input-group">
+          <label>Ô hàng (binId)</label>
+          <input type="text" id="inv-binid" class="inv-input" placeholder="VD: A-01-01" />
+        </div>
+        <div class="input-group">
+          <label>Mã SKU</label>
+          <input type="text" id="inv-sku" class="inv-input" placeholder="VD: SKU-101" />
+        </div>
+        <div class="input-group">
+          <label>Số lượng</label>
+          <input type="number" id="inv-qty" class="inv-input" min="1" value="1" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-full" id="inv-putaway">Xác nhận nhập kho</button>
+        </div>
+        <button class="btn btn-secondary btn-full" id="inv-clear">Xóa ô hàng</button>
+        <div class="inv-msg" id="inv-msg"></div>
+      </section>
+
+      <section class="panel" id="commands-panel">
+        <h2>Lệnh kho (WCS)</h2>
+        <div id="cmd-empty" class="empty-state">Không có lệnh chờ</div>
+        <div id="cmd-list"></div>
+      </section>
+    </aside>
+  </div>
+
+  <div id="cycle-modal">
+    <h3>Kiểm kê ô hàng</h3>
+    <div class="cyc-row">
+      <span class="cyc-label">Ô hàng</span>
+      <span class="cyc-value" id="cyc-binid">-</span>
+    </div>
+    <div class="cyc-row">
+      <span class="cyc-label">Số lượng hệ thống</span>
+      <span class="cyc-value" id="cyc-sys-qty">0</span>
+    </div>
+    <div class="cyc-row">
+      <span class="cyc-label">Số lượng thực tế</span>
+      <input type="number" id="cyc-physical-qty" class="cyc-input" min="0" />
+    </div>
+    <div class="cyc-actions">
+      <button class="cyc-btn confirm" id="cyc-confirm">Xác nhận</button>
+      <button class="cyc-btn cancel" id="cyc-cancel">Hủy</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="three.global.js"></script>
+  <script src="OrbitControls.js"></script>
+  <script>
+    // Three.js và OrbitControls đã được nạp như script thông thường (hoạt động cả khi mở file trực tiếp qua file://)
+    // ============================================================
+    // CẤU HÌNH KẾT NỐI (Group 6) — thay BASE_URL để gọi API thực
+    // ============================================================
+    const API = {
+      BASE_URL: '',          // để trắng = dùng mock cục bộ / localStorage
+      USE_MOCK: true,        // đặt false khi có backend thực
+      POLL_MS: 3000,
+      ENDPOINTS: {
+        bins: '/api/bins',
+        commands: '/api/commands',
+        transactions: '/api/transactions',
+        alerts: '/api/alerts'
+      }
+    };
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1e272e);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(8, 7, 13);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.querySelector('.canvas-wrap').appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // Raycaster cho nhấp chuột chọn ô hàng
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selectedBin = null;
+
+    const binInfoEl = document.getElementById('bin-info-panel');
+    const infoBinId = document.getElementById('info-binid');
+    const infoStatus = document.getElementById('info-status');
+    const infoSku = document.getElementById('info-sku');
+    const infoQty = document.getElementById('info-qty');
+    const infoBatch = document.getElementById('info-batch');
+    const infoExpiry = document.getElementById('info-expiry');
+
+    // ============================================================
+    // DỮ LIỆU KHO (Group 1 & 2)
+    // ============================================================
+    const skuCatalog = {
+      'SKU-101': { name: 'Điện thoại di động', weight: 0.2 },
+      'SKU-102': { name: 'Máy tính bảng', weight: 0.5 },
+      'SKU-103': { name: 'Tai nghe không dây', weight: 0.1 },
+      'SKU-201': { name: 'Bộgehör điện tử', weight: 0.05 },
+      'SKU-300': { name: 'Phụ kiện khác', weight: 0.3 }
+    };
+
+    const binMeshes = {};
+    const binLabels = {};
+    const rows = 3;
+    const cols = 5;
+    const binWidth = 1.6, binHeight = 1.2, binDepth = 1.4;
+
+    const STATUS_COLORS = {
+      EMPTY: 0x95a5a6,
+      OCCUPIED: 0x2ecc71,
+      ALERT: 0xe74c3c,
+      RESERVED: 0x9b59b6
+    };
+
+    // Lệnh kho (Group 2)
+    const commands = [];
+    let commandIdCounter = 1;
+    const transactionLog = [];  // {time, type, binId, sku, qty, note}
+
+    // Cảnh báo (Group 4)
+    const alerts = [];
+    const ALERT_EXPIRY_DAYS = 30;
+    const ALERT_SLOW_DAYS = 7;
+
+    // Trạng thái xe nâng & WCS (Group 3)
+    const forkliftState = {
+      z: -4.8,
+      targetZ: -4.8,
+      speed: 1.5,
+      forkLift: 0,
+      forkTarget: 0,
+      forkSpeed: 1.2,
+      status: 'IDLE',           // IDLE | MOVING | LIFTING | LOWERING | COMPLETING
+      currentTask: null,        // {type:'PUTAWAY'|'PICK', binId, aisleZ, forkTarget, commandId}
+      taskQueue: [],            // hàng đợi nhiệm vụ xe nâng
+      aisleZs: [-6.4, -3.2, 0, 3.2, 6.4],
+      moveTimer: 0,
+      moveInterval: 0
+    };
+    const forkliftStartTime = performance.now();
+
+    // Dashboard metrics (Group 5)
+    const dashboard = {
+      totalBins: 0,
+      empty: 0,
+      occupied: 0,
+      alert: 0,
+      completedCommands: 0,
+      forkliftStatusText: 'Đang chờ'
+    };
+
+    // ============================================================
+    // HỖ TRỢ THÔNG BÁO (toast) & API
+    // ============================================================
+    const toastEl = document.getElementById('toast');
+    function showToast(text, type = 'ok') {
+      toastEl.textContent = text;
+      toastEl.className = type === 'err' ? 'err' : 'ok';
+      toastEl.style.display = 'block';
+      clearTimeout(toastEl._timer);
+      toastEl._timer = setTimeout(() => { toastEl.style.display = 'none'; }, 2500);
+    }
+
+    async function apiFetch(path, { method = 'GET', body } = {}) {
+      if (API.USE_MOCK || !API.BASE_URL) {
+        // mock: trả về danh sách bins hiện tại
+        if (path === API.ENDPOINTS.bins && method === 'GET') {
+          return Object.values(binMeshes).map(m => ({ binId: m.userData.binId, ...m.userData }));
+        }
+        return { ok: true };
+      }
+      const res = await fetch(API.BASE_URL + path, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    // ============================================================
+    // HÀM TẠO NHÃN 3D (canvas sprite)
+    // ============================================================
+    function makeTextSprite(text, params = {}) {
+      const { fontSize = 16, color = '#ffffff', backgroundColor = 'rgba(0,0,0,0.75)' } = params;
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      context.font = `Bold ${fontSize}px Arial`;
+      const metrics = context.measureText(text);
+      const width = metrics.width + 12;
+      const height = fontSize + 10;
+      canvas.width = width;
+      canvas.height = height;
+      context.fillStyle = backgroundColor;
+      context.fillRect(0, 0, width, height);
+      context.fillStyle = color;
+      context.font = `Bold ${fontSize}px Arial`;
+      context.textBaseline = 'middle';
+      context.textAlign = 'center';
+      context.fillText(text, width / 2, height / 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+      return sprite;
+    }
+
+    function refreshBinLabel(binId) {
+      const mesh = binMeshes[binId];
+      if (!mesh) return;
+      const label = binLabels[binId];
+      if (!label) return;
+      const canvas = label.material.map.image;
+      const context = canvas.getContext('2d');
+      const fontSize = 14;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = 'rgba(0,0,0,0.75)';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = '#ffffff';
+      context.font = `Bold ${fontSize}px Arial`;
+      context.textBaseline = 'middle';
+      context.textAlign = 'center';
+
+      const u = mesh.userData;
+      let lines = [u.binId];
+      if (u.status !== 'EMPTY' && u.sku) {
+        lines.push(u.sku + ' x' + u.qty);
+        if (u.status === 'ALERT') lines.push('CẢNH BÁO');
+      }
+      const lineHeight = fontSize + 4;
+      const totalHeight = lines.length * lineHeight;
+      const maxWidth = Math.max(...lines.map(l => context.measureText(l).width));
+      canvas.width = maxWidth + 12;
+      canvas.height = totalHeight + 10;
+
+      context.fillStyle = 'rgba(0,0,0,0.75)';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = '#ffffff';
+      context.font = `Bold ${fontSize}px Arial`;
+      lines.forEach((line, i) => {
+        context.fillText(line, canvas.width / 2, (i + 0.5) * lineHeight);
+      });
+      label.material.map.needsUpdate = true;
+    }
+
+    // ============================================================
+    // GROUP 1 — Nhập/xuất kho trực tiếp
+    // ============================================================
+    function putawayToBin(binId, sku, qty) {
+      const mesh = binMeshes[binId];
+      if (!mesh) {
+        showToast('Ô hàng không tồn tại: ' + binId, 'err');
+        return false;
+      }
+      const maxQty = mesh.userData.maxQty || 100;
+      const currentQty = mesh.userData.qty || 0;
+      if (currentQty + qty > maxQty) {
+        showToast('Vượt quá sức chứa ô (' + maxQty + ')', 'err');
+        return false;
+      }
+      const info = skuCatalog[sku] || {};
+      mesh.userData.status = 'OCCUPIED';
+      mesh.userData.sku = sku;
+      mesh.userData.name = info.name || sku;
+      mesh.userData.qty = currentQty + qty;
+      mesh.userData.batchNo = 'BATCH-' + Date.now().toString(36).toUpperCase();
+      mesh.userData.receivedAt = new Date().toISOString();
+      mesh.userData.lastUpdatedAt = new Date().toISOString();
+      mesh.material.color.setHex(STATUS_COLORS.OCCUPIED);
+      refreshBinLabel(binId);
+      addTransaction('PUTAWAY', binId, sku, qty, 'Nhập kho trực tiếp');
+      showToast('Đã nhập ' + qty + ' x ' + sku + ' vào ' + binId, 'ok');
+      updateDashboard();
+      return true;
+    }
+
+    function clearBin(binId) {
+      const mesh = binMeshes[binId];
+      if (!mesh) {
+        showToast('Ô hàng không tồn tại: ' + binId, 'err');
+        return false;
+      }
+      const sku = mesh.userData.sku;
+      const qty = mesh.userData.qty || 0;
+      mesh.userData.status = 'EMPTY';
+      mesh.userData.sku = null;
+      mesh.userData.name = null;
+      mesh.userData.qty = 0;
+      mesh.userData.batchNo = null;
+      mesh.userData.expiryDate = null;
+      mesh.userData.receivedAt = null;
+      mesh.userData.lastUpdatedAt = null;
+      mesh.material.color.setHex(STATUS_COLORS.EMPTY);
+      refreshBinLabel(binId);
+      if (sku && qty > 0) addTransaction('ADJUST', binId, sku, -qty, 'Kiểm kê/Sửa sai');
+      showToast('Đã xóa hàng ở ' + binId, 'ok');
+      updateDashboard();
+      return true;
+    }
+
+    function addTransaction(type, binId, sku, qty, note) {
+      transactionLog.unshift({
+        time: new Date().toLocaleString('vi-VN'),
+        type, binId, sku, qty, note
+      });
+      if (transactionLog.length > 200) transactionLog.pop();
+      renderTransactionLog();
+    }
+
+    // ============================================================
+    // GROUP 2 — Lệnh nhập/xuất (Putaway/Picking commands)
+    // ============================================================
+    function createCommand(type, binId, sku, qty) {
+      const mesh = binMeshes[binId];
+      if (!mesh) {
+        showToast('Ô hàng không tồn tại', 'err');
+        return null;
+      }
+      const cmd = {
+        id: 'CMD-' + String(commandIdCounter++).padStart(4, '0'),
+        type, binId, sku, qty,
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+        completedAt: null
+      };
+      commands.push(cmd);
+      renderCommands();
+      showToast('Đã tạo lệnh ' + type + ' cho ' + binId, 'ok');
+      return cmd;
+    }
+
+    function cancelCommand(cmdId) {
+      const idx = commands.findIndex(c => c.id === cmdId);
+      if (idx === -1) return;
+      commands[idx].status = 'CANCELLED';
+      commands[idx].completedAt = new Date().toISOString();
+      renderCommands();
+      showToast('Đã hủy lệnh ' + cmdId, 'ok');
+    }
+
+    function executeCommand(cmdId) {
+      const cmd = commands.find(c => c.id === cmdId);
+      if (!cmd) return;
+      if (cmd.status !== 'PENDING') {
+        showToast('Lệnh không ở trạng thái chờ', 'err');
+        return;
+      }
+      const mesh = binMeshes[cmd.binId];
+      if (!mesh) {
+        showToast('Ô hàng không tồn tại', 'err');
+        return;
+      }
+      if (cmd.type === 'PUTAWAY') {
+        const maxQty = mesh.userData.maxQty || 100;
+        if ((mesh.userData.qty || 0) + cmd.qty > maxQty) {
+          showToast('Vượt quá sức chứa ô', 'err');
+          return;
+        }
+      } else if (cmd.type === 'PICK') {
+        if ((mesh.userData.qty || 0) < cmd.qty) {
+          showToast('Không đủ hàng để xuất', 'err');
+          return;
+        }
+      }
+      cmd.status = 'IN_PROGRESS';
+      renderCommands();
+
+      // Gom ghi nhận into WCS task queue for forklift
+      const rack = cmd.binId.charAt(0);
+      const rackZMap = { A: -6.4, B: -3.2, C: 0, D: 3.2, E: 6.4 };
+      const aisleZ = rackZMap[rack] !== undefined ? rackZMap[rack] : 0;
+      const forkTarget = cmd.type === 'PUTAWAY' ? 1 : 0; // nâng móc để đặt hàng; hạ móc để lấy
+      forkliftState.taskQueue.push({
+        type: cmd.type, binId: cmd.binId, aisleZ, forkTarget,
+        commandId: cmd.id, qty: cmd.qty, sku: cmd.sku
+      });
+      if (!forkliftState.currentTask) processForkliftQueue();
+      showToast('Đã gửi lệnh ' + cmd.type + ' đến xe nâng', 'ok');
+    }
+
+    function completeCommand(cmdId) {
+      const cmd = commands.find(c => c.id === cmdId);
+      if (!cmd) return;
+      const mesh = binMeshes[cmd.binId];
+      if (!mesh) return;
+      if (cmd.type === 'PUTAWAY') {
+        mesh.userData.status = 'OCCUPIED';
+        mesh.userData.sku = cmd.sku;
+        mesh.userData.name = (skuCatalog[cmd.sku] || {}).name || cmd.sku;
+        mesh.userData.qty = (mesh.userData.qty || 0) + cmd.qty;
+        mesh.userData.batchNo = 'BATCH-' + Date.now().toString(36).toUpperCase();
+        mesh.userData.receivedAt = new Date().toISOString();
+        mesh.material.color.setHex(STATUS_COLORS.OCCUPIED);
+        addTransaction('PUTAWAY', cmd.binId, cmd.sku, cmd.qty, 'Hoàn tất lệnh nhập');
+      } else if (cmd.type === 'PICK') {
+        mesh.userData.qty = Math.max(0, (mesh.userData.qty || 0) - cmd.qty);
+        if (mesh.userData.qty === 0) {
+          mesh.userData.status = 'EMPTY';
+          mesh.userData.sku = null;
+          mesh.userData.name = null;
+          mesh.material.color.setHex(STATUS_COLORS.EMPTY);
+        }
+        addTransaction('PICK', cmd.binId, cmd.sku, -cmd.qty, 'Hoàn tất lệnh xuất');
+      }
+      mesh.userData.lastUpdatedAt = new Date().toISOString();
+      refreshBinLabel(cmd.binId);
+      cmd.status = 'COMPLETED';
+      cmd.completedAt = new Date().toISOString();
+      dashboard.completedCommands++;
+      renderCommands();
+      updateDashboard();
+      showToast('Hoàn tất lệnh ' + cmd.type + ' ' + cmd.binId, 'ok');
+    }
+
+    function renderCommands() {
+      const list = document.getElementById('cmd-list');
+      const empty = document.getElementById('cmd-empty');
+      const pending = commands.filter(c => c.status === 'PENDING' || c.status === 'IN_PROGRESS');
+      if (pending.length === 0) {
+        empty.style.display = 'block';
+        list.innerHTML = '';
+      } else {
+        empty.style.display = 'none';
+        list.innerHTML = pending.map(cmd => {
+          const statusCls = 'status-' + cmd.status;
+          return `
+            <div class="cmd-row">
+              <div class="cmd-label">${cmd.type}</div>
+              <div class="cmd-value">${cmd.binId}</div>
+              <div class="cmd-status ${statusCls}">${cmd.status}</div>
+              ${cmd.status === 'PENDING'
+                ? `<button class="cmd-btn execute" onclick="executeCommand('${cmd.id}')">Thực hiện</button>
+                   <button class="cmd-btn cancel" onclick="cancelCommand('${cmd.id}')">Hủy</button>`
+                : `<button class="cmd-btn cancel" onclick="cancelCommand('${cmd.id}')">Hủy</button>`}
+            </div>
+            <div class="cmd-row" style="margin-left:0;">
+              <div class="cmd-label">SKU / Qty</div>
+              <div class="cmd-value">${cmd.sku} x${cmd.qty}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderTransactionLog() {
+      // rendered into dashboard or a dedicated area; kept simple here
+    }
+
+    // Expose for inline HTML onclick
+    window.executeCommand = executeCommand;
+    window.cancelCommand = cancelCommand;
+
+    // ============================================================
+    // GROUP 3 — Xe nâng & WCS task queue
+    // ============================================================
+    function processForkliftQueue() {
+      if (forkliftState.currentTask) return;
+      const task = forkliftState.taskQueue.shift();
+      if (!task) {
+        forkliftState.status = 'IDLE';
+        forkliftState.currentTask = null;
+        updateDashboard();
+        return;
+      }
+      forkliftState.currentTask = task;
+      forkliftState.status = 'MOVING';
+      forkliftState.targetZ = task.aisleZ;
+      forkliftState.forkTarget = task.forkTarget;
+      updateDashboard();
+    }
+
+    function completeCurrentForkliftTask() {
+      const task = forkliftState.currentTask;
+      if (!task) return;
+      // Áp dụng lệnh kho tương ứng
+      const cmd = commands.find(c => c.id === task.commandId);
+      if (cmd && cmd.status === 'IN_PROGRESS') completeCommand(cmd.id);
+      forkliftState.currentTask = null;
+      forkliftState.status = 'IDLE';
+      processForkliftQueue();
+    }
+
+    // ============================================================
+    // GROUP 4 — Cảnh báo & Kiểm kê
+    // ============================================================
+    function checkAlerts() {
+      alerts.length = 0;
+      const now = new Date();
+      Object.values(binMeshes).forEach(mesh => {
+        const u = mesh.userData;
+        const binId = u.binId;
+        // Quá tải
+        if (u.status === 'OCCUPIED' && u.qty > u.maxQty) {
+          alerts.push({ binId, type: 'OVERLOAD', text: 'Quá tải (' + u.qty + '/' + u.maxQty + ')' });
+          if (u.status !== 'ALERT') mesh.material.color.setHex(STATUS_COLORS.ALERT);
+        }
+        // Hết hạn / sắp hết hạn
+        if (u.expiryDate) {
+          const exp = new Date(u.expiryDate);
+          const days = (exp - now) / (1000 * 60 * 60 * 24);
+          if (days <= 0) {
+            alerts.push({ binId, type: 'EXPIRED', text: 'Hàng quá hạn' });
+            if (u.status !== 'ALERT') mesh.material.color.setHex(STATUS_COLORS.ALERT);
+          } else if (days <= ALERT_EXPIRY_DAYS) {
+            alerts.push({ binId, type: 'EXPIRY_SOON', text: 'Sắp hết hạn (' + Math.ceil(days) + ' ngày)' });
+          }
+        }
+        // Hàng mọng (không cập nhật trong ALERT_SLOW_DAYS ngày)
+        if (u.lastUpdatedAt) {
+          const last = new Date(u.lastUpdatedAt);
+          const idleDays = (now - last) / (1000 * 60 * 60 * 24);
+          if (idleDays > ALERT_SLOW_DAYS && u.status === 'OCCUPIED') {
+            alerts.push({ binId, type: 'SLOW', text: 'Hàng mọng (' + Math.floor(idleDays) + ' ngày)' });
+          }
+        }
+      });
+      renderAlerts();
+      updateDashboard();
+    }
+
+    function renderAlerts() {
+      const list = document.getElementById('alerts-list');
+      if (alerts.length === 0) {
+        list.innerHTML = '<div style="font-size:12px;color:#bdc3c7;">Không có cảnh báo</div>';
+      } else {
+        list.innerHTML = alerts.map(a =>
+          `<div class="alert-row"><div class="alert-dot"></div><div class="alert-text">${a.binId}: ${a.text}</div></div>`
+        ).join('');
+      }
+    }
+
+    // Kiểm kê (cycle count) modal
+    const cycleModal = document.getElementById('cycle-modal');
+    const cycBinIdEl = document.getElementById('cyc-binid');
+    const cycSysQtyEl = document.getElementById('cyc-sys-qty');
+    const cycPhysicalEl = document.getElementById('cyc-physical-qty');
+    const cycConfirmBtn = document.getElementById('cyc-confirm');
+    const cycCancelBtn = document.getElementById('cyc-cancel');
+
+    let cycleTargetBinId = null;
+
+    function openCycleCount(binId) {
+      const mesh = binMeshes[binId];
+      if (!mesh) return;
+      cycleTargetBinId = binId;
+      const u = mesh.userData;
+      cycBinIdEl.textContent = binId;
+      cycSysQtyEl.textContent = u.qty || 0;
+      cycPhysicalEl.value = u.qty || 0;
+      cycleModal.style.display = 'block';
+    }
+
+    cycConfirmBtn.addEventListener('click', () => {
+      const physical = parseInt(cycPhysicalEl.value, 10) || 0;
+      const mesh = binMeshes[cycleTargetBinId];
+      if (!mesh) return;
+      const u = mesh.userData;
+      const diff = physical - (u.qty || 0);
+      u.qty = physical;
+      u.lastUpdatedAt = new Date().toISOString();
+      if (physical === 0) {
+        u.status = 'EMPTY';
+        u.sku = null;
+        u.name = null;
+        mesh.material.color.setHex(STATUS_COLORS.EMPTY);
+      } else {
+        u.status = 'OCCUPIED';
+        mesh.material.color.setHex(STATUS_COLORS.OCCUPIED);
+      }
+      refreshBinLabel(cycleTargetBinId);
+      addTransaction('ADJUST', cycleTargetBinId, u.sku, diff, 'Kiểm kê sai số ' + (diff > 0 ? '+' : '') + diff);
+      cycleModal.style.display = 'none';
+      updateDashboard();
+      checkAlerts();
+      showToast('Đã kiểm kê ' + cycleTargetBinId + ' (' + (diff > 0 ? '+' : '') + diff + ')', 'ok');
+    });
+
+    cycCancelBtn.addEventListener('click', () => {
+      cycleModal.style.display = 'none';
+    });
+
+    // ============================================================
+    // GROUP 5 — Dashboard & báo cáo
+    // ============================================================
+    function updateDashboard() {
+      let empty = 0, occupied = 0, alert = 0;
+      Object.values(binMeshes).forEach(m => {
+        const s = m.userData.status;
+        if (s === 'EMPTY') empty++;
+        else if (s === 'ALERT') alert++;
+        else occupied++;
+      });
+      const total = Object.keys(binMeshes).length;
+      const occ = total ? Math.round((occupied / total) * 100) : 0;
+
+      document.getElementById('dash-occupancy').textContent = occ + '%';
+      document.getElementById('dash-empty').textContent = empty;
+      document.getElementById('dash-occupied').textContent = occupied;
+      document.getElementById('dash-alert').textContent = alert;
+      document.getElementById('dash-completed').textContent = dashboard.completedCommands;
+
+      const forkEl = document.getElementById('dash-forklift');
+      if (forkliftState.status === 'IDLE') forkEl.textContent = 'Đang chờ';
+      else if (forkliftState.status === 'MOVING') forkEl.textContent = 'Đang di chuyển';
+      else if (forkliftState.status === 'LIFTING') forkEl.textContent = 'Đang nâng móc';
+      else if (forkliftState.status === 'LOWERING') forkEl.textContent = 'Đang hạ móc';
+      else forkEl.textContent = forkliftState.status;
+
+      renderCommands();
+    }
+
+    // ============================================================
+    // HTML panel elements
+    // ============================================================
+    const inventoryPanel = document.getElementById('inventory-panel');
+    const invBinIdEl = document.getElementById('inv-binid');
+    const invSkuEl = document.getElementById('inv-sku');
+    const invQtyEl = document.getElementById('inv-qty');
+    const invPutawayBtn = document.getElementById('inv-putaway');
+    const invClearBtn = document.getElementById('inv-clear');
+    const invMsgEl = document.getElementById('inv-msg');
+
+    function setInvMsg(text, type = '') {
+      invMsgEl.textContent = text;
+      invMsgEl.className = 'inv-msg' + (type ? ' ' + type : '');
+    }
+
+    // ============================================================
+    // Hiển thị chi tiết ô hàng khi nhấp
+    // ============================================================
+    function showBinInfo(binId) {
+      const mesh = binMeshes[binId];
+      if (!mesh) return;
+      selectedBin = binId;
+      const u = mesh.userData;
+      const status = u.status || 'EMPTY';
+      const sku = u.sku || '-';
+      const name = u.name || '-';
+      const qty = u.qty !== undefined ? u.qty : '-';
+      const maxQty = u.maxQty !== undefined ? u.maxQty : '-';
+      const batchNo = u.batchNo || '-';
+      const expiryDate = u.expiryDate || '-';
+
+      infoBinId.textContent = binId;
+      infoStatus.textContent = status;
+      infoStatus.className = `bin-info-value status-${status}`;
+      infoSku.textContent = sku + (name !== '-' ? ' — ' + name : '');
+      infoQty.textContent = qty + (maxQty !== '-' ? ' / ' + maxQty : '');
+      infoBatch.textContent = batchNo;
+      infoExpiry.textContent = expiryDate;
+      infoSku.title = 'SKU: ' + sku + '\nBatch: ' + batchNo + '\nHạn sử dụng: ' + expiryDate;
+
+      binInfoEl.style.display = 'block';
+    }
+
+    function hideBinInfo() {
+      selectedBin = null;
+      binInfoEl.style.display = 'none';
+      applyBinHighlight(null);
+    }
+
+    // Biến theo dõi highlight 3D
+    let highlightedBinId = null;
+
+    function applyBinHighlight(binId) {
+      // Tắt highlight ô trước
+      if (highlightedBinId && binMeshes[highlightedBinId]) {
+        const prev = binMeshes[highlightedBinId];
+        prev.material.emissive.setHex(0x000000);
+        prev.material.emissiveIntensity = 0;
+        prev.material.transparent = false;
+        prev.material.opacity = 1;
+      }
+      // Bật highlight ô mới
+      if (binId && binMeshes[binId]) {
+        const cur = binMeshes[binId];
+        cur.material.emissive.setHex(0x22d3ee);
+        cur.material.emissiveIntensity = 0.6;
+        cur.material.transparent = true;
+        cur.material.opacity = 1;
+        highlightedBinId = binId;
+      } else {
+        highlightedBinId = null;
+      }
+      // Dim các ô khác khi có chọn
+      Object.values(binMeshes).forEach(m => {
+        if (m.userData.binId !== binId) {
+          m.material.transparent = true;
+          m.material.opacity = binId ? 0.55 : 1;
+        }
+      });
+    }
+
+    window.addEventListener('click', (event) => {
+      // Bỏ qua nhấp vào các panel điều khiển
+      if (event.target.closest('#inventory-panel, #commands-panel, #dashboard-panel, #alerts-panel, #cycle-modal, #bin-info-panel, #app-header, .sidebar-left, .sidebar-right')) return;
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const binObjects = Object.values(binMeshes);
+      const intersects = raycaster.intersectObjects(binObjects);
+      if (intersects.length > 0) {
+        const clicked = intersects[0].object;
+        const binId = clicked.userData.binId;
+        applyBinHighlight(binId);
+        showBinInfo(binId);
+      } else {
+        applyBinHighlight(null);
+        hideBinInfo();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideBinInfo();
+        cycleModal.style.display = 'none';
+      }
+    });
+
+    // ============================================================
+    // KHỞI TẠO KHUNG KỆ (Group 1)
+    // ============================================================
+    function createRack(idPrefix, zOffset) {
+      const rackGroup = new THREE.Group();
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const binId = `${idPrefix}-0${r + 1}-0${c + 1}`;
+          const boxGeo = new THREE.BoxGeometry(binWidth * 0.85, binHeight * 0.8, binDepth * 0.85);
+          const boxMat = new THREE.MeshStandardMaterial({ color: STATUS_COLORS.EMPTY });
+          const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+          const frameGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(binWidth, binHeight, binDepth));
+          const frameMat = new THREE.LineBasicMaterial({ color: 0x00a8ff });
+          const frameMesh = new THREE.LineSegments(frameGeo, frameMat);
+          const posX = (c - (cols - 1) / 2) * binWidth;
+          const posY = r * binHeight + binHeight / 2;
+          const posZ = zOffset;
+          boxMesh.position.set(posX, posY, posZ);
+          frameMesh.position.set(posX, posY, posZ);
+          boxMesh.userData = { binId, status: 'EMPTY', sku: null, name: null, qty: 0, maxQty: 100, batchNo: null, expiryDate: null, receivedAt: null, lastUpdatedAt: null };
+          binMeshes[binId] = boxMesh;
+          const binLabel = makeTextSprite(binId, { fontSize: 14, color: '#ffffff' });
+          binLabel.position.set(posX, posY + binHeight / 2 + 0.35, posZ);
+          binLabel.scale.set(0.15, 0.15, 1);
+          binLabel.userData = { binId };
+          binLabels[binId] = binLabel;
+          rackGroup.add(binLabel);
+          rackGroup.add(boxMesh);
+          rackGroup.add(frameMesh);
+        }
+      }
+      scene.add(rackGroup);
+    }
+
+    const RACK_GAP = 1.8;
+    const rackPitch = binDepth + RACK_GAP;
+    const racks = [
+      { id: 'A', z: -rackPitch * 2 },
+      { id: 'B', z: -rackPitch },
+      { id: 'C', z: 0 },
+      { id: 'D', z: rackPitch },
+      { id: 'E', z: rackPitch * 2 }
+    ];
+    racks.forEach(rack => createRack(rack.id, rack.z));
+
+    const rackTopY = (rows - 1) * binHeight + binHeight / 2 + 0.6;
+    racks.forEach(rack => {
+      const rackLabel = makeTextSprite(`Kệ ${rack.id}`, { fontSize: 20, color: '#00a8ff' });
+      rackLabel.position.set(0, rackTopY, rack.z);
+      rackLabel.scale.set(0.2, 0.2, 1);
+      scene.add(rackLabel);
+    });
+
+    // ============================================================
+    // XE NĂNG HÀNG (Group 3) — dựng từ primitives
+    // ============================================================
+    function createForklift() {
+      const group = new THREE.Group();
+      const yellow = 0xf1c40f;
+      const dark = 0x2c3e50;
+      const gray = 0x7f8c8d;
+      const lightGray = 0x95a5a6;
+
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 2.6), new THREE.MeshStandardMaterial({ color: yellow }));
+      chassis.position.set(0, 0.35, 0);
+      group.add(chassis);
+
+      const cw = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.65, 1.1), new THREE.MeshStandardMaterial({ color: dark }));
+      cw.position.set(0, 0.65, -1.25);
+      group.add(cw);
+
+      const wheelMat = new THREE.MeshStandardMaterial({ color: dark });
+      const rearWheelGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.85);
+      [-0.72, 0.72].forEach(x => {
+        const w = new THREE.Mesh(rearWheelGeo, wheelMat);
+        w.rotation.z = Math.PI / 2;
+        w.position.set(x, 0.32, -1.05);
+        group.add(w);
+      });
+      const frontWheelGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.65);
+      [-0.72, 0.72].forEach(x => {
+        const w = new THREE.Mesh(frontWheelGeo, wheelMat);
+        w.rotation.z = Math.PI / 2;
+        w.position.set(x, 0.32, 1.15);
+        group.add(w);
+      });
+
+      const mast = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.6, 0.45), new THREE.MeshStandardMaterial({ color: yellow }));
+      mast.position.set(0, 1.15, 1.05);
+      group.add(mast);
+
+      const carriage = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.35, 0.3), new THREE.MeshStandardMaterial({ color: gray }));
+      carriage.position.set(0, 0.55, 1.3);
+      carriage.userData = { isForkPart: true, baseY: 0.55, baseZ: 1.3 };
+      group.add(carriage);
+
+      const forkMat = new THREE.MeshStandardMaterial({ color: lightGray });
+      const forkGeo = new THREE.BoxGeometry(0.09, 0.12, 1.15);
+      [-0.3, 0.3].forEach(x => {
+        const f = new THREE.Mesh(forkGeo, forkMat);
+        f.position.set(x, 0.3, 1.9);
+        f.userData = { isForkPart: true, baseY: 0.3, baseZ: 1.9 };
+        group.add(f);
+      });
+
+      const load = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.35, 0.55), new THREE.MeshStandardMaterial({ color: 0xe67e22 }));
+      load.position.set(0, 0.55, 2.5);
+      load.userData = { isForkPart: true, baseY: 0.55, baseZ: 2.5 };
+      group.add(load);
+
+      const guard = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.45, 1.15), new THREE.MeshStandardMaterial({ color: dark }));
+      guard.position.set(0, 1.85, 0.05);
+      group.add(guard);
+
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 0.35), new THREE.MeshStandardMaterial({ color: dark }));
+      seat.position.set(0, 0.55, -0.35);
+      group.add(seat);
+
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.12), new THREE.MeshStandardMaterial({ color: dark }));
+      back.position.set(0, 0.85, -0.55);
+      group.add(back);
+
+      const cylGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.9);
+      const cylMat = new THREE.MeshStandardMaterial({ color: gray });
+      [-0.2, 0.2].forEach(x => {
+        const c = new THREE.Mesh(cylGeo, cylMat);
+        c.rotation.x = Math.PI / 2;
+        c.position.set(x, 0.95, 1.18);
+        c.userData = { isForkPart: true, baseY: 0.95, baseZ: 1.18 };
+        group.add(c);
+      });
+
+      group.position.set(5.5, 0, -4.8);
+      scene.add(group);
+      return group;
+    }
+
+    const forklift = createForklift();
+
+    // ============================================================
+    // Nút điều khiển inventory panel (Group 1 & 2)
+    // ============================================================
+    invPutawayBtn.addEventListener('click', () => {
+      const binId = invBinIdEl.value.trim().toUpperCase();
+      const sku = invSkuEl.value.trim();
+      const qty = parseInt(invQtyEl.value, 10) || 1;
+      if (!binId || !sku) { setInvMsg('Vui lòng nhập đầy đủ ô hàng và SKU', 'err'); return; }
+      if (putawayToBin(binId, sku, qty)) {
+        invBinIdEl.value = '';
+        invSkuEl.value = '';
+        invQtyEl.value = '1';
+        if (selectedBin === binId) showBinInfo(binId);
+      }
+    });
+
+    invClearBtn.addEventListener('click', () => {
+      const binId = invBinIdEl.value.trim().toUpperCase();
+      if (!binId) { setInvMsg('Vui lòng nhập ô hàng để xóa', 'err'); return; }
+      if (clearBin(binId)) {
+        invBinIdEl.value = '';
+        invSkuEl.value = '';
+        invQtyEl.value = '1';
+        if (selectedBin === binId) showBinInfo(binId);
+      }
+    });
+
+    invBinIdEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') invSkuEl.focus(); });
+    invSkuEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') invQtyEl.focus(); });
+    invQtyEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') invPutawayBtn.click(); });
+
+    // ============================================================
+    // GROUP 6 — Poll API thực (thay mock setInterval)
+    // ============================================================
+    async function pollBins() {
+      try {
+        const data = await apiFetch(API.ENDPOINTS.bins, { method: 'GET' });
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            const mesh = binMeshes[item.binId];
+            if (mesh && item.status !== undefined) {
+              const maxQty = mesh.userData.maxQty || 100;
+              let newQty = item.qty !== undefined ? item.qty : (mesh.userData.qty || 0);
+              if (newQty > maxQty) newQty = maxQty;
+              mesh.userData.status = item.status;
+              mesh.userData.sku = item.sku !== undefined ? item.sku : mesh.userData.sku;
+              mesh.userData.name = mesh.userData.name || (skuCatalog[item.sku] ? skuCatalog[item.sku].name : null);
+              mesh.userData.qty = newQty;
+              mesh.userData.batchNo = item.batchNo || mesh.userData.batchNo;
+              mesh.userData.expiryDate = item.expiryDate || mesh.userData.expiryDate;
+              mesh.userData.lastUpdatedAt = new Date().toISOString();
+              mesh.material.color.setHex(STATUS_COLORS[item.status] !== undefined ? STATUS_COLORS[item.status] : STATUS_COLORS.OCCUPIED);
+              refreshBinLabel(item.binId);
+            }
+          });
+          updateDashboard();
+          checkAlerts();
+        }
+      } catch (e) {
+        if (!API.USE_MOCK) console.warn('API fetch failed, keeping local state:', e.message);
+      }
+    }
+
+    // ============================================================
+    // 5. VÒNG LẶP RENDER (60 FPS)
+    // ============================================================
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+    });
+
+    let lastPoll = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      const t = (now - forkliftStartTime) * 0.001;
+      const dt = 1 / 60;
+
+      // Poll API thực mỗi POLL_MS (Group 6)
+      if (now - lastPoll >= API.POLL_MS) {
+        lastPoll = now;
+        pollBins();
+      }
+
+      // === WCS: điều khiển xe nâng theo task queue (Group 3) ===
+      if (forkliftState.currentTask) {
+        const task = forkliftState.currentTask;
+        // Di chuyển Z đến lối đi
+        const dz = task.aisleZ - forkliftState.z;
+        if (Math.abs(dz) > 0.01) {
+          forkliftState.status = 'MOVING';
+          forkliftState.z += Math.sign(dz) * Math.min(Math.abs(dz), forkliftState.speed * dt);
+        } else {
+          forkliftState.z = task.aisleZ;
+          // Nâng/hạ móc từ
+          const df = task.forkTarget - forkliftState.forkLift;
+          if (Math.abs(df) > 0.01) {
+            forkliftState.status = task.forkTarget > forkliftState.forkLift ? 'LIFTING' : 'LOWERING';
+            forkliftState.forkLift += Math.sign(df) * Math.min(Math.abs(df), forkliftState.forkSpeed * dt);
+          } else {
+            forkliftState.forkLift = task.forkTarget;
+            forkliftState.status = 'COMPLETING';
+            // Gần hoàn tất -> hoàn thành lệnh sau 1 giây ngắn
+            if (!task._completeTimer) task._completeTimer = now;
+            if (now - task._completeTimer > 800) {
+              completeCurrentForkliftTask();
+            }
+          }
+        }
+      } else {
+        if (forkliftState.taskQueue.length > 0) {
+          processForkliftQueue();
+        } else {
+          forkliftState.status = 'IDLE';
+        }
+      }
+
+      forklift.position.z = forkliftState.z;
+
+      const forkLiftHeight = forkliftState.forkLift * 1.1; // tối đa ~1.1 đơn vị
+      forklift.children.forEach(child => {
+        if (child.userData && child.userData.isForkPart) {
+          child.position.z = child.userData.baseZ + forkLiftHeight;
+          child.position.y = child.userData.baseY + forkLiftHeight;
+        }
+      });
+
+      forklift.position.y = Math.sin(t * 2) * 0.03;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Khởi tạo
+    updateDashboard();
+    checkAlerts();
+    animate();
+  </script>
+</body>
+</html>
