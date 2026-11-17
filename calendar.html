@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch vạn niên 3D · Âm lịch, hoàng đạo, giờ hoàng đạo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg:#070a12; --panel:rgba(16,22,40,.82); --line:rgba(255,255,255,.09); --text:#ece8dc; --muted:#8b93a7;
+    --gold:#f5b942; --gold2:#ffe08a; --dim:#4b5470; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:radial-gradient(900px 600px at 50% -10%, #3a2a10 0%, transparent 60%), var(--bg);
+    color:var(--text); min-height:100vh; padding:20px 14px 40px; }
+  .wrap { max-width:1220px; margin:0 auto; }
+  header { text-align:center; margin-bottom:14px; }
+  h1 { font-size:1.9rem; letter-spacing:.5px; font-family:Georgia,serif; }
+  h1 span { color:var(--gold); }
+  header p { color:var(--muted); font-size:.92rem; margin-top:4px; }
+
+  .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:12px 14px; margin-bottom:14px; }
+  .toolbar .title { font-size:1.2rem; font-weight:700; min-width:180px; text-align:center; color:var(--gold2); font-family:Georgia,serif; }
+  input, select { background:rgba(10,14,30,.9); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:.9rem; }
+  input[type=number] { width:96px; }
+  button { font:inherit; color:#111; background:linear-gradient(135deg,#ffe08a,#f5b942); border:none; border-radius:9px; padding:8px 14px; font-weight:700; cursor:pointer; }
+  button:hover { filter:brightness(1.08); }
+  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  .grow { flex:1; }
+  .lab { font-size:.82rem; color:var(--muted); display:flex; align-items:center; gap:6px; }
+
+  .layout { display:grid; grid-template-columns:1fr 360px; gap:14px; align-items:start; }
+  @media (max-width:960px) { .layout { grid-template-columns:1fr; } }
+  #stage { position:relative; width:100%; height:520px; border-radius:18px; overflow:hidden; border:1px solid var(--line);
+    background:#070a12; cursor:grab; touch-action:none; box-shadow:0 24px 60px -12px rgba(0,0,0,.7); }
+  #stage:active { cursor:grabbing; }
+  #stage canvas { display:block; width:100%; height:100%; }
+  .stage-note { position:absolute; left:14px; top:12px; font-size:.82rem; color:var(--muted); pointer-events:none; line-height:1.6; }
+  .stage-note b { color:var(--gold2); }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:.8rem; color:var(--muted); margin-top:10px; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:middle; }
+
+  .side { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; height:520px; overflow-y:auto; }
+  .side h2 { font-size:1.25rem; color:var(--gold2); font-family:Georgia,serif; }
+  .side .sub { color:var(--muted); font-size:.86rem; margin-top:2px; }
+  .side h3 { font-size:.72rem; color:var(--gold); text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:.9rem; line-height:1.55; }
+  .kv span:nth-child(odd) { color:var(--muted); }
+  .badge { display:inline-block; padding:3px 9px; border-radius:7px; font-weight:700; font-size:.82rem; }
+  .badge.hd { background:rgba(245,185,66,.18); color:var(--gold2); border:1px solid rgba(245,185,66,.5); }
+  .badge.hac { background:rgba(148,163,184,.12); color:#cbd5e1; border:1px solid rgba(148,163,184,.35); }
+  table { width:100%; border-collapse:collapse; font-size:.86rem; }
+  th, td { padding:5px 6px; border-bottom:1px solid var(--line); text-align:left; }
+  th { color:var(--muted); font-weight:600; font-size:.74rem; text-transform:uppercase; }
+  tr.hd td { color:var(--gold2); font-weight:700; }
+  .note { font-size:.78rem; color:var(--muted); line-height:1.6; margin-top:12px; }
+
+  .sources { margin-top:14px; font-size:.8rem; color:var(--muted); line-height:1.7; }
+  .sources a { color:var(--gold2); }
+</style>
+<script src="three.min.js"></script>
+<script>
+  if (typeof THREE === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"><\/script>');
+  }
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Lịch <span>vạn niên</span> 3D</h1>
+    <p>Dương lịch · âm lịch · can chi · trực · ngày và giờ hoàng đạo</p>
+  </header>
+
+  <section class="toolbar">
+    <button type="button" class="ghost" id="btnPrev">◀</button>
+    <div class="title" id="title"></div>
+    <button type="button" class="ghost" id="btnNext">▶</button>
+    <button type="button" id="btnToday">Hôm nay</button>
+    <label class="lab">Tháng
+      <select id="mSel">
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+        <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+        <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+      </select>
+    </label>
+    <label class="lab">Năm <input type="number" id="yInp" min="1900" max="2100" value="2026"></label>
+    <button type="button" class="ghost" id="btnGo">Xem</button>
+    <div class="grow"></div>
+    <label class="lab">Tra cứu ngày <input type="date" id="dInp"></label>
+    <button type="button" class="ghost" id="btnFind">Tìm</button>
+  </section>
+
+  <div class="layout">
+    <div>
+      <div id="stage">
+        <div class="stage-note">Bấm vào một ô để xem chi tiết.<br>Kéo để xoay lịch.<br><b>←/→</b>: ngày trước/sau</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#6b5520"></i>Ngày hoàng đạo</span>
+        <span><i style="background:#2a2c36"></i>Ngày hắc đạo</span>
+        <span><i style="background:#1d2438"></i>Ngày thường (theo trực)</span>
+        <span><i style="background:#0c1020"></i>Ngày ngoài tháng</span>
+      </div>
+    </div>
+    <aside class="side" id="detail"></aside>
+  </div>
+
+  <div class="sources">
+    <b>Nguồn tham khảo:</b><br>
+    • Giờ hoàng đạo theo chi của ngày (bảng giờ đối chiếu trên <a href="https://quantrimang.com/lich-am/4164-12-12" target="_blank" rel="noopener">quantrimang.com</a> và <a href="https://mytour.vn/vi/blog/bai-viet/gio-vang.html" target="_blank" rel="noopener">mytour.vn</a>)<br>
+    • Ý nghĩa ngày hoàng đạo, hắc đạo và cách xem: <a href="https://hoanghamobile.com/tin-tuc/ngay-hoang-dao-la-gi-cach-xem-ngay-hoang-dao-ra-sao" target="_blank" rel="noopener">hoanghamobile.com</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const PI = Math.PI, dr = PI / 180;
+  const CAN = ['Giáp','Ất','Bính','Đinh','Mậu','Kỷ','Canh','Tân','Nhâm','Quý'];
+  const CHI = ['Tý','Sửu','Dần','Mão','Thìn','Tỵ','Ngọ','Mùi','Thân','Dậu','Tuất','Hợi'];
+  const HOURS = ['23:00–01:00','01:00–03:00','03:00–05:00','05:00–07:00','07:00–09:00','09:00–11:00',
+                 '11:00–13:00','13:00–15:00','15:00–17:00','17:00–19:00','19:00–21:00','21:00–23:00'];
+  const TRUC = ['Kiến','Trừ','Mãn','Bình','Định','Chấp','Phá','Nguy','Thành','Thu','Khai','Bế'];
+  // Phân loại trực: cần kiểm tra lại với bảng chuẩn trước khi dùng cho quyết định quan trọng
+  const TRUC_HD = { 'Kiến':1, 'Mãn':1, 'Bình':1, 'Định':1, 'Thành':1, 'Khai':1 };
+  const TZ = 7;
+  const WEEK = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
+
+  // ---------- Dương lịch -> Julian Day ----------
+  function jdFromDate(dd, mm, yy) {
+    const a = Math.floor((14 - mm) / 12), y = yy + 4800 - a, m = mm + 12 * a - 3;
+    return dd + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+  }
+
+  // ---------- Thuật toán lịch âm (Hồ Ngọc Đức) ----------
+  function newMoonDay(k, tz) {
+    const T = k / 1236.85, T2 = T * T, T3 = T2 * T;
+    let jd1 = 2415020.75933 + 29.53058868 * k + 0.0001178 * T2 - 0.000000155 * T3;
+    jd1 += 0.00033 * Math.sin((166.56 + 132.87 * T - 0.009173 * T2) * dr);
+    const M = 359.2242 + 29.10535608 * k - 0.0000333 * T2 - 0.00000347 * T3;
+    const Mp = 306.0253 + 385.81691806 * k + 0.0107306 * T2 + 0.00001236 * T3;
+    const F = 21.2964 + 390.67050646 * k - 0.0016528 * T2 - 0.00000239 * T3;
+    const s = x => Math.sin(x * dr);
+    const C1 = (0.1734 - 0.000393 * T) * s(M) + 0.0021 * s(2 * M) - 0.4068 * s(Mp) + 0.0161 * s(2 * Mp)
+      - 0.0004 * s(3 * Mp) + 0.0104 * s(2 * F) - 0.0051 * s(M + Mp) - 0.0074 * s(M - Mp)
+      + 0.0004 * s(2 * F + M) - 0.0004 * s(2 * F - M) - 0.0006 * s(2 * F + Mp) + 0.0010 * s(2 * F - Mp)
+      + 0.0005 * s(M + 2 * Mp);
+    const dt = T < -11 ? (0.001 + 0.000839 * T + 0.0002261 * T2) : (-0.000278 + 0.000265 * T + 0.000262 * T2);
+    return Math.floor(jd1 + C1 - dt + 0.5 + tz / 24);
+  }
+
+  function sunLong(jdn, tz) {
+    const T = (jdn - 2451545.5 - tz / 24) / 36525, T2 = T * T;
+    const M = (357.52910 + 35999.05030 * T - 0.0001559 * T2 - 0.00000048 * T2 * T) * dr;
+    const L0 = 280.46645 + 36000.76983 * T + 0.0003032 * T2;
+    const DL = (1.914600 - 0.004817 * T - 0.000014 * T2) * Math.sin(M)
+      + (0.019993 - 0.000101 * T) * Math.sin(2 * M) + 0.000290 * Math.sin(3 * M);
+    let L = (L0 + DL) * dr;
+    L = L - 2 * PI * Math.floor(L / (2 * PI));
+    return Math.floor(L / PI * 6);
+  }
+
+  function lunarMonth11(yy, tz) {
+    const off = jdFromDate(31, 12, yy) - 2415021;
+    const k = Math.floor(off / 29.530588853);
+    let nm = newMoonDay(k, tz);
+    if (sunLong(nm, tz) >= 9) nm = newMoonDay(k - 1, tz);
+    return nm;
+  }
+
+  function leapOffset(a11, tz) {
+    const k = Math.floor((a11 - 2415021.076998695) / 29.530588853 + 0.5);
+    let i = 1, arc = sunLong(newMoonDay(k + i, tz), tz), last;
+    do { last = arc; i++; arc = sunLong(newMoonDay(k + i, tz), tz); } while (arc !== last && i < 14);
+    return i - 1;
+  }
+
+  function solarToLunar(dd, mm, yy, tz) {
+    const dayNum = jdFromDate(dd, mm, yy);
+    const k = Math.floor((dayNum - 2415021.076998695) / 29.530588853);
+    let monthStart = newMoonDay(k + 1, tz);
+    if (monthStart > dayNum) monthStart = newMoonDay(k, tz);
+    let a11 = lunarMonth11(yy, tz), b11 = a11, ly;
+    if (a11 >= monthStart) { ly = yy; a11 = lunarMonth11(yy - 1, tz); }
+    else { ly = yy + 1; b11 = lunarMonth11(yy + 1, tz); }
+    const day = dayNum - monthStart + 1;
+    const diff = Math.floor((monthStart - a11) / 29);
+    let leap = 0, month = diff + 11;
+    if (b11 - a11 > 365) {
+      const lo = leapOffset(a11, tz);
+      if (diff >= lo) { month = diff + 10; if (diff === lo) leap = 1; }
+    }
+    if (month > 12) month -= 12;
+    if (month >= 11 && diff < 4) ly -= 1;
+    return { day, month, year: ly, leap: !!leap };
+  }
+
+  // ---------- Can chi, trực, giờ hoàng đạo ----------
+  function hourHDSet(dayChi) {
+    const shift = 2 * (dayChi % 6);
+    return [0, 1, 3, 6, 8, 9].map(b => (b + shift) % 12);   // Tý Sửu Mão Ngọ Thân Dậu, dịch theo nhóm chi ngày
+  }
+
+  const dayCache = new Map();
+  function dayInfo(d, m, y) {
+    const key = y + '-' + m + '-' + d;
+    if (dayCache.has(key)) return dayCache.get(key);
+    const lun = solarToLunar(d, m, y, TZ);
+    const yearCan = (lun.year + 6) % 10, yearChi = (lun.year + 8) % 12;
+    const monthCan = ((yearCan % 5) * 2 + 2 + (lun.month - 1)) % 10;
+    const monthChi = (lun.month + 1) % 12;
+    const jd = jdFromDate(d, m, y);
+    const dIdx = (jd + 49) % 60;
+    const dayCan = dIdx % 10, dayChi = dIdx % 12;
+    const trucIdx = ((dayChi - monthChi) % 12 + 12) % 12;
+    const truc = TRUC[trucIdx];
+    const info = {
+      lun, yearCan, yearChi, monthCan, monthChi, dayCan, dayChi, truc,
+      trucHD: !!TRUC_HD[truc], hourHD: hourHDSet(dayChi), hd: !!TRUC_HD[truc]
+    };
+    dayCache.set(key, info);
+    return info;
+  }
+
+  // ---------- Trạng thái ----------
+  let curY, curM, selSol = null, cells = [], selIdx = -1;
+  const today = new Date();
+
+  // ---------- Three.js ----------
+  const stage = $('stage');
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true }); }
+  catch (e) { stage.textContent = 'Trình duyệt không hỗ trợ WebGL.'; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x070a12, 1);
+  stage.insertBefore(renderer.domElement, stage.firstChild);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 0.6, 14);
+  camera.lookAt(0, 0.2, 0);
+  const rig = new THREE.Group();
+  scene.add(rig);
+  scene.add(new THREE.HemisphereLight(0xfff1d6, 0x1a1410, 0.8));
+  const warm = new THREE.PointLight(0xf5b942, 0.6, 40);
+  warm.position.set(-6, 4, 8);
+  scene.add(warm);
+
+  // Lưới 6 hàng x 7 cột trên cung tròn
+  const COLS = 7, ROWS = 6, R = 9, DA = 0.2;
+  const tiles = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const a = (c - 3) * DA;
+      const mat = new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.95), mat);
+      mesh.position.set(R * Math.sin(a), 2.5 - r * 1.0, -9 + R * Math.cos(a));
+      mesh.rotation.y = a;
+      mesh.userData.idx = r * COLS + c;
+      rig.add(mesh);
+      tiles.push(mesh);
+    }
+  }
+  const frame = new THREE.Mesh(new THREE.TorusGeometry(9.2, 0.02, 8, 120),
+    new THREE.MeshBasicMaterial({ color: 0xf5b942, transparent: true, opacity: 0.25 }));
+  frame.rotation.x = Math.PI / 2;
+  frame.position.set(0, -2.9, -9);
+  rig.add(frame);
+
+  function tileTexture(cell) {
+    const c = document.createElement('canvas');
+    c.width = 320; c.height = 190;
+    const g = c.getContext('2d');
+    const grd = g.createLinearGradient(0, 0, 0, 190);
+    if (!cell.inMonth) { grd.addColorStop(0, '#0c1020'); grd.addColorStop(1, '#080b16'); }
+    else if (cell.info.hd) { grd.addColorStop(0, '#6b5520'); grd.addColorStop(1, '#2b2410'); }
+    else if (cell.info.truc === 'Trừ' || cell.info.truc === 'Chấp' || cell.info.truc === 'Phá' || cell.info.truc === 'Nguy' || cell.info.truc === 'Thu' || cell.info.truc === 'Bế') {
+      grd.addColorStop(0, '#2a2c36'); grd.addColorStop(1, '#15171f');
+    } else { grd.addColorStop(0, '#1d2438'); grd.addColorStop(1, '#10141f'); }
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 320, 190);
+
+    const solCol = cell.inMonth ? '#f5ecd4' : '#4b5470';
+    g.fillStyle = solCol;
+    g.font = 'bold 66px Georgia, serif';
+    g.textAlign = 'left'; g.textBaseline = 'top';
+    g.fillText(String(cell.sol.d), 14, 6);
+
+    const L = cell.info.lun;
+    g.font = '600 25px Segoe UI, Arial';
+    g.textAlign = 'right';
+    g.fillStyle = cell.inMonth ? '#e8c77a' : '#4b5470';
+    g.fillText(L.day + '/' + L.month + (L.leap ? ' nhuận' : ''), 306, 14);
+
+    g.font = '600 19px Segoe UI, Arial';
+    g.textAlign = 'left';
+    g.fillStyle = cell.info.hd ? '#ffe08a' : '#9aa3b8';
+    g.fillText(cell.info.truc + (cell.info.hd ? ' · Hoàng đạo' : ' · Hắc đạo'), 14, 140);
+
+    g.fillStyle = cell.inMonth ? '#9aa3b8' : '#3b4360';
+    g.font = '16px Segoe UI, Arial';
+    g.fillText(CAN[cell.info.dayCan] + ' ' + CHI[cell.info.dayChi], 14, 168);
+
+    if (cell.isToday) { g.strokeStyle = '#f5b942'; g.lineWidth = 8; g.strokeRect(4, 4, 312, 182); }
+    if (cell.isSel) { g.strokeStyle = '#ffffff'; g.lineWidth = 6; g.strokeRect(10, 10, 300, 170); }
+    return new THREE.CanvasTexture(c);
+  }
+
+  function isSameDay(a, b) { return a && b && a.d === b.d && a.m === b.m && a.y === b.y; }
+
+  // Tạo danh sách 42 ô của tháng hiện tại
+  function buildCells() {
+    const first = new Date(curY, curM - 1, 1);
+    const off = (first.getDay() + 6) % 7;
+    cells = [];
+    for (let i = 0; i < ROWS * COLS; i++) {
+      const dt = new Date(curY, curM - 1, 1 - off + i);
+      const sol = { d: dt.getDate(), m: dt.getMonth() + 1, y: dt.getFullYear() };
+      cells.push({
+        sol,
+        inMonth: dt.getMonth() === curM - 1,
+        isToday: isSameDay(sol, { d: today.getDate(), m: today.getMonth() + 1, y: today.getFullYear() }),
+        info: dayInfo(sol.d, sol.m, sol.y),
+        isSel: false
+      });
+    }
+  }
+
+  function refreshTextures() {
+    tiles.forEach((mesh, i) => {
+      const cell = cells[i];
+      cell.isSel = (i === selIdx);
+      const old = mesh.material.map;
+      mesh.material.map = tileTexture(cell);
+      mesh.material.needsUpdate = true;
+      if (old) old.dispose();
+      const s = i === selIdx ? 1.12 : 1;
+      mesh.scale.set(s, s, 1);
+    });
+  }
+
+  function monthTitle() {
+    const mid = dayInfo(15, curM, curY);
+    return 'Tháng ' + curM + '/' + curY + ' · ' + CAN[mid.yearCan] + ' ' + CHI[mid.yearChi];
+  }
+
+  function renderMonth() {
+    buildCells();
+    selIdx = -1;
+    if (selSol) {
+      selIdx = cells.findIndex(c => isSameDay(c.sol, selSol));
+    }
+    if (selIdx < 0) {
+      selIdx = cells.findIndex(c => c.isToday && c.inMonth);
+      if (selIdx < 0) selIdx = cells.findIndex(c => c.inMonth);
+    }
+    refreshTextures();
+    $('title').textContent = monthTitle();
+    $('mSel').value = curM;
+    $('yInp').value = curY;
+    renderDetail();
+  }
+
+  function selectCell(i) {
+    if (i < 0 || i >= cells.length) return;
+    const cell = cells[i];
+    if (!cell.inMonth) {
+      curY = cell.sol.y; curM = cell.sol.m;
+      selSol = cell.sol;
+      renderMonth();
+      return;
+    }
+    selSol = cell.sol;
+    selIdx = i;
+    refreshTextures();
+    renderDetail();
+  }
+
+  function selectDate(sol) {
+    selSol = sol;
+    curY = sol.y; curM = sol.m;
+    renderMonth();
+  }
+
+  // ---------- Chi tiết ngày ----------
+  function renderDetail() {
+    const cell = cells[selIdx];
+    if (!cell) return;
+    const s = cell.sol, I = cell.info, L = I.lun;
+    const wd = WEEK[new Date(s.y, s.m - 1, s.d).getDay()];
+    const hdBadge = I.hd ? '<span class="badge hd">Ngày hoàng đạo</span>' : '<span class="badge hac">Ngày hắc đạo</span>';
+
+    const rows = CHI.map((name, b) => {
+      const hc = ((I.dayCan % 5) * 2 + b) % 10;
+      const isHD = I.hourHD.indexOf(b) >= 0;
+      return '<tr class="' + (isHD ? 'hd' : '') + '"><td>' + name + '</td><td>' + HOURS[b] + '</td>' +
+        '<td>' + CAN[hc] + ' ' + name + '</td><td>' + (isHD ? 'Hoàng đạo' : 'Hắc đạo') + '</td></tr>';
+    }).join('');
+
+    $('detail').innerHTML =
+      '<h2>' + wd + ', ' + s.d + '/' + s.m + '/' + s.y + '</h2>' +
+      '<div class="sub">Dương lịch</div>' +
+      '<h3>Âm lịch</h3>' +
+      '<div class="kv"><span>Ngày</span><span>' + L.day + ' tháng ' + L.month + (L.leap ? ' (nhuận)' : '') + ' năm ' + CAN[I.yearCan] + ' ' + CHI[I.yearChi] + ' (' + L.year + ')</span></div>' +
+      '<h3>Can chi</h3>' +
+      '<div class="kv">' +
+        '<span>Năm</span><span>' + CAN[I.yearCan] + ' ' + CHI[I.yearChi] + '</span>' +
+        '<span>Tháng</span><span>' + CAN[I.monthCan] + ' ' + CHI[I.monthChi] + '</span>' +
+        '<span>Ngày</span><span>' + CAN[I.dayCan] + ' ' + CHI[I.dayChi] + '</span>' +
+      '</div>' +
+      '<h3>Trực &amp; hoàng/hắc đạo</h3>' +
+      '<div class="kv"><span>Trực</span><span><b>' + I.truc + '</b></span></div>' +
+      '<div style="margin-top:8px">' + hdBadge + '</div>' +
+      '<h3>Giờ trong ngày</h3>' +
+      '<table><thead><tr><th>Chi</th><th>Khung giờ</th><th>Can chi giờ</th><th>Loại</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div class="note">Giờ hoàng đạo được tính theo chi của ngày. Ngày hoàng/hắc đạo theo bảng trực (12 trực) với cách phân loại thường dùng. ' +
+      'Lịch chưa có tiết khí và các sao tốt xấu khác; hãy đối chiếu với lịch chính thống khi cần quyết định quan trọng.</div>';
+  }
+
+  // ---------- Tương tác ----------
+  function resize() {
+    const w = stage.clientWidth || 600, h = stage.clientHeight || 520;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.domElement.style.width = w + 'px';
+    renderer.domElement.style.height = h + 'px';
+  }
+  window.addEventListener('resize', resize);
+
+  let yaw = 0, tilt = 0, dragging = false, moved = 0, lx = 0, ly = 0;
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  stage.addEventListener('pointerdown', e => { if (e.target !== renderer.domElement) return; dragging = true; moved = 0; lx = e.clientX; ly = e.clientY; });
+  window.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly;
+    moved += Math.abs(dx) + Math.abs(dy);
+    yaw = Math.max(-0.6, Math.min(0.6, yaw + dx * 0.004));
+    tilt = Math.max(-0.3, Math.min(0.3, tilt + dy * 0.003));
+    lx = e.clientX; ly = e.clientY;
+  });
+  window.addEventListener('pointerup', e => {
+    if (!dragging) return;
+    dragging = false;
+    if (moved >= 5) return;
+    const r = stage.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    mouse.x = (e.clientX - r.left) / r.width * 2 - 1;
+    mouse.y = -(e.clientY - r.top) / r.height * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(tiles);
+    if (hits.length) selectCell(hits[0].object.userData.idx);
+  });
+
+  // ---------- Điều khiển ----------
+  function shiftMonth(delta) {
+    curM += delta;
+    while (curM > 12) { curM -= 12; curY++; }
+    while (curM < 1) { curM += 12; curY--; }
+    selSol = null;
+    renderMonth();
+  }
+  $('btnPrev').addEventListener('click', () => shiftMonth(-1));
+  $('btnNext').addEventListener('click', () => shiftMonth(1));
+  $('btnToday').addEventListener('click', () => {
+    selectDate({ d: today.getDate(), m: today.getMonth() + 1, y: today.getFullYear() });
+  });
+  $('btnGo').addEventListener('click', () => {
+    const y = Number($('yInp').value), m = Number($('mSel').value);
+    if (!y || y < 1900 || y > 2100) return;
+    curY = y; curM = m; selSol = null;
+    renderMonth();
+  });
+  $('btnFind').addEventListener('click', () => {
+    const v = $('dInp').value;
+    if (!v) return;
+    const p = v.split('-');
+    selectDate({ y: Number(p[0]), m: Number(p[1]), d: Number(p[2]) });
+  });
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return;
+    if (selIdx < 0) return;
+    const cur = cells[selIdx].sol;
+    const dt = new Date(cur.y, cur.m - 1, cur.d + (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0));
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      selectDate({ d: dt.getDate(), m: dt.getMonth() + 1, y: dt.getFullYear() });
+    }
+  });
+
+  // ---------- Vòng lặp ----------
+  function loop() {
+    rig.rotation.y = yaw;
+    rig.rotation.x = tilt;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Khởi tạo ----------
+  curY = today.getFullYear();
+  curM = today.getMonth() + 1;
+  selSol = { d: today.getDate(), m: curM, y: curY };
+  $('dInp').value = curY + '-' + String(curM).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  resize();
+  renderMonth();
+  loop();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Học tiếng Anh 3D · Thẻ, trắc nghiệm, nghe & gõ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg:#070a12; --panel:rgba(16,22,40,.82); --line:rgba(255,255,255,.09); --text:#ece8dc; --muted:#8b93a7;
+    --gold:#f5b942; --gold2:#ffe08a; --ok:#22c55e; --bad:#f87171; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:radial-gradient(900px 600px at 50% -10%, #1f2a44 0%, transparent 60%), var(--bg);
+    color:var(--text); min-height:100vh; padding:18px 14px 40px; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  header { text-align:center; margin-bottom:12px; }
+  h1 { font-size:1.8rem; letter-spacing:.4px; }
+  h1 span { color:var(--gold); }
+  header p { color:var(--muted); font-size:.9rem; margin-top:4px; }
+
+  .bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:10px 12px; margin-bottom:12px; }
+  .tabs { display:flex; gap:6px; }
+  .tab { background:transparent; color:var(--muted); border:1px solid var(--line); }
+  .tab.on { background:var(--gold); color:#111; border-color:var(--gold); }
+  select, input[type=text], input[type=password], input[type=number] { background:rgba(10,14,30,.9); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:7px 10px; font-size:.9rem; }
+  input[type=text] { width:100%; }
+  .lab { font-size:.82rem; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .grow { flex:1; }
+  .stats { font-size:.86rem; color:var(--muted); }
+  .stats b { color:var(--gold2); }
+
+  button { font:inherit; color:#111; background:linear-gradient(135deg,#ffe08a,#f5b942); border:none; border-radius:9px; padding:9px 15px;
+    font-weight:700; cursor:pointer; }
+  button:hover:not(:disabled) { filter:brightness(1.08); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  button.ok { background:linear-gradient(135deg,#86efac,#22c55e); color:#052e16; }
+  button.bad { background:linear-gradient(135deg,#fca5a5,#ef4444); color:#450a0a; }
+
+  #stage { width:100%; height:340px; border-radius:18px; overflow:hidden; border:1px solid var(--line);
+    background:#070a12; box-shadow:0 20px 50px -12px rgba(0,0,0,.7); position:relative; }
+  #stage canvas { display:block; width:100%; height:100%; cursor:pointer; }
+  #stage .hint { position:absolute; left:12px; bottom:8px; font-size:.74rem; color:#64748b; pointer-events:none; }
+
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; margin-top:12px; }
+  .panel h2 { font-size:.8rem; color:var(--gold); text-transform:uppercase; letter-spacing:.6px; margin-bottom:10px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .big { font-size:1.4rem; font-weight:700; }
+  .muted { color:var(--muted); font-size:.88rem; line-height:1.6; }
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .opts button { background:rgba(255,255,255,.05); color:var(--text); border:1px solid var(--line); text-align:left; font-weight:600; }
+  .opts button.right { background:rgba(34,197,94,.2); border-color:var(--ok); }
+  .opts button.wrong { background:rgba(248,113,113,.2); border-color:var(--bad); }
+  .feedback { margin-top:12px; font-weight:700; min-height:1.4em; }
+  .feedback.ok { color:var(--ok); }
+  .feedback.bad { color:var(--bad); }
+  .progress { height:8px; background:rgba(255,255,255,.07); border-radius:4px; overflow:hidden; margin-top:12px; }
+  .progress div { height:100%; background:linear-gradient(90deg,#ffe08a,#f5b942); width:0; transition:width .3s; }
+
+  details { margin-top:12px; }
+  summary { cursor:pointer; color:var(--gold2); font-weight:600; }
+  .cfg { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; margin-top:10px; }
+  .cfg label { font-size:.8rem; color:var(--muted); display:flex; flex-direction:column; gap:4px; }
+  .msg { margin-top:8px; font-size:.86rem; min-height:1.3em; }
+  .msg.ok { color:var(--ok); }
+  .msg.bad { color:var(--bad); }
+  .warn { font-size:.78rem; color:#7d8496; line-height:1.6; margin-top:8px; }
+</style>
+<script src="three.min.js"></script>
+<script>
+  if (typeof THREE === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"><\/script>');
+  }
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Học tiếng <span>Anh</span> 3D</h1>
+    <p>Thẻ 3D lật được, trắc nghiệm, nghe và gõ · dữ liệu từ thư mục <b>data/</b> trong repo</p>
+  </header>
+
+  <div class="bar">
+    <div class="tabs">
+      <button type="button" class="tab on" data-mode="flash">🃏 Thẻ học</button>
+      <button type="button" class="tab" data-mode="quiz">❓ Trắc nghiệm</button>
+      <button type="button" class="tab" data-mode="listen">🔊 Nghe & gõ</button>
+    </div>
+    <label class="lab">Chủ đề <select id="cat"></select></label>
+    <div class="grow"></div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div id="stage"><div class="hint">Bấm thẻ để lật · Space: lật · 1/2: nhớ / chưa nhớ</div></div>
+
+  <section class="panel" id="panel"></section>
+
+  <section class="panel">
+    <h2>Đồng bộ tiến độ</h2>
+    <div class="muted">
+      Tiến độ luôn được lưu trên trình duyệt. Nếu điền thông tin GitHub bên dưới, nút <b>Lưu lên repo</b> sẽ ghi file
+      <b>data/progress.json</b> trong repo của bạn. Trang GitHub Pages cập nhật sau vài phút.
+    </div>
+    <details>
+      <summary>Cài đặt GitHub</summary>
+      <div class="cfg">
+        <label>Chủ repo (owner)<input type="text" id="gOwner" placeholder="ten-tai-khoan"></label>
+        <label>Tên repo<input type="text" id="gRepo" placeholder="ten-repo"></label>
+        <label>Nhánh<input type="text" id="gBranch" value="main"></label>
+        <label>Token (fine-grained, quyền Contents)<input type="password" id="gToken" placeholder="github_pat_..."></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="lab"><input type="checkbox" id="gRemember"> Nhớ token trên máy này</label>
+        <label class="lab"><input type="checkbox" id="gAuto"> Tự lưu lên repo khi kết thúc phiên</label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button type="button" id="btnPush">⬆ Lưu lên repo</button>
+        <button type="button" class="ghost" id="btnPull">⬇ Tải từ repo</button>
+        <button type="button" class="ghost" id="btnExport">Xuất JSON</button>
+        <label class="ghost" style="padding:9px 15px;border-radius:9px;cursor:pointer;border:1px solid var(--line)">
+          Nhập JSON <input type="file" id="fileImp" accept=".json,application/json" hidden>
+        </label>
+      </div>
+      <div class="msg" id="syncMsg"></div>
+      <div class="warn">
+        Token có quyền ghi vào repo của bạn, nên chỉ cấp quyền cho đúng repo này và chỉ quyền Contents.
+        Không dán token vào mã nguồn hay commit nó vào repo. Nếu repo công khai, nội dung <b>data/progress.json</b> cũng công khai.
+      </div>
+    </details>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const DAY = 86400000;
+  const INTERVAL = [0, 1, 2, 4, 8, 16];      // số ngày chờ theo hộp 1..5 (chỉ số là hộp)
+  const SESSION_MAX = 20;
+  const LS_PROG = 'eng_progress_v1', LS_CFG = 'eng_cfg_v1';
+
+  let vocab = [];
+  let progress = { version: 1, updatedAt: null, words: {} };
+  let mode = 'flash', cat = 'all';
+  let deck = [], idx = 0, sess = { right: 0, wrong: 0 }, answered = false;
+  let quizOpts = [];
+
+  // ---------- Dữ liệu ----------
+  async function loadVocab() {
+    const r = await fetch('data/vocab.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('Không đọc được data/vocab.json (HTTP ' + r.status + ')');
+    vocab = (await r.json()).words || [];
+  }
+
+  async function initProgress() {
+    let local = null;
+    try { local = JSON.parse(localStorage.getItem(LS_PROG)); } catch (e) { local = null; }
+    let repo = null;
+    try {
+      const r = await fetch('data/progress.json', { cache: 'no-store' });
+      if (r.ok) repo = await r.json();
+    } catch (e) { repo = null; }
+    const pick = (a, b) => {
+      if (!a) return b;
+      if (!b) return a;
+      return (b.updatedAt || '') > (a.updatedAt || '') ? b : a;
+    };
+    progress = pick(local, repo) || { version: 1, updatedAt: null, words: {} };
+    if (!progress.words) progress.words = {};
+  }
+
+  function saveLocal() {
+    progress.updatedAt = new Date().toISOString();
+    localStorage.setItem(LS_PROG, JSON.stringify(progress));
+  }
+
+  function st(id) { return progress.words[id] || { box: 1, next: 0, seen: 0, correct: 0 }; }
+
+  function record(id, ok) {
+    const s = st(id);
+    s.seen++;
+    if (ok) { s.correct++; s.box = Math.min(5, s.box + 1); s.next = Date.now() + INTERVAL[s.box] * DAY; }
+    else { s.box = 1; s.next = Date.now(); }
+    progress.words[id] = s;
+    saveLocal();
+    updateStats();
+  }
+
+  function filtered() { return cat === 'all' ? vocab : vocab.filter(w => w.cat === cat); }
+  function isDue(w) { return st(w.id).next <= Date.now(); }
+
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  function buildDeck() {
+    let pool = filtered().filter(isDue);
+    if (!pool.length) pool = filtered().slice();   // không có từ đến hạn: ôn thêm
+    deck = shuffle(pool).slice(0, SESSION_MAX);
+    idx = 0; sess = { right: 0, wrong: 0 };
+  }
+
+  function current() { return deck[idx]; }
+
+  // ---------- Thống kê ----------
+  function updateStats() {
+    const list = filtered();
+    const learned = list.filter(w => st(w.id).box >= 4).length;
+    const due = list.filter(isDue).length;
+    $('stats').innerHTML = 'Từ: <b>' + list.length + '</b> · Đến hạn: <b>' + due + '</b> · Đã thuộc: <b>' + learned + '</b>';
+  }
+
+  function populateCats() {
+    const cats = [...new Set(vocab.map(w => w.cat))].sort();
+    $('cat').innerHTML = '<option value="all">Tất cả</option>' + cats.map(c => '<option>' + esc(c) + '</option>').join('');
+    $('cat').value = cat;
+  }
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---------- Âm thanh ----------
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 0.9;
+    window.speechSynthesis.speak(u);
+  }
+
+  // ---------- Three.js: thẻ lật 3D ----------
+  const stage = $('stage');
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true }); }
+  catch (e) { stage.textContent = 'Trình duyệt không hỗ trợ WebGL.'; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x070a12, 1);
+  stage.insertBefore(renderer.domElement, stage.firstChild);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 0, 4.2);
+  scene.add(new THREE.HemisphereLight(0xfff1d6, 0x1a1410, 0.8));
+  const warm = new THREE.PointLight(0xf5b942, 0.9, 30);
+  warm.position.set(-3, 2, 4);
+  scene.add(warm);
+
+  // Nền sao và vòng sáng
+  const starGeo = new THREE.BufferGeometry();
+  const starN = 240, sp = new Float32Array(starN * 3);
+  for (let i = 0; i < starN; i++) {
+    sp[i * 3] = (Math.random() - 0.5) * 16;
+    sp[i * 3 + 1] = (Math.random() - 0.5) * 9;
+    sp[i * 3 + 2] = -3 - Math.random() * 6;
+  }
+  starGeo.addAttribute('position', new THREE.BufferAttribute(sp, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.05, color: 0x94a3b8 })));
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.012, 8, 120),
+    new THREE.MeshBasicMaterial({ color: 0xf5b942, transparent: true, opacity: 0.35 }));
+  ring.position.z = -0.6;
+  scene.add(ring);
+
+  // Thẻ: hai mặt, nhóm xoay quanh trục Y
+  const CARD_W = 2.4, CARD_H = 1.5;
+  const cardGroup = new THREE.Group();
+  scene.add(cardGroup);
+  const frontMat = new THREE.MeshBasicMaterial({ transparent: true });
+  const backMat = new THREE.MeshBasicMaterial({ transparent: true });
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(CARD_W, CARD_H), frontMat);
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(CARD_W, CARD_H), backMat);
+  back.rotation.y = Math.PI;
+  back.position.z = -0.01;
+  cardGroup.add(front, back);
+  let flipCur = 0, flipTo = 0, popT = 1;
+
+  function cardCanvas(side, w) {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 320;
+    const g = c.getContext('2d');
+    const grd = g.createLinearGradient(0, 0, 0, 320);
+    if (side === 'front') { grd.addColorStop(0, '#1f2842'); grd.addColorStop(1, '#0d111c'); }
+    else { grd.addColorStop(0, '#2d2412'); grd.addColorStop(1, '#120e07'); }
+    g.fillStyle = grd; g.fillRect(0, 0, 512, 320);
+    g.strokeStyle = '#f5b942'; g.lineWidth = 6; g.strokeRect(10, 10, 492, 300);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (!w) return c;
+
+    if (side === 'front') {
+      g.fillStyle = '#9aa3b8'; g.font = '600 20px Segoe UI, Arial'; g.textAlign = 'left';
+      g.fillText((w.cat || '') + (w.level ? ' · ' + w.level : ''), 30, 44);
+      g.textAlign = 'center';
+      g.fillStyle = '#f5ecd4'; g.font = 'bold 62px Georgia, serif';
+      g.fillText(w.en, 256, 150);
+      g.fillStyle = '#ffe08a'; g.font = '26px Segoe UI, Arial';
+      g.fillText(w.ipa || '', 256, 220);
+      g.fillStyle = '#6b7286'; g.font = '18px Segoe UI, Arial';
+      g.fillText('Bấm để lật', 256, 280);
+    } else {
+      g.fillStyle = '#9aa3b8'; g.font = '600 20px Segoe UI, Arial'; g.textAlign = 'left';
+      g.fillText(w.pos || '', 30, 44);
+      g.textAlign = 'center';
+      g.fillStyle = '#ffe08a'; g.font = 'bold 50px Segoe UI, Arial';
+      g.fillText(w.vi, 256, 110);
+      g.fillStyle = '#f5ecd4'; g.font = '24px Georgia, serif';
+      wrapText(g, w.example || '', 256, 176, 440, 30);
+      g.fillStyle = '#9aa3b8'; g.font = 'italic 20px Segoe UI, Arial';
+      wrapText(g, w.example_vi || '', 256, 252, 440, 26);
+    }
+    return c;
+  }
+
+  function wrapText(g, text, x, y, maxW, lh) {
+    const words = text.split(' ');
+    let line = '', lines = [];
+    words.forEach(wd => {
+      const test = line ? line + ' ' + wd : wd;
+      if (g.measureText(test).width > maxW && line) { lines.push(line); line = wd; }
+      else line = test;
+    });
+    if (line) lines.push(line);
+    lines.slice(0, 2).forEach((l, i) => g.fillText(l, x, y + i * lh));
+  }
+
+  function setCard(w) {
+    const oldF = frontMat.map, oldB = backMat.map;
+    frontMat.map = new THREE.CanvasTexture(cardCanvas('front', w));
+    backMat.map = new THREE.CanvasTexture(cardCanvas('back', w));
+    frontMat.needsUpdate = true; backMat.needsUpdate = true;
+    if (oldF) oldF.dispose();
+    if (oldB) oldB.dispose();
+    flipCur = 0; flipTo = 0; popT = 0;
+  }
+
+  function resize() {
+    const w = stage.clientWidth || 600, h = stage.clientHeight || 340;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.domElement.style.width = w + 'px';
+    renderer.domElement.style.height = h + 'px';
+  }
+  window.addEventListener('resize', resize);
+
+  const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+  renderer.domElement.addEventListener('click', e => {
+    if (mode !== 'flash') return;
+    const r = renderer.domElement.getBoundingClientRect();
+    mouse.x = (e.clientX - r.left) / r.width * 2 - 1;
+    mouse.y = -(e.clientY - r.top) / r.height * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    if (raycaster.intersectObjects([front, back]).length) flip();
+  });
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    flipCur += (flipTo - flipCur) * Math.min(1, dt * 8);
+    cardGroup.rotation.y = flipCur;
+    cardGroup.position.y = Math.sin(now * 0.0015) * 0.04;
+    popT = Math.min(1, popT + dt * 3);
+    const s = 0.85 + 0.15 * (1 - Math.pow(1 - popT, 3));
+    cardGroup.scale.set(s, s, s);
+    ring.rotation.z += dt * 0.1;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+
+  function flip() { flipTo = flipTo > 0.5 ? 0 : Math.PI; }
+
+  // ---------- Chế độ: thẻ học ----------
+  function renderFlash() {
+    const w = current();
+    if (!w) {
+      $('panel').innerHTML = '<div class="big">Hết thẻ trong phiên này 🎉</div>' +
+        '<div class="muted" style="margin-top:6px">Đúng ' + sess.right + ' · Sai ' + sess.wrong + '</div>' +
+        '<div class="row" style="margin-top:12px"><button type="button" id="again">Phiên mới</button></div>';
+      $('again').addEventListener('click', () => { buildDeck(); renderFlash(); });
+      endSession();
+      setCard(null);
+      return;
+    }
+    setCard(w);
+    const pct = Math.round(idx / deck.length * 100);
+    $('panel').innerHTML =
+      '<h2>Thẻ ' + (idx + 1) + ' / ' + deck.length + '</h2>' +
+      '<div class="row">' +
+        '<button type="button" class="bad" id="bNo">✗ Chưa nhớ (2)</button>' +
+        '<button type="button" class="ghost" id="bFlip">⟲ Lật (Space)</button>' +
+        '<button type="button" class="ok" id="bYes">✓ Nhớ rồi (1)</button>' +
+        '<button type="button" class="ghost" id="bSpeak">🔊 Nghe</button>' +
+      '</div>' +
+      '<div class="progress"><div style="width:' + pct + '%"></div></div>' +
+      '<div class="muted" style="margin-top:8px">Mẹo: lật thẻ để xem nghĩa và câu ví dụ trước khi chọn.</div>';
+    $('bNo').addEventListener('click', () => answerFlash(false));
+    $('bYes').addEventListener('click', () => answerFlash(true));
+    $('bFlip').addEventListener('click', flip);
+    $('bSpeak').addEventListener('click', () => speak(w.en));
+    speak(w.en);
+  }
+
+  function answerFlash(ok) {
+    const w = current();
+    if (!w) return;
+    record(w.id, ok);
+    ok ? sess.right++ : sess.wrong++;
+    idx++;
+    renderFlash();
+  }
+
+  // ---------- Chế độ: trắc nghiệm ----------
+  function renderQuiz() {
+    const w = current();
+    if (!w) {
+      $('panel').innerHTML = '<div class="big">Hết câu hỏi 🎉</div><div class="muted" style="margin-top:6px">Đúng ' + sess.right + ' · Sai ' + sess.wrong + '</div>' +
+        '<div class="row" style="margin-top:12px"><button type="button" id="again">Phiên mới</button></div>';
+      $('again').addEventListener('click', () => { buildDeck(); renderQuiz(); });
+      endSession();
+      return;
+    }
+    const pool = vocab.filter(x => x.id !== w.id);
+    const distract = shuffle(pool.slice()).slice(0, 3).map(x => x.vi);
+    quizOpts = shuffle([w.vi, ...distract]);
+    answered = false;
+    $('panel').innerHTML =
+      '<h2>Câu ' + (idx + 1) + ' / ' + deck.length + '</h2>' +
+      '<div class="big">' + esc(w.en) + ' <button type="button" class="ghost" id="sp" style="font-size:.8rem;padding:4px 8px">🔊</button></div>' +
+      '<div class="muted">' + esc(w.ipa || '') + ' · Chọn nghĩa tiếng Việt đúng</div>' +
+      '<div class="opts" id="opts">' + quizOpts.map((o, i) => '<button type="button" data-v="' + esc(o) + '">' + (i + 1) + '. ' + esc(o) + '</button>').join('') + '</div>' +
+      '<div class="feedback" id="fb"></div>' +
+      '<div class="row" style="margin-top:8px"><button type="button" id="nxt" disabled>Tiếp →</button></div>';
+    $('sp').addEventListener('click', () => speak(w.en));
+    document.querySelectorAll('#opts button').forEach(b => b.addEventListener('click', () => answerQuiz(b, w)));
+    $('nxt').addEventListener('click', () => { idx++; renderQuiz(); });
+    speak(w.en);
+  }
+
+  function answerQuiz(btn, w) {
+    if (answered) return;
+    answered = true;
+    const ok = btn.dataset.v === w.vi;
+    record(w.id, ok);
+    ok ? sess.right++ : sess.wrong++;
+    document.querySelectorAll('#opts button').forEach(b => {
+      if (b.dataset.v === w.vi) b.classList.add('right');
+    });
+    if (!ok) btn.classList.add('wrong');
+    $('fb').className = 'feedback ' + (ok ? 'ok' : 'bad');
+    $('fb').textContent = ok ? 'Chính xác!' : 'Chưa đúng. Đáp án: ' + w.vi;
+    $('nxt').disabled = false;
+  }
+
+  // ---------- Chế độ: nghe & gõ ----------
+  function renderListen() {
+    const w = current();
+    if (!w) {
+      $('panel').innerHTML = '<div class="big">Hết câu nghe 🎉</div><div class="muted" style="margin-top:6px">Đúng ' + sess.right + ' · Sai ' + sess.wrong + '</div>' +
+        '<div class="row" style="margin-top:12px"><button type="button" id="again">Phiên mới</button></div>';
+      $('again').addEventListener('click', () => { buildDeck(); renderListen(); });
+      endSession();
+      return;
+    }
+    answered = false;
+    $('panel').innerHTML =
+      '<h2>Câu ' + (idx + 1) + ' / ' + deck.length + '</h2>' +
+      '<div class="muted">Nghe rồi gõ lại từ tiếng Anh bạn nghe được. Nghĩa: <b>' + esc(w.vi) + '</b></div>' +
+      '<div class="row" style="margin-top:10px"><button type="button" class="ghost" id="sp">🔊 Nghe lại</button></div>' +
+      '<div class="row" style="margin-top:10px"><input type="text" id="ans" autocomplete="off" placeholder="Gõ từ tiếng Anh..."></div>' +
+      '<div class="row" style="margin-top:10px"><button type="button" id="chk">Kiểm tra</button><button type="button" class="ghost" id="nxt" disabled>Tiếp →</button></div>' +
+      '<div class="feedback" id="fb"></div>';
+    $('sp').addEventListener('click', () => speak(w.en));
+    $('chk').addEventListener('click', () => checkListen(w));
+    $('ans').addEventListener('keydown', e => { if (e.key === 'Enter') { answered ? ($('nxt').click()) : checkListen(w); } });
+    $('nxt').addEventListener('click', () => { idx++; renderListen(); });
+    $('ans').focus();
+    speak(w.en);
+  }
+
+  function checkListen(w) {
+    if (answered) return;
+    answered = true;
+    const got = $('ans').value.trim().toLowerCase();
+    const ok = got === w.en.trim().toLowerCase();
+    record(w.id, ok);
+    ok ? sess.right++ : sess.wrong++;
+    $('fb').className = 'feedback ' + (ok ? 'ok' : 'bad');
+    $('fb').textContent = ok ? 'Đúng rồi!' : 'Chưa đúng. Đáp án: ' + w.en;
+    $('nxt').disabled = false;
+  }
+
+  // ---------- Phiên học ----------
+  function endSession() {
+    if (!deck.length || endSession.done) return;
+    endSession.done = true;
+    if ($('gAuto').checked && getCfg().token) pushRepo(true);
+  }
+
+  function renderMode() {
+    $('stage').style.display = mode === 'flash' ? 'block' : 'none';
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.mode === mode));
+    endSession.done = false;
+    buildDeck();
+    if (mode === 'flash') renderFlash();
+    else if (mode === 'quiz') renderQuiz();
+    else renderListen();
+    updateStats();
+  }
+
+  // ---------- Cấu hình & đồng bộ GitHub ----------
+  function getCfg() {
+    let c = {};
+    try { c = JSON.parse(localStorage.getItem(LS_CFG)) || {}; } catch (e) { c = {}; }
+    c.token = c.token || sessionStorage.getItem('eng_token') || '';
+    return c;
+  }
+  function saveCfg() {
+    const c = { owner: $('gOwner').value.trim(), repo: $('gRepo').value.trim(), branch: $('gBranch').value.trim() || 'main',
+      auto: $('gAuto').checked, remember: $('gRemember').checked };
+    localStorage.setItem(LS_CFG, JSON.stringify(c));
+    const tok = $('gToken').value.trim();
+    if (tok) {
+      if ($('gRemember').checked) { c.token = tok; localStorage.setItem(LS_CFG, JSON.stringify({ ...c, token: tok })); }
+      else sessionStorage.setItem('eng_token', tok);
+    }
+  }
+  function loadCfgToForm() {
+    const c = getCfg();
+    $('gOwner').value = c.owner || ''; $('gRepo').value = c.repo || ''; $('gBranch').value = c.branch || 'main';
+    $('gAuto').checked = !!c.auto; $('gRemember').checked = !!c.remember;
+    $('gToken').value = c.token || '';
+  }
+
+  function msg(text, ok) {
+    const m = $('syncMsg');
+    m.className = 'msg ' + (ok ? 'ok' : 'bad');
+    m.textContent = text;
+  }
+
+  const b64 = s => btoa(unescape(encodeURIComponent(s)));
+
+  async function pushRepo(silent) {
+    saveCfg();
+    const c = getCfg();
+    const tok = c.token || $('gToken').value.trim();
+    if (!c.owner || !c.repo || !tok) { if (!silent) msg('Hãy nhập đủ chủ repo, tên repo và token.', false); return; }
+    const api = 'https://api.github.com/repos/' + c.owner + '/' + c.repo + '/contents/data/progress.json';
+    const headers = { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' };
+    try {
+      let sha = null;
+      const g = await fetch(api + '?ref=' + encodeURIComponent(c.branch || 'main'), { headers });
+      if (g.ok) sha = (await g.json()).sha;
+      else if (g.status !== 404) throw new Error('đọc file: HTTP ' + g.status);
+
+      const body = { message: 'Cập nhật tiến độ học ' + new Date().toISOString(),
+        content: b64(JSON.stringify(progress, null, 2)), branch: c.branch || 'main' };
+      if (sha) body.sha = sha;
+      const p = await fetch(api, { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!p.ok) throw new Error('ghi file: HTTP ' + p.status + ' (kiểm tra quyền token và tên repo)');
+      if (!silent) msg('Đã lưu vào data/progress.json trên repo. Trang Pages cập nhật sau vài phút.', true);
+    } catch (e) {
+      if (!silent) msg('Lưu thất bại: ' + e.message, false);
+    }
+  }
+
+  async function pullRepo() {
+    saveCfg();
+    const c = getCfg();
+    const tok = c.token || $('gToken').value.trim();
+    try {
+      let data;
+      if (c.owner && c.repo && tok) {
+        const api = 'https://api.github.com/repos/' + c.owner + '/' + c.repo + '/contents/data/progress.json?ref=' + encodeURIComponent(c.branch || 'main');
+        const r = await fetch(api, { headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github.raw' } });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        data = await r.json();
+      } else {
+        const r = await fetch('data/progress.json', { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        data = await r.json();
+      }
+      progress = data;
+      if (!progress.words) progress.words = {};
+      localStorage.setItem(LS_PROG, JSON.stringify(progress));
+      updateStats();
+      renderMode();
+      msg('Đã tải tiến độ từ repo.', true);
+    } catch (e) {
+      msg('Tải thất bại: ' + e.message, false);
+    }
+  }
+
+  function exportJson() {
+    const blob = new Blob([JSON.stringify(progress, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'progress.json';
+    a.click();
+  }
+
+  // ---------- Khởi tạo ----------
+  async function init() {
+    resize();
+    requestAnimationFrame(t => { last = t; loop(t); });
+    try {
+      await loadVocab();
+      await initProgress();
+    } catch (e) {
+      $('panel').innerHTML = '<div class="msg bad">' + esc(e.message) + '</div>';
+      return;
+    }
+    populateCats();
+    loadCfgToForm();
+    updateStats();
+    renderMode();
+  }
+
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { mode = t.dataset.mode; renderMode(); }));
+  $('cat').addEventListener('change', () => { cat = $('cat').value; renderMode(); });
+  $('btnPush').addEventListener('click', () => pushRepo(false));
+  $('btnPull').addEventListener('click', pullRepo);
+  $('btnExport').addEventListener('click', exportJson);
+  $('fileImp').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const j = JSON.parse(rd.result);
+        if (!j.words) throw new Error('thiếu khóa "words"');
+        progress = j;
+        saveLocal();
+        updateStats();
+        renderMode();
+        msg('Đã nhập tiến độ từ file.', true);
+      } catch (err) { msg('File không hợp lệ: ' + err.message, false); }
+    };
+    rd.readAsText(f);
+  });
+  $('gAuto').addEventListener('change', saveCfg);
+  $('gRemember').addEventListener('change', saveCfg);
+
+  window.addEventListener('keydown', e => {
+    const t = e.target.tagName;
+    if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+    if (mode === 'flash') {
+      if (e.code === 'Space') { e.preventDefault(); flip(); }
+      else if (e.key === '1') answerFlash(true);
+      else if (e.key === '2') answerFlash(false);
+    } else if (mode === 'quiz' && answered && e.key === 'Enter') {
+      $('nxt').click();
+    } else if (mode === 'quiz' && !answered && /^[1-4]$/.test(e.key)) {
+      const b = document.querySelectorAll('#opts button')[Number(e.key) - 1];
+      if (b) b.click();
+    }
+  });
+
+  
+  init();
+})();
+</script>
+</body>
+</html>

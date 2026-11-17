@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10 bài tập toàn thân của Eugen Sandow · 3D</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg:#0b0d12; --panel:#141821; --panel2:#1b2130; --line:#2a3142; --text:#ecebe6; --muted:#9aa1b2; --gold:#d8b26a; --gold2:#f0cf8a; --red:#b5483a; }
+  body { font-family:'Georgia','Segoe UI',serif; background:radial-gradient(1000px 600px at 50% -10%, #2a2216 0%, transparent 60%), var(--bg);
+    color:var(--text); min-height:100vh; padding:20px 14px 40px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  header { text-align:center; margin-bottom:14px; }
+  h1 { font-size:1.9rem; letter-spacing:.5px; font-weight:700; }
+  h1 span { color:var(--gold); }
+  header p { color:var(--muted); font-size:.92rem; margin-top:4px; font-family:'Segoe UI',system-ui,sans-serif; }
+
+  .layout { display:grid; grid-template-columns:1fr 380px; gap:14px; align-items:start; }
+  @media (max-width:960px) { .layout { grid-template-columns:1fr; } }
+
+  .stage-box { position:relative; }
+  #stage { width:100%; height:500px; border-radius:18px; overflow:hidden; position:relative; border:1px solid var(--line);
+    background:#0b0d12; cursor:grab; touch-action:none; box-shadow:0 24px 60px -12px rgba(0,0,0,.7); }
+  #stage:active { cursor:grabbing; }
+  #stage canvas { display:block; width:100%; height:100%; }
+  .hud { position:absolute; left:16px; top:14px; pointer-events:none; font-family:'Segoe UI',system-ui,sans-serif; }
+  .hud .ex { font-size:1.35rem; font-weight:700; color:var(--gold2); text-shadow:0 0 12px rgba(216,178,106,.3); }
+  .hud .rep { font-size:1.05rem; margin-top:4px; }
+  .hud .ph { font-size:.9rem; color:var(--muted); margin-top:2px; }
+  .hud .done { color:#9be08f; font-weight:700; margin-top:6px; }
+  .hint { position:absolute; right:14px; bottom:10px; font-size:.72rem; color:#6b7286; pointer-events:none; font-family:'Segoe UI',system-ui,sans-serif; }
+
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:14px; }
+  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-family:'Segoe UI',system-ui,sans-serif; }
+  .lab { font-size:.85rem; color:var(--muted); display:flex; align-items:center; gap:8px; }
+  .val { color:var(--gold); font-weight:700; min-width:3em; font-variant-numeric:tabular-nums; }
+  input[type=range] { accent-color:var(--gold); width:140px; }
+  button { font:inherit; font-family:'Segoe UI',system-ui,sans-serif; color:#111; background:linear-gradient(135deg,var(--gold2),var(--gold)); border:none;
+    border-radius:9px; padding:9px 14px; font-weight:700; cursor:pointer; }
+  button:hover { filter:brightness(1.08); }
+  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  button.play { min-width:110px; }
+  .grow { flex:1; }
+
+  .list { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:12px; font-family:'Segoe UI',system-ui,sans-serif; }
+  .list button { text-align:left; background:var(--panel2); color:var(--text); border:1px solid var(--line); font-weight:600; font-size:.86rem; padding:8px 10px; }
+  .list button.active { background:var(--gold); color:#111; border-color:var(--gold); }
+
+  .side { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; height:500px; overflow-y:auto; font-family:'Segoe UI',system-ui,sans-serif; }
+  .side h2 { font-size:1.2rem; color:var(--gold2); font-family:Georgia,serif; }
+  .side .en { color:var(--muted); font-size:.85rem; font-style:italic; margin-top:2px; }
+  .side .meta { display:flex; gap:14px; flex-wrap:wrap; margin:10px 0; font-size:.86rem; color:var(--muted); }
+  .side .meta b { color:var(--text); }
+  .side h3 { font-size:.72rem; color:var(--gold); text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px; }
+  .side ol, .side ul { padding-left:18px; font-size:.9rem; line-height:1.65; }
+  .side li { margin-bottom:4px; }
+
+  .sources { margin-top:14px; font-size:.8rem; color:var(--muted); line-height:1.7; font-family:'Segoe UI',system-ui,sans-serif; }
+  .sources a { color:var(--gold2); }
+  .disc { margin-top:10px; font-size:.78rem; color:#7d8496; line-height:1.6; font-family:'Segoe UI',system-ui,sans-serif; }
+</style>
+<script src="three.min.js"></script>
+<script>
+  if (typeof THREE === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"><\/script>');
+  }
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>10 bài tập toàn thân của <span>Eugen Sandow</span></h1>
+    <p>Mô phỏng 3D · tạ tay nhẹ · đầu gối luôn hơi khuỵu · làm đủ 10 bài theo thứ tự</p>
+  </header>
+
+  <div class="layout">
+    <div>
+      <div class="stage-box">
+        <div id="stage">
+          <div class="hud">
+            <div class="ex" id="hudEx"></div>
+            <div class="rep" id="hudRep"></div>
+            <div class="ph" id="hudPh"></div>
+            <div class="done" id="hudDone"></div>
+          </div>
+        </div>
+        <div class="hint">Kéo để xoay · Space: phát/dừng · ←/→: bài trước/sau</div>
+      </div>
+
+      <section class="panel">
+        <div class="controls">
+          <button type="button" class="ghost" id="btnPrev">◀ Trước</button>
+          <button type="button" class="play" id="btnPlay">▶ Phát</button>
+          <button type="button" class="ghost" id="btnNext">Sau ▶</button>
+          <button type="button" class="ghost" id="btnReset">Về đầu</button>
+          <label class="lab">Tốc độ <input type="range" id="speed" min="0.4" max="2" step="0.1" value="1"> <span class="val" id="speedVal">1.0x</span></label>
+          <label class="lab"><input type="checkbox" id="auto"> Tự chạy đủ 10 bài</label>
+        </div>
+        <div class="list" id="list"></div>
+      </section>
+
+      <div class="sources">
+        <b>Nguồn tham khảo:</b><br>
+        • Eugen Sandow, <i>Strength and How to Obtain It</i> (1897), Project Gutenberg: <a href="https://www.gutenberg.org/ebooks/65987" target="_blank" rel="noopener">gutenberg.org/ebooks/65987</a><br>
+        • Chương trình tạ tay nhẹ “3 tháng” (số lần từng bài): <a href="https://intentionalgains.substack.com/p/eugene-sandows-light-dumbbell-training" target="_blank" rel="noopener">intentionalgains.substack.com</a><br>
+        • Cách thực hiện một số bài và nhận xét về tạ nhẹ: <a href="https://fitnessvolt.com/eugen-sandow-workout/" target="_blank" rel="noopener">fitnessvolt.com</a>; <a href="https://wolfandiron.com/blogs/feedthewolf/eugen-sandow-part-4-sandow-s-exercise-routine" target="_blank" rel="noopener">wolfandiron.com</a>
+      </div>
+      <div class="disc">
+        Các nguồn ghi số lần khác nhau (ví dụ 50 lần mỗi tay cho bài cuốn tay, hoặc tổng 100 lần cho đệm đẩy). Số lần ở đây là một phương án tham khảo; hãy bắt đầu với mức nhẹ và tăng dần. Nếu có chấn thương hoặc bệnh lý, hãy hỏi bác sĩ hoặc chuyên gia trước khi tập.
+        Phần hướng dẫn tiếng Việt do tôi diễn đạt lại theo mô tả của các nguồn trên.
+      </div>
+    </div>
+
+    <aside class="side" id="detail"></aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const PI = Math.PI;
+
+  // ---------- Dữ liệu tư thế ----------
+  // Cánh tay: [dang ngang (abd), gập về trước (fwd), gập khuỷu (flex), xoay ngang (hz)]
+  const arm = (abd = 0, fwd = 0, flex = 0.12, hz = 0) => [abd, fwd, flex, hz];
+  const DEF = { aL: arm(), aR: arm(), t: [0, 0], k: 0.12, h: 0, w: 0 };
+  const P = o => Object.assign({}, DEF, o);
+  const AF = arm(0, 1.2, 0.12);   // hai tay đưa về phía trước (giữ thăng bằng)
+
+  const EX = [
+    { vn: 'Cuốn tay xen kẽ', en: 'Alternating biceps curl', reps: '50 lần mỗi tay', target: 50,
+      muscles: 'Cơ nhị đầu cánh tay',
+      ph: ['Gập tay trái', 'Hạ tay trái', 'Gập tay phải', 'Hạ tay phải'],
+      keys: [P({ aL: arm(0, 0, 2.4) }), P({}), P({ aR: arm(0, 0, 2.4) }), P({})],
+      steps: [
+        'Đứng hai chân rộng vừa phải, hơi khuỵu gối. Cầm mỗi tay một quả tạ nhẹ, lòng bàn tay hướng lên.',
+        'Gập một tay, kéo tạ lên gần vai và giữ khuỷu sát bên sườn.',
+        'Hạ chậm xuống hết cỡ, duỗi thẳng tay ở đáy động tác.',
+        'Đổi tay và lặp lại. Hai tay làm xen kẽ.'
+      ],
+      tips: ['Không đung đưa thân người để bốc tạ lên.', 'Phần hạ chậm và duỗi hết tay rất quan trọng với Sandow.'] },
+
+    { vn: 'Cuốn ngược xen kẽ', en: 'Alternating reverse curl', reps: '25 lần mỗi tay', target: 25,
+      muscles: 'Cơ cẳng tay và cơ cánh tay quay',
+      ph: ['Gập tay trái (úp)', 'Hạ tay trái', 'Gập tay phải (úp)', 'Hạ tay phải'],
+      keys: [P({ aL: arm(0, 0, 2.0) }), P({}), P({ aR: arm(0, 0, 2.0) }), P({})],
+      steps: [
+        'Đứng như bài trước, nhưng cầm tạ với lòng bàn tay úp xuống.',
+        'Gập tay lên, giữ cổ tay thẳng hàng với cẳng tay.',
+        'Hạ chậm về vị trí ban đầu.',
+        'Đổi tay và lặp lại.'
+      ],
+      tips: ['Giữ cổ tay không bị gập ra sau.', 'Nhẹ tay hơn bài cuốn thường vì tư thế úp khó hơn.'] },
+
+    { vn: 'Cuốn chữ thập xen kẽ', en: 'Alternating crucifix curl', reps: '10 lần mỗi tay', target: 10,
+      muscles: 'Cơ nhị đầu, cơ vai trước',
+      ph: ['Gập tay trái lên', 'Về dang ngang', 'Gập tay phải lên', 'Về dang ngang'],
+      keys: [P({ aL: arm(1.5, 0, 2.3), aR: arm(1.5, 0, 0.12) }), P({ aL: arm(1.5, 0, 0.12), aR: arm(1.5, 0, 0.12) }),
+             P({ aL: arm(1.5, 0, 0.12), aR: arm(1.5, 0, 2.3) }), P({ aL: arm(1.5, 0, 0.12), aR: arm(1.5, 0, 0.12) })],
+      steps: [
+        'Đứng thẳng, dang hai tay ngang vai, mỗi tay cầm một quả tạ.',
+        'Giữ khuỷu gần như cố định, gập một tay đưa tạ lên phía vai.',
+        'Hạ về vị trí dang ngang, rồi đổi tay.'
+      ],
+      tips: ['Giữ vai thả lỏng, không nhún vai.', 'Tay dang ngang phải thẳng ở đáy động tác.'] },
+
+    { vn: 'Cuốn chữ thập đồng thời', en: 'Simultaneous crucifix curl', reps: '10 lần', target: 10,
+      muscles: 'Cơ nhị đầu, cơ vai trước',
+      ph: ['Gập hai tay lên', 'Về dang ngang'],
+      keys: [P({ aL: arm(1.5, 0, 2.3), aR: arm(1.5, 0, 2.3) }), P({ aL: arm(1.5, 0, 0.12), aR: arm(1.5, 0, 0.12) })],
+      steps: [
+        'Dang ngang hai tay, cầm tạ như bài trước.',
+        'Gập đồng thời cả hai tay đưa tạ lên vai.',
+        'Hạ hai tay về dang ngang, lặp lại.'
+      ],
+      tips: ['Hai tay chuyển động cùng lúc và cùng tốc độ.', 'Giữ lưng thẳng và chân khuỵu nhẹ.'] },
+
+    { vn: 'Ôm ngực đứng', en: 'Standing dumbbell pec fly', reps: '5 lần', target: 5,
+      muscles: 'Cơ ngực',
+      ph: ['Khép tay về trước ngực', 'Mở tay ra hai bên'],
+      keys: [P({ aL: arm(1.5, 0, 0.3, 0), aR: arm(1.5, 0, 0.3, 0) }), P({ aL: arm(1.5, 0, 0.3, 1.4), aR: arm(1.5, 0, 0.3, 1.4) })],
+      steps: [
+        'Đứng chân rộng vừa, dang hai tay ngang vai, khuỷu hơi cong.',
+        'Đưa hai tay về phía trước ngực như đang vỗ tay.',
+        'Mở chậm trở lại vị trí dang ngang.'
+      ],
+      tips: ['Giữ khuỷu cố định, chỉ xoay ở vai.', 'Dùng tạ thật nhẹ để không căng cổ tay.'] },
+
+    { vn: 'Đẩy tạ xen kẽ', en: 'Alternating dumbbell press', reps: '15 lần mỗi tay', target: 15,
+      muscles: 'Cơ vai, cơ tam đầu',
+      ph: ['Đẩy tay trái lên', 'Hạ về vai', 'Đẩy tay phải lên', 'Hạ về vai'],
+      keys: [P({ aL: arm(0.12, PI, 0.05), aR: arm(0.6, 0, 2.2) }), P({ aL: arm(0.6, 0, 2.2), aR: arm(0.6, 0, 2.2) }),
+             P({ aL: arm(0.6, 0, 2.2), aR: arm(0.12, PI, 0.05) }), P({ aL: arm(0.6, 0, 2.2), aR: arm(0.6, 0, 2.2) })],
+      steps: [
+        'Đứng chân rộng vừa, đặt tạ ngang vai, lòng bàn tay hướng về phía trước.',
+        'Đẩy một tay thẳng lên trên đầu.',
+        'Hạ tay về vai, rồi đẩy tay còn lại.'
+      ],
+      tips: ['Lưng thẳng, không ưỡn người.', 'Tránh dùng đà bằng cách nghiêng thân.'] },
+
+    { vn: 'Nâng tạ trước xen kẽ', en: 'Alternating dumbbell front raise', reps: '10 lần mỗi tay', target: 10,
+      muscles: 'Cơ vai trước',
+      ph: ['Nâng tay trái', 'Hạ tay trái', 'Nâng tay phải', 'Hạ tay phải'],
+      keys: [P({ aL: arm(0, 1.5, 0.15) }), P({}), P({ aR: arm(0, 1.5, 0.15) }), P({})],
+      steps: [
+        'Đứng thẳng, hai tay buông xuôi, mỗi tay cầm một quả tạ.',
+        'Nâng một tay thẳng về phía trước đến ngang vai.',
+        'Hạ chậm xuống và đổi tay.'
+      ],
+      tips: ['Không nâng quá cao, dừng ở ngang vai.', 'Khuỷu gần như thẳng.'] },
+
+    { vn: 'Xoay cổ tay', en: 'Dumbbell wrist circles', reps: 'Càng nhiều càng tốt (mục tiêu 20 vòng)', target: 20,
+      muscles: 'Cơ cẳng tay, cổ tay', spin: true,
+      ph: ['Xoay 1/4 vòng', 'Xoay 1/2 vòng', 'Xoay 3/4 vòng', 'Hết một vòng'],
+      keys: [P({ aL: arm(0, 1.5, 0.12), aR: arm(0, 1.5, 0.12), w: 0 }),
+             P({ aL: arm(0, 1.5, 0.12), aR: arm(0, 1.5, 0.12), w: PI / 2 }),
+             P({ aL: arm(0, 1.5, 0.12), aR: arm(0, 1.5, 0.12), w: PI }),
+             P({ aL: arm(0, 1.5, 0.12), aR: arm(0, 1.5, 0.12), w: 3 * PI / 2 })],
+      steps: [
+        'Cầm tạ bằng hai tay, dang thẳng hai tay về phía trước.',
+        'Xoay cổ tay theo vòng tròn, mỗi vòng một lần.',
+        'Làm càng nhiều vòng càng tốt, rồi đổi chiều xoay.'
+      ],
+      tips: ['Giữ khuỷu duỗi thẳng, chỉ xoay ở cổ tay.', 'Nếu có cảm giác đau ở cổ tay, hãy giảm mức tạ.'] },
+
+    { vn: 'Nghiêng người xen kẽ', en: 'Alternating dumbbell side bends', reps: '15 lần mỗi bên', target: 15,
+      muscles: 'Cơ bụng xiên, cơ lưng bên',
+      ph: ['Nghiêng phải, tay phải giơ cao', 'Trở về giữa', 'Nghiêng trái, tay trái giơ cao', 'Trở về giữa'],
+      keys: [P({ t: [0, 0.38], aR: arm(2.2, 0, 0.12) }), P({}), P({ t: [0, -0.38], aL: arm(2.2, 0, 0.12) }), P({})],
+      steps: [
+        'Đứng chân rộng vừa, cầm một tạ ở tay phải. Đưa tay phải lên cao bên người.',
+        'Nghiêng thân sang phải, giữ thân trên thẳng trong mặt phẳng trước.',
+        'Trở về giữa rồi nghiêng sang trái với tay trái.'
+      ],
+      tips: ['Không xoay vai hay gập người về trước.', 'Chỉ nghiêng sang bên, tránh đung đưa.'] },
+
+    { vn: 'Ngồi xổm sâu và nhón gót', en: 'Deep knee bend and calf raise', reps: '10 lần', target: 10,
+      muscles: 'Cơ đùi, mông, bắp chân',
+      ph: ['Ngồi xuống', 'Đứng lên', 'Nhón gót', 'Hạ gót'],
+      keys: [P({ k: 1.0, t: [0.2, 0], aL: AF, aR: AF }), P({ k: 0.12, aL: AF, aR: AF }),
+             P({ h: 1, aL: AF, aR: AF }), P({ aL: AF, aR: AF })],
+      steps: [
+        'Đứng chân rộng bằng vai, hai tay đưa thẳng về phía trước để giữ thăng bằng.',
+        'Ngồi xuống sâu, giữ gót chân áp sàn và lưng thẳng.',
+        'Đứng lên, rồi nhón gót lên cao.',
+        'Hạ gót xuống và lặp lại.'
+      ],
+      tips: ['Đầu gối đi theo hướng ngón chân.', 'Nếu khó giữ gót xuống sàn, hãy hạ người nông hơn.'] },
+  ];
+
+  // ---------- Hàm nội suy ----------
+  const lerpArr = (a, b, e) => a.map((v, i) => v + (b[i] - v) * e);
+  function lerpP(a, b, e, wrap) {
+    return {
+      aL: lerpArr(a.aL, b.aL, e), aR: lerpArr(a.aR, b.aR, e), t: lerpArr(a.t, b.t, e),
+      k: a.k + (b.k - a.k) * e, h: a.h + (b.h - a.h) * e, w: a.w + (b.w + wrap - a.w) * e
+    };
+  }
+  const KEY_SEC = 0.6;
+  let exI = 0, t = 0, playing = false, speed = 1, autoRun = false;
+
+  function poseAt(ex, time) {
+    const kd = KEY_SEC / speed, n = ex.keys.length, per = n * kd;
+    const ph = (time % per) / kd, i = Math.floor(ph), f = ph - i;
+    const a = ex.keys[i], b = ex.keys[(i + 1) % n];
+    const wrap = (i + 1 >= n && ex.spin) ? 2 * PI : 0;
+    const e = f * f * (3 - 2 * f);
+    return { pose: lerpP(a, b, e, wrap), phase: ex.ph[i], reps: Math.floor(time / per) };
+  }
+
+  // ---------- Three.js: hình người ----------
+  const stage = $('stage');
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true }); }
+  catch (e) { stage.textContent = 'Trình duyệt không hỗ trợ WebGL.'; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x0b0d12, 1);
+  renderer.shadowMap.enabled = true;
+  stage.insertBefore(renderer.domElement, stage.firstChild);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0b0d12, 0.04);
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+  camera.position.set(0, 2.2, 9.5);
+  camera.lookAt(0, 1.3, 0);
+
+  const rig = new THREE.Group();
+  scene.add(rig);
+
+  scene.add(new THREE.HemisphereLight(0xfff1d6, 0x1a1410, 0.6));
+  const key = new THREE.DirectionalLight(0xffe6b8, 0.9);
+  key.position.set(-4, 8, 6);
+  key.castShadow = true;
+  key.shadow.mapSize.width = 1024; key.shadow.mapSize.height = 1024;
+  key.shadow.camera.left = -4; key.shadow.camera.right = 4;
+  key.shadow.camera.top = 4; key.shadow.camera.bottom = -4;
+  key.shadow.camera.near = 1; key.shadow.camera.far = 25;
+  scene.add(key);
+  const rim = new THREE.PointLight(0xd8b26a, 0.6, 30);
+  rim.position.set(4, 3, -4);
+  scene.add(rim);
+
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(7, 64),
+    new THREE.MeshStandardMaterial({ color: 0x1a1d26, roughness: 0.9 }));
+  floor.rotation.x = -PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.015, 8, 96),
+    new THREE.MeshBasicMaterial({ color: 0xd8b26a, transparent: true, opacity: 0.45 }));
+  ring.rotation.x = -PI / 2; ring.position.y = 0.01;
+  scene.add(ring);
+
+  const skin = new THREE.MeshStandardMaterial({ color: 0xd9a77c, roughness: 0.6 });
+  const shirt = new THREE.MeshStandardMaterial({ color: 0xe8e1cf, roughness: 0.8 });
+  const shorts = new THREE.MeshStandardMaterial({ color: 0x2a3550, roughness: 0.8 });
+  const metal = new THREE.MeshStandardMaterial({ color: 0xa5adbd, metalness: 0.9, roughness: 0.3 });
+  const iron = new THREE.MeshStandardMaterial({ color: 0x2b2f3a, metalness: 0.7, roughness: 0.4 });
+
+  function cyl(r1, r2, h, mat) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, 20), mat); m.castShadow = true; return m; }
+  function ball(r, mat) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), mat); m.castShadow = true; return m; }
+  function box(w, h, d, mat) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.castShadow = true; return m; }
+  function at(m, x, y, z) { m.position.set(x, y, z); return m; }
+  function makeDumbbell() {
+    const g = new THREE.Group();
+    const bar = cyl(0.035, 0.035, 0.8, metal); bar.rotation.z = PI / 2; g.add(bar);
+    [-0.42, 0.42].forEach(x => { const p = cyl(0.17, 0.17, 0.12, iron); p.rotation.z = PI / 2; p.position.x = x; g.add(p); });
+    return g;
+  }
+
+  const pelvis = new THREE.Group();
+  rig.add(pelvis);
+  pelvis.add(at(cyl(0.45, 0.4, 0.4, shorts), 0, 0.05, 0));
+
+  const torso = new THREE.Group();
+  pelvis.add(torso);
+  torso.add(at(cyl(0.5, 0.42, 1.5, shirt), 0, 0.85, 0));
+  torso.add(at(cyl(0.14, 0.14, 0.3, skin), 0, 1.7, 0));
+  torso.add(at(ball(0.36, skin), 0, 2.0, 0));
+
+  const arms = [];
+  [-1, 1].forEach((s, idx) => {
+    const sY = new THREE.Group(); sY.position.set(s * 0.6, 1.4, 0); torso.add(sY);
+    const sZ = new THREE.Group(); sY.add(sZ);
+    const sX = new THREE.Group(); sZ.add(sX);
+    sX.add(at(cyl(0.17, 0.15, 1.1, shirt), 0, -0.55, 0));
+    const el = new THREE.Group(); el.position.set(0, -1.1, 0); sX.add(el);
+    el.add(at(cyl(0.14, 0.12, 1.0, skin), 0, -0.5, 0));
+    const hand = new THREE.Group(); hand.position.set(0, -1.0, 0); el.add(hand);
+    hand.add(ball(0.13, skin));
+    hand.add(makeDumbbell());
+    arms[idx] = { s, sY, sZ, sX, el, hand };
+  });
+
+  const legs = [];
+  [-1, 1].forEach((s, idx) => {
+    const th = new THREE.Group(); th.position.set(s * 0.3, -0.15, 0); pelvis.add(th);
+    th.add(at(cyl(0.22, 0.18, 1.2, shorts), 0, -0.6, 0));
+    const sh = new THREE.Group(); sh.position.set(0, -1.2, 0); th.add(sh);
+    sh.add(at(cyl(0.16, 0.13, 1.2, skin), 0, -0.6, 0));
+    sh.add(at(box(0.34, 0.16, 0.6, iron), 0, -1.25, 0.15));
+    legs[idx] = { th, sh };
+  });
+
+  // Áp tư thế lên hình người
+  function applyPose(p) {
+    pelvis.position.y = 0.15 + 1.2 * (Math.cos(1.1 * p.k) + Math.cos(0.6 * p.k)) + 0.35 * p.h;
+    legs.forEach(l => { l.th.rotation.x = -1.1 * p.k; l.sh.rotation.x = 0.5 * p.k; });
+    torso.rotation.x = p.t[0];
+    torso.rotation.z = -p.t[1];
+    arms.forEach(a => {
+      const q = a.s < 0 ? p.aL : p.aR;
+      a.sY.rotation.y = -a.s * q[3];
+      a.sZ.rotation.z = a.s * q[0];
+      a.sX.rotation.x = -q[1];
+      a.el.rotation.x = -q[2];
+      a.hand.rotation.y = p.w;
+    });
+  }
+
+  // ---------- Giao diện ----------
+  function renderList() {
+    const box = $('list');
+    box.innerHTML = '';
+    EX.forEach((ex, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = (i + 1) + '. ' + ex.vn;
+      b.addEventListener('click', () => setEx(i, playing));
+      box.appendChild(b);
+    });
+  }
+  function markList() {
+    document.querySelectorAll('#list button').forEach((b, i) => b.classList.toggle('active', i === exI));
+  }
+  function renderDetail() {
+    const ex = EX[exI];
+    $('detail').innerHTML =
+      '<h2>' + (exI + 1) + '. ' + ex.vn + '</h2>' +
+      '<div class="en">' + ex.en + '</div>' +
+      '<div class="meta"><span>Số lần: <b>' + ex.reps + '</b></span><span>Nhóm cơ: <b>' + ex.muscles + '</b></span></div>' +
+      '<h3>Cách làm</h3><ol>' + ex.steps.map(s => '<li>' + s + '</li>').join('') + '</ol>' +
+      '<h3>Lưu ý</h3><ul>' + ex.tips.map(s => '<li>' + s + '</li>').join('') + '</ul>';
+  }
+  function setEx(i, keepPlaying) {
+    exI = i; t = 0;
+    playing = !!keepPlaying;
+    $('hudDone').textContent = '';
+    renderDetail(); markList(); updatePlayBtn();
+  }
+  function updatePlayBtn() { $('btnPlay').textContent = playing ? '⏸ Dừng' : '▶ Phát'; }
+  function togglePlay() {
+    if (!playing && exI === EX.length - 1 && t > 0 && poseAt(EX[exI], t).reps >= EX[exI].target) { exI = 0; t = 0; renderDetail(); markList(); }
+    playing = !playing;
+    updatePlayBtn();
+  }
+
+  // ---------- Vòng lặp ----------
+  let last = performance.now(), yaw = 0.35, tilt = 0.05, dragging = false, lx = 0, ly = 0;
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const ex = EX[exI];
+    if (playing) {
+      t += dt;
+      const r = poseAt(ex, t);
+      if (autoRun && r.reps >= ex.target) {
+        if (exI < EX.length - 1) setEx(exI + 1, true);
+        else { playing = false; t = 0; updatePlayBtn(); $('hudDone').textContent = 'Hoàn thành 10 bài.'; }
+      }
+    }
+    const r = poseAt(ex, t);
+    applyPose(r.pose);
+    $('hudEx').textContent = (exI + 1) + '/' + EX.length + ' · ' + ex.vn;
+    $('hudRep').textContent = 'Lần ' + Math.min(r.reps, ex.target) + ' / ' + ex.target + (ex.spin ? ' vòng' : '');
+    $('hudPh').textContent = r.phase;
+    rig.rotation.y = yaw;
+    rig.rotation.x = tilt;
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+
+  function resize() {
+    const w = stage.clientWidth || 600, h = stage.clientHeight || 500;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.domElement.style.width = w + 'px';
+    renderer.domElement.style.height = h + 'px';
+  }
+  window.addEventListener('resize', resize);
+
+  stage.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; });
+  window.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    yaw += (e.clientX - lx) * 0.008;
+    tilt = Math.max(-0.4, Math.min(0.4, tilt + (e.clientY - ly) * 0.004));
+    lx = e.clientX; ly = e.clientY;
+  });
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    camera.position.z = Math.max(5, Math.min(14, camera.position.z + e.deltaY * 0.01));
+  }, { passive: false });
+
+  // ---------- Điều khiển ----------
+  $('btnPlay').addEventListener('click', togglePlay);
+  $('btnPrev').addEventListener('click', () => setEx(Math.max(0, exI - 1), playing));
+  $('btnNext').addEventListener('click', () => setEx(Math.min(EX.length - 1, exI + 1), playing));
+  $('btnReset').addEventListener('click', () => { t = 0; playing = false; $('hudDone').textContent = ''; updatePlayBtn(); });
+  $('speed').addEventListener('input', () => {
+    speed = Number($('speed').value);
+    $('speedVal').textContent = speed.toFixed(1) + 'x';
+  });
+  $('auto').addEventListener('change', () => { autoRun = $('auto').checked; });
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    else if (e.key === 'ArrowLeft') setEx(Math.max(0, exI - 1), playing);
+    else if (e.key === 'ArrowRight') setEx(Math.min(EX.length - 1, exI + 1), playing);
+  });
+
+  // ---------- Khởi tạo ----------
+  renderList();
+  renderDetail();
+  markList();
+  updatePlayBtn();
+  resize();
+  requestAnimationFrame(t0 => { last = t0; frame(t0); });
+})();
+</script>
+</body>
+</html>
