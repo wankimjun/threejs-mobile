@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "words": [
+    { "id": "w001", "en": "apple", "vi": "quả táo", "pos": "n.", "ipa": "/ˈæp.əl/", "cat": "Thức ăn", "level": "A1", "example": "I eat an apple every day.", "example_vi": "Tôi ăn một quả táo mỗi ngày." },
+    { "id": "w002", "en": "bread", "vi": "bánh mì", "pos": "n.", "ipa": "/bred/", "cat": "Thức ăn", "level": "A1", "example": "She bought fresh bread this morning.", "example_vi": "Cô ấy mua bánh mì tươi sáng nay." },
+    { "id": "w003", "en": "coffee", "vi": "cà phê", "pos": "n.", "ipa": "/ˈkɒf.i/", "cat": "Thức ăn", "level": "A1", "example": "I drink coffee before work.", "example_vi": "Tôi uống cà phê trước khi đi làm." },
+    { "id": "w004", "en": "water", "vi": "nước", "pos": "n.", "ipa": "/ˈwɔː.tər/", "cat": "Thức ăn", "level": "A1", "example": "Please give me a glass of water.", "example_vi": "Làm ơn cho tôi một ly nước." },
+    { "id": "w005", "en": "book", "vi": "quyển sách", "pos": "n.", "ipa": "/bʊk/", "cat": "Đồ vật", "level": "A1", "example": "This book is very interesting.", "example_vi": "Quyển sách này rất thú vị." },
+    { "id": "w006", "en": "garden", "vi": "khu vườn", "pos": "n.", "ipa": "/ˈɡɑːr.dən/", "cat": "Nơi chốn", "level": "A2", "example": "We have roses in our garden.", "example_vi": "Chúng tôi có hoa hồng trong vườn." },
+    { "id": "w007", "en": "school", "vi": "trường học", "pos": "n.", "ipa": "/skuːl/", "cat": "Nơi chốn", "level": "A1", "example": "The children go to school by bus.", "example_vi": "Bọn trẻ đi học bằng xe buýt." },
+    { "id": "w008", "en": "city", "vi": "thành phố", "pos": "n.", "ipa": "/ˈsɪt.i/", "cat": "Nơi chốn", "level": "A2", "example": "Ho Chi Minh City is very busy.", "example_vi": "Thành phố Hồ Chí Minh rất nhộn nhịp." },
+    { "id": "w009", "en": "friend", "vi": "bạn bè", "pos": "n.", "ipa": "/frend/", "cat": "Con người", "level": "A1", "example": "He is my best friend.", "example_vi": "Anh ấy là người bạn thân nhất của tôi." },
+    { "id": "w010", "en": "family", "vi": "gia đình", "pos": "n.", "ipa": "/ˈfæm.əl.i/", "cat": "Con người", "level": "A1", "example": "My family lives in Da Nang.", "example_vi": "Gia đình tôi sống ở Đà Nẵng." },
+    { "id": "w011", "en": "teacher", "vi": "giáo viên", "pos": "n.", "ipa": "/ˈtiː.tʃər/", "cat": "Con người", "level": "A1", "example": "My teacher speaks slowly.", "example_vi": "Giáo viên của tôi nói chậm." },
+    { "id": "w012", "en": "happy", "vi": "vui vẻ, hạnh phúc", "pos": "adj.", "ipa": "/ˈhæp.i/", "cat": "Cảm xúc", "level": "A1", "example": "The kids are happy today.", "example_vi": "Hôm nay bọn trẻ rất vui." },
+    { "id": "w013", "en": "beautiful", "vi": "đẹp", "pos": "adj.", "ipa": "/ˈbjuː.tɪ.fəl/", "cat": "Miêu tả", "level": "A2", "example": "What a beautiful view!", "example_vi": "Cảnh đẹp quá!" },
+    { "id": "w014", "en": "expensive", "vi": "đắt đỏ", "pos": "adj.", "ipa": "/ɪkˈspen.sɪv/", "cat": "Miêu tả", "level": "A2", "example": "This car is too expensive.", "example_vi": "Chiếc xe này quá đắt." },
+    { "id": "w015", "en": "quickly", "vi": "nhanh chóng", "pos": "adv.", "ipa": "/ˈkwɪk.li/", "cat": "Miêu tả", "level": "A2", "example": "Please answer quickly.", "example_vi": "Làm ơn trả lời nhanh lên." },
+    { "id": "w016", "en": "morning", "vi": "buổi sáng", "pos": "n.", "ipa": "/ˈmɔː.nɪŋ/", "cat": "Thời gian", "level": "A1", "example": "Good morning, everyone!", "example_vi": "Chào buổi sáng mọi người!" },
+    { "id": "w017", "en": "weather", "vi": "thời tiết", "pos": "n.", "ipa": "/ˈweð.ər/", "cat": "Thời gian", "level": "A2", "example": "The weather is hot today.", "example_vi": "Hôm nay thời tiết nóng." },
+    { "id": "w018", "en": "run", "vi": "chạy", "pos": "v.", "ipa": "/rʌn/", "cat": "Hành động", "level": "A1", "example": "I run in the park every morning.", "example_vi": "Tôi chạy bộ trong công viên mỗi sáng." },
+    { "id": "w019", "en": "learn", "vi": "học", "pos": "v.", "ipa": "/lɜːrn/", "cat": "Hành động", "level": "A1", "example": "I want to learn English.", "example_vi": "Tôi muốn học tiếng Anh." },
+    { "id": "w020", "en": "remember", "vi": "nhớ, ghi nhớ", "pos": "v.", "ipa": "/rɪˈmem.bər/", "cat": "Hành động", "level": "A2", "example": "I can't remember his name.", "example_vi": "Tôi không nhớ được tên anh ấy." }
+  ]
+}
