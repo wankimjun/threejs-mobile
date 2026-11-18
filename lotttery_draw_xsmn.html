@@ -201,6 +201,12 @@
       <button type="button" class="btn-draw" id="btnDraw">Bắt đầu quay 18 lượt</button>
       <button type="button" class="btn-outline" id="btnReset">Làm mới</button>
     </div>
+    <div class="seed-controls" style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px;">
+      <label class="muted" style="font-size:.82rem">Seed (tùy chọn):</label>
+      <input type="text" id="drawSeed" placeholder="" style="width:170px;background:rgba(15,23,42,.7);color:#f8fafc;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 8px;font-size:.82rem">
+      <button type="button" class="btn-outline btn-small" id="btnNewSeed">Tạo seed ngẫu nhiên</button>
+    </div>
+    <div id="usedSeed" class="muted" style="font-size:.78rem;text-align:center;margin-top:4px"></div>
   </section>
 
   <section class="card">
@@ -309,10 +315,10 @@
   const $ = id => document.getElementById(id);
   const stage = $('stage');
   const statusEl = $('status'), numbersEl = $('numbers'), resultTable = $('resultTable');
-  const checkArea = $('checkArea'), stepsEl = $('steps');
+  const checkArea = $('checkArea'), stepsEl = $('steps'), usedSeedDisplay = $('usedSeed');
   const btnDraw = $('btnDraw'), btnReset = $('btnReset');
 
-  let busy = false, stepIndex = 0;
+  let busy = false, stepIndex = 0, sessionRNG = null;
   let tickets = [];                 // [{ id, num }]
   let ticketSeq = 1;
   let prizeResults = [];            // prizeResults[pi] = mảng các chuỗi số trúng giải pi
@@ -335,6 +341,54 @@
   function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
   const pad = n => String(n).padStart(2, '0');
   const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+
+  function strToSeed(seed) {
+    let h1 = 0x6a09e667 | 0;
+    let h2 = 0xbb67ae85 | 0;
+    for (let i = 0; i < seed.length; i++) {
+      const c = seed.charCodeAt(i);
+      h1 = ((h1 << 5) - h1 + c) | 0;
+      h2 = ((h2 << 5) - h2 + c) | 0;
+    }
+    return [h1 || 1, h2 || 1];
+  }
+
+  class SeededRNG {
+    constructor(seed) {
+      if (seed) {
+        const [s0, s1] = strToSeed(seed);
+        this.s0 = s0;
+        this.s1 = s1;
+      } else {
+        const buf = new Uint32Array(2);
+        try { crypto.getRandomValues(buf); } catch (e) {
+          buf[0] = Math.floor(Math.random() * 0xffffffff);
+          buf[1] = Math.floor(Math.random() * 0xffffffff);
+        }
+        this.s0 = buf[0] | 0;
+        this.s1 = buf[1] | 0;
+      }
+    }
+    next() {
+      let s0 = this.s0;
+      let s1 = this.s1;
+      const result = (s0 + s1) | 0;
+      s1 ^= s0;
+      this.s0 = (((s0 << 23) | (s0 >>> 9)) ^ s1 ^ ((s1 << 18) | (s1 >>> 5))) | 0;
+      this.s1 = s1 | 0;
+      return (result >>> 0) / 4294967296;
+    }
+    randInt(n) {
+      if (n <= 0) return 0;
+      const limit = 0x100000000 - (0x100000000 % n);
+      let r;
+      do { r = this.next() * 0x100000000; } while (r >= limit);
+      return r % n | 0;
+    }
+    pickOne(arr) {
+      return arr[this.randInt(arr.length)];
+    }
+  }
 
   // ---------- Lưu trữ ----------
   function loadDraws() {
@@ -408,7 +462,7 @@
   function readTicket() { return wheels.map(w => w.get()).join(''); }
   function setTicket(s) { [...s].forEach((ch, i) => wheels[i].set(Number(ch), true)); }
   function setWheelsLocked(v) { wheels.forEach(w => w.setLocked(v)); }
-  function randomTicket() { return pad3to6(Math.floor(Math.random() * 1e6)); }
+  function randomTicket() { return pad3to6(sessionRNG ? sessionRNG.randInt(1000000) : Math.floor(Math.random() * 1e6)); }
   function pad3to6(n) { return String(n).padStart(6, '0'); }
 
   // ---------- Vé ----------
@@ -551,8 +605,8 @@
       why = 'Giữ 4 số đầu ngẫu nhiên, 2 số cuối lấy từ 10 lô nóng và 10 lô lạnh trong ' + s.n + ' lần quay gần đây.';
     }
     lastSug = Array.from({ length: count }, () => {
-      const head = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-      const lo = pool[Math.floor(Math.random() * pool.length)];
+      const head = String((sessionRNG ? sessionRNG.next() : Math.random()) * 10000 | 0).padStart(4, '0');
+      const lo = pool[sessionRNG ? sessionRNG.randInt(pool.length) : Math.floor(Math.random() * pool.length)];
       return head + pad(lo);
     });
     $('sugOut').innerHTML = lastSug.map(x => `<span class="sc">${x}</span>`).join('');
@@ -676,10 +730,13 @@
     d.balls.forEach((b, n) => {
       let x = 0, y = 0, z = 0, ok = false, tries = 0;
       while (!ok && tries < 400) {
-        const r = RLIM * 0.9 * Math.sqrt(Math.random());
-        const a = Math.random() * Math.PI * 2;
+        const r1 = sessionRNG ? sessionRNG.next() : Math.random();
+        const r2 = sessionRNG ? sessionRNG.next() : Math.random();
+        const r3 = sessionRNG ? sessionRNG.next() : Math.random();
+        const r = RLIM * 0.9 * Math.sqrt(r1);
+        const a = r2 * Math.PI * 2;
         x = r * Math.cos(a); y = r * Math.sin(a);
-        z = (Math.random() * 2 - 1) * ZLIM;
+        z = (r3 * 2 - 1) * ZLIM;
         ok = true;
         for (let m = 0; m < n; m++) {
           const o = d.balls[m].p;
@@ -810,7 +867,7 @@
 
   async function pickFlow(d) {
     const cands = d.balls.filter(b => b.alive);
-    const ball = cands[Math.floor(Math.random() * cands.length)];
+    const ball = cands[sessionRNG ? sessionRNG.randInt(cands.length) : Math.floor(Math.random() * cands.length)];
     ball.locked = true;
     const p0 = ball.p.clone();
     const target = holeLocal(d);
@@ -877,7 +934,7 @@
 
     await tween(900, k => setOmega(active, MAX_W * ease(k)));
     await tween(2400, () => {
-      active.forEach(d => d.balls.forEach(b => { if (b.alive) b.v.z += (Math.random() - 0.5) * 0.5; }));
+      active.forEach(d => d.balls.forEach(b => { if (b.alive) b.v.z += ((sessionRNG ? sessionRNG.next() : Math.random()) - 0.5) * 0.5; }));
     });
     await tween(1600, k => setOmega(active, MAX_W * (1 - k)));
     setOmega(active, 0);
@@ -984,6 +1041,15 @@
 
   btnDraw.addEventListener('click', () => {
     if (busy) return;
+    const seedText = $('drawSeed').value.trim();
+    let seedUsed = seedText;
+    if (!seedUsed) {
+      const buf = new Uint32Array(2);
+      try { crypto.getRandomValues(buf); } catch (e) {}
+      seedUsed = String(buf[0]) + '-' + String(buf[1]) + '-' + Date.now();
+    }
+    sessionRNG = new SeededRNG(seedUsed);
+    usedSeedDisplay.textContent = seedText ? ('Seed: ' + seedUsed) : ('Seed tự sinh: ' + seedUsed);
     resetAll();
     runAll();
   });
@@ -1031,6 +1097,15 @@
     let added = 0;
     for (const s of lastSug) { if (addTicketNum(s)) added++; else break; }
     flash('Đã thêm ' + added + ' dãy gợi ý.', added > 0);
+  });
+
+  $('btnNewSeed').addEventListener('click', () => {
+    if (busy) return;
+    const buf = new Uint32Array(4);
+    try { crypto.getRandomValues(buf); } catch (e) { for (let i = 0; i < 4; i++) buf[i] = Math.floor(Math.random() * 0xffffffff); }
+    const seed = Array.from(buf, x => String(x >>> 0)).join('-');
+    $('drawSeed').value = seed;
+    flash('Đã tạo seed ngẫu nhiên.', true);
   });
 
   // ---------- Khởi tạo ----------
