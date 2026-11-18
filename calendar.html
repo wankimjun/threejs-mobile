@@ -3,58 +3,268 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lịch vạn niên 3D · Âm lịch, hoàng đạo, giờ hoàng đạo</title>
+<title>Lịch vạn niên · Âm lịch, hoàng đạo, giờ hoàng đạo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --bg:#070a12; --panel:rgba(16,22,40,.82); --line:rgba(255,255,255,.09); --text:#ece8dc; --muted:#8b93a7;
-    --gold:#f5b942; --gold2:#ffe08a; --dim:#4b5470; }
-  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:radial-gradient(900px 600px at 50% -10%, #3a2a10 0%, transparent 60%), var(--bg);
-    color:var(--text); min-height:100vh; padding:20px 14px 40px; }
-  .wrap { max-width:1220px; margin:0 auto; }
-  header { text-align:center; margin-bottom:14px; }
-  h1 { font-size:1.9rem; letter-spacing:.5px; font-family:Georgia,serif; }
-  h1 span { color:var(--gold); }
-  header p { color:var(--muted); font-size:.92rem; margin-top:4px; }
+  :root {
+    --bg: #070a12;
+    --surface: rgba(18, 24, 44, .78);
+    --surface-solid: #111729;
+    --line: rgba(255, 255, 255, .08);
+    --line-strong: rgba(255, 255, 255, .16);
+    --text: #ece8dc;
+    --muted: #8b93a7;
+    --faint: #4b5470;
+    --gold: #f5b942;
+    --gold-soft: #ffe08a;
+    --hd-bg: rgba(245, 185, 66, .14);
+    --hac-bg: rgba(148, 163, 184, .10);
+    --radius: 14px;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+  html, body { background: var(--bg); }
+  body {
+    font-family: 'Be Vietnam Pro', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    background:
+      radial-gradient(1000px 500px at 50% -15%, rgba(245, 185, 66, .14), transparent 60%),
+      var(--bg);
+    padding: 24px 16px 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
 
-  .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line);
-    border-radius:14px; padding:12px 14px; margin-bottom:14px; }
-  .toolbar .title { font-size:1.2rem; font-weight:700; min-width:180px; text-align:center; color:var(--gold2); font-family:Georgia,serif; }
-  input, select { background:rgba(10,14,30,.9); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:.9rem; }
-  input[type=number] { width:96px; }
-  button { font:inherit; color:#111; background:linear-gradient(135deg,#ffe08a,#f5b942); border:none; border-radius:9px; padding:8px 14px; font-weight:700; cursor:pointer; }
-  button:hover { filter:brightness(1.08); }
-  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
-  .grow { flex:1; }
-  .lab { font-size:.82rem; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  /* ---------- Header ---------- */
+  .top {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .brand h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.85rem; font-weight: 700; letter-spacing: .3px;
+  }
+  .brand h1 span { color: var(--gold); }
+  .brand p { color: var(--muted); font-size: .9rem; margin-top: 2px; }
 
-  .layout { display:grid; grid-template-columns:1fr 360px; gap:14px; align-items:start; }
-  @media (max-width:960px) { .layout { grid-template-columns:1fr; } }
-  #stage { position:relative; width:100%; height:520px; border-radius:18px; overflow:hidden; border:1px solid var(--line);
-    background:#070a12; cursor:grab; touch-action:none; box-shadow:0 24px 60px -12px rgba(0,0,0,.7); }
-  #stage:active { cursor:grabbing; }
-  #stage canvas { display:block; width:100%; height:100%; }
-  .stage-note { position:absolute; left:14px; top:12px; font-size:.82rem; color:var(--muted); pointer-events:none; line-height:1.6; }
-  .stage-note b { color:var(--gold2); }
-  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:.8rem; color:var(--muted); margin-top:10px; }
-  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:middle; }
+  .seg {
+    display: inline-flex; padding: 4px; gap: 4px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  }
+  .seg button {
+    background: transparent; color: var(--muted); border: 0; border-radius: 9px;
+    padding: 7px 14px; font-weight: 600; font-size: .88rem; cursor: pointer;
+    transition: background .2s var(--ease), color .2s var(--ease);
+  }
+  .seg button:hover:not(:disabled) { color: var(--text); }
+  .seg button.active { background: linear-gradient(135deg, var(--gold-soft), var(--gold)); color: #111; }
+  .seg button:disabled { opacity: .35; cursor: not-allowed; }
 
-  .side { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; height:520px; overflow-y:auto; }
-  .side h2 { font-size:1.25rem; color:var(--gold2); font-family:Georgia,serif; }
-  .side .sub { color:var(--muted); font-size:.86rem; margin-top:2px; }
-  .side h3 { font-size:.72rem; color:var(--gold); text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px; }
-  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:.9rem; line-height:1.55; }
-  .kv span:nth-child(odd) { color:var(--muted); }
-  .badge { display:inline-block; padding:3px 9px; border-radius:7px; font-weight:700; font-size:.82rem; }
-  .badge.hd { background:rgba(245,185,66,.18); color:var(--gold2); border:1px solid rgba(245,185,66,.5); }
-  .badge.hac { background:rgba(148,163,184,.12); color:#cbd5e1; border:1px solid rgba(148,163,184,.35); }
-  table { width:100%; border-collapse:collapse; font-size:.86rem; }
-  th, td { padding:5px 6px; border-bottom:1px solid var(--line); text-align:left; }
-  th { color:var(--muted); font-weight:600; font-size:.74rem; text-transform:uppercase; }
-  tr.hd td { color:var(--gold2); font-weight:700; }
-  .note { font-size:.78rem; color:var(--muted); line-height:1.6; margin-top:12px; }
+  /* ---------- Toolbar ---------- */
+  .bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px;
+    backdrop-filter: blur(8px);
+  }
+  .nav { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
+  .title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.25rem; font-weight: 700; color: var(--gold-soft);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 0 6px; flex: 1; text-align: center; min-width: 0;
+  }
+  .ctrl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .field { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); }
 
-  .sources { margin-top:14px; font-size:.8rem; color:var(--muted); line-height:1.7; }
-  .sources a { color:var(--gold2); }
+  input, select {
+    background: rgba(8, 11, 24, .85); color: var(--text);
+    border: 1px solid var(--line); border-radius: 9px;
+    padding: 7px 10px; font-size: .9rem; outline: none;
+    transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245, 185, 66, .18); }
+  input[type=number] { width: 88px; }
+  input[type=date] { color-scheme: dark; }
+  select { cursor: pointer; }
+
+  button.btn {
+    color: #111; background: linear-gradient(135deg, var(--gold-soft), var(--gold));
+    border: 0; border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: .88rem;
+    cursor: pointer; transition: transform .15s var(--ease), filter .2s var(--ease);
+  }
+  button.btn:hover { filter: brightness(1.06); }
+  button.btn:active { transform: translateY(1px); }
+  button.btn.ghost {
+    background: transparent; color: var(--text); border: 1px solid var(--line-strong);
+  }
+  button.btn.ghost:hover { border-color: var(--gold); color: var(--gold-soft); }
+  button.icon {
+    width: 38px; height: 38px; display: grid; place-items: center; padding: 0;
+    font-size: 1.2rem; line-height: 1;
+  }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+
+  /* ---------- Layout ---------- */
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 14px; align-items: start;
+  }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+
+  .stage-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+    padding: 12px; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .7);
+  }
+  .weekdays {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+    margin-bottom: 6px; padding: 0 2px;
+  }
+  .weekdays div {
+    text-align: center; font-size: .72rem; font-weight: 600; letter-spacing: .4px;
+    text-transform: uppercase; color: var(--muted); padding: 4px 0;
+  }
+  .weekdays div.we { color: var(--gold); }
+
+  #stage {
+    position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden;
+    background: #070a12; cursor: grab; touch-action: none;
+  }
+  #stage:active { cursor: grabbing; }
+  #stage canvas { display: block; width: 100%; height: 100%; }
+  .stage-hint {
+    position: absolute; left: 12px; bottom: 10px; font-size: .75rem; color: var(--muted);
+    pointer-events: none; background: rgba(7, 10, 18, .7); padding: 4px 9px; border-radius: 999px;
+  }
+
+  /* ---------- 2D grid ---------- */
+  #grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  }
+  .gc {
+    position: relative; min-height: 86px; border-radius: 10px; padding: 7px 8px 6px;
+    background: linear-gradient(180deg, #1b2236, #121828);
+    border: 1px solid var(--line); cursor: pointer; overflow: hidden;
+    transition: transform .15s var(--ease), border-color .15s var(--ease), background .2s;
+    display: flex; flex-direction: column; gap: 2px; text-align: left; color: inherit;
+  }
+  .gc:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+  .gc.hd { background: linear-gradient(180deg, #5c4818, #2a2110); }
+  .gc.hac { background: linear-gradient(180deg, #2a2d38, #15171f); }
+  .gc.out { background: #0b0e1a; opacity: .55; }
+  .gc.today { box-shadow: inset 0 0 0 1.5px var(--gold); }
+  .gc.sel { border-color: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, .85); }
+  .gc-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .gc-sol {
+    font-family: 'Playfair Display', Georgia, serif; font-size: 1.35rem; font-weight: 700; line-height: 1;
+  }
+  .gc.out .gc-sol { color: var(--faint); }
+  .gc-lun { font-size: .7rem; color: var(--gold-soft); opacity: .85; }
+  .gc.out .gc-lun { color: var(--faint); }
+  .gc-truc { font-size: .72rem; color: var(--muted); margin-top: auto; }
+  .gc.hd .gc-truc { color: var(--gold-soft); }
+  .gc-dot {
+    position: absolute; right: 8px; bottom: 8px; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold);
+  }
+  .gc.hac .gc-dot { background: #64748b; }
+
+  /* ---------- Legend ---------- */
+  .legend {
+    display: flex; gap: 8px 16px; flex-wrap: wrap; font-size: .8rem; color: var(--muted);
+    margin-top: 12px; padding: 0 4px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  /* ---------- Detail ---------- */
+  .side {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+    padding: 20px; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--faint) transparent;
+  }
+  @media (max-width: 1000px) { .side { position: static; max-height: none; } }
+
+  .d-head { display: flex; gap: 14px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .d-big {
+    font-family: 'Playfair Display', Georgia, serif; font-size: 3.4rem; font-weight: 700; line-height: 1;
+    color: var(--text); min-width: 80px; text-align: center;
+  }
+  .d-big small { display: block; font-family: 'Be Vietnam Pro', sans-serif; font-size: .75rem; color: var(--muted); font-weight: 500; margin-top: 4px; }
+  .d-meta h2 { font-size: 1.1rem; font-weight: 700; }
+  .d-meta .lunar { color: var(--gold-soft); font-size: .92rem; margin-top: 3px; }
+  .d-meta .sub { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px;
+    font-weight: 600; font-size: .8rem; margin-top: 12px;
+  }
+  .badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .badge.hd { background: var(--hd-bg); color: var(--gold-soft); border: 1px solid rgba(245, 185, 66, .4); }
+  .badge.hac { background: var(--hac-bg); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, .3); }
+
+  .side h3 {
+    font-size: .7rem; color: var(--gold); text-transform: uppercase; letter-spacing: .8px;
+    margin: 18px 0 8px; font-weight: 700;
+  }
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .fact {
+    background: rgba(8, 11, 24, .6); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px;
+  }
+  .fact .k { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .fact .v { font-size: .92rem; font-weight: 600; margin-top: 3px; }
+  .truc-line { font-size: .92rem; color: var(--muted); }
+  .truc-line b { color: var(--text); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: .78rem; padding: 4px 9px; border-radius: 8px;
+    background: var(--hd-bg); color: var(--gold-soft); border: 1px solid rgba(245, 185, 66, .3);
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  th, td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: .68rem; text-transform: uppercase; letter-spacing: .4px; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tr.hd td { color: var(--gold-soft); }
+  tr.hd td:last-child { font-weight: 700; }
+  tr.now td { background: rgba(255, 255, 255, .05); }
+  tr.now td:first-child::before { content: '● '; color: var(--gold); }
+  td.loai { white-space: nowrap; }
+
+  .note { font-size: .76rem; color: var(--muted); line-height: 1.6; margin-top: 14px; }
+
+  .sources {
+    margin-top: 22px; font-size: .8rem; color: var(--muted); line-height: 1.7;
+    border-top: 1px solid var(--line); padding-top: 14px;
+  }
+  .sources b { color: var(--text); font-weight: 600; }
+  .sources a { color: var(--gold-soft); text-decoration: none; border-bottom: 1px dotted rgba(255, 224, 138, .4); }
+  .sources a:hover { border-bottom-style: solid; }
+
+  @media (max-width: 600px) {
+    body { padding: 16px 10px 36px; }
+    .brand h1 { font-size: 1.5rem; }
+    .top { justify-content: center; text-align: center; }
+    .brand { width: 100%; }
+    .bar { padding: 10px; gap: 10px; }
+    .nav { width: 100%; }
+    .ctrl, .find { width: 100%; justify-content: space-between; }
+    .sep { display: none; }
+    input[type=number] { width: 80px; }
+    #stage { height: 380px; }
+    .gc { min-height: 60px; padding: 5px 5px 4px; }
+    .gc-sol { font-size: 1.05rem; }
+    .gc-lun { font-size: .6rem; }
+    .gc-truc { display: none; }
+    .facts { grid-template-columns: repeat(2, 1fr); }
+    .d-big { font-size: 2.6rem; min-width: 64px; }
+  }
 </style>
 <script src="three.min.js"></script>
 <script>
@@ -65,48 +275,73 @@
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Lịch <span>vạn niên</span> 3D</h1>
-    <p>Dương lịch · âm lịch · can chi · trực · ngày và giờ hoàng đạo</p>
+
+  <header class="top">
+    <div class="brand">
+      <h1>Lịch <span>vạn niên</span></h1>
+      <p>Dương lịch · âm lịch · can chi · trực · ngày và giờ hoàng đạo</p>
+    </div>
+    <div class="seg" role="tablist" aria-label="Chế độ xem">
+      <button type="button" data-view="3d" role="tab">3D</button>
+      <button type="button" data-view="2d" role="tab">Lưới</button>
+    </div>
   </header>
 
-  <section class="toolbar">
-    <button type="button" class="ghost" id="btnPrev">◀</button>
-    <div class="title" id="title"></div>
-    <button type="button" class="ghost" id="btnNext">▶</button>
-    <button type="button" id="btnToday">Hôm nay</button>
-    <label class="lab">Tháng
-      <select id="mSel">
-        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
-        <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
-        <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
-      </select>
-    </label>
-    <label class="lab">Năm <input type="number" id="yInp" min="1900" max="2100" value="2026"></label>
-    <button type="button" class="ghost" id="btnGo">Xem</button>
-    <div class="grow"></div>
-    <label class="lab">Tra cứu ngày <input type="date" id="dInp"></label>
-    <button type="button" class="ghost" id="btnFind">Tìm</button>
+  <section class="bar">
+    <div class="nav">
+      <button type="button" class="btn ghost icon" id="btnPrev" aria-label="Tháng trước">‹</button>
+      <div class="title" id="title" aria-live="polite"></div>
+      <button type="button" class="btn ghost icon" id="btnNext" aria-label="Tháng sau">›</button>
+    </div>
+
+    <div class="ctrl">
+      <label class="field">Tháng
+        <select id="mSel" aria-label="Chọn tháng">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+          <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+          <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+        </select>
+      </label>
+      <label class="field">Năm <input type="number" id="yInp" min="1900" max="2100" aria-label="Chọn năm"></label>
+      <button type="button" class="btn ghost" id="btnGo">Xem</button>
+      <button type="button" class="btn" id="btnToday">Hôm nay</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="ctrl find">
+      <label class="field">Tra cứu <input type="date" id="dInp" aria-label="Tra cứu ngày"></label>
+      <button type="button" class="btn ghost" id="btnFind">Tìm</button>
+    </div>
   </section>
 
   <div class="layout">
     <div>
-      <div id="stage">
-        <div class="stage-note">Bấm vào một ô để xem chi tiết.<br>Kéo để xoay lịch.<br><b>←/→</b>: ngày trước/sau</div>
+      <div class="stage-card">
+        <div class="weekdays" aria-hidden="true">
+          <div>Th 2</div><div>Th 3</div><div>Th 4</div><div>Th 5</div><div>Th 6</div>
+          <div class="we">Th 7</div><div class="we">CN</div>
+        </div>
+        <div id="stage">
+          <div class="stage-hint">Kéo để xoay · Bấm ô để chọn</div>
+        </div>
+        <div id="grid" hidden></div>
       </div>
+
       <div class="legend">
-        <span><i style="background:#6b5520"></i>Ngày hoàng đạo</span>
-        <span><i style="background:#2a2c36"></i>Ngày hắc đạo</span>
-        <span><i style="background:#1d2438"></i>Ngày thường (theo trực)</span>
-        <span><i style="background:#0c1020"></i>Ngày ngoài tháng</span>
+        <span><i style="background:#8a6a24"></i>Hoàng đạo</span>
+        <span><i style="background:#3a3d4a"></i>Hắc đạo</span>
+        <span><i style="background:#1d2438"></i>Thường</span>
+        <span><i style="background:#0b0e1a"></i>Ngoài tháng</span>
       </div>
     </div>
-    <aside class="side" id="detail"></aside>
+
+    <aside class="side" id="detail" aria-live="polite"></aside>
   </div>
 
   <div class="sources">
-    <b>Nguồn tham khảo:</b><br>
-    • Giờ hoàng đạo theo chi của ngày (bảng giờ đối chiếu trên <a href="https://quantrimang.com/lich-am/4164-12-12" target="_blank" rel="noopener">quantrimang.com</a> và <a href="https://mytour.vn/vi/blog/bai-viet/gio-vang.html" target="_blank" rel="noopener">mytour.vn</a>)<br>
+    <b>Nguồn tham khảo</b><br>
+    • Giờ hoàng đạo theo chi của ngày (bảng đối chiếu trên <a href="https://quantrimang.com/lich-am/4164-12-12" target="_blank" rel="noopener">quantrimang.com</a> và <a href="https://mytour.vn/vi/blog/bai-viet/gio-vang.html" target="_blank" rel="noopener">mytour.vn</a>)<br>
     • Ý nghĩa ngày hoàng đạo, hắc đạo và cách xem: <a href="https://hoanghamobile.com/tin-tuc/ngay-hoang-dao-la-gi-cach-xem-ngay-hoang-dao-ra-sao" target="_blank" rel="noopener">hoanghamobile.com</a>
   </div>
 </div>
@@ -126,6 +361,7 @@
   const TRUC_HD = { 'Kiến':1, 'Mãn':1, 'Bình':1, 'Định':1, 'Thành':1, 'Khai':1 };
   const TZ = 7;
   const WEEK = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
+  const COLS = 7, ROWS = 6;
 
   // ---------- Dương lịch -> Julian Day ----------
   function jdFromDate(dd, mm, yy) {
@@ -199,7 +435,7 @@
   // ---------- Can chi, trực, giờ hoàng đạo ----------
   function hourHDSet(dayChi) {
     const shift = 2 * (dayChi % 6);
-    return [0, 1, 3, 6, 8, 9].map(b => (b + shift) % 12);   // Tý Sửu Mão Ngọ Thân Dậu, dịch theo nhóm chi ngày
+    return [0, 1, 3, 6, 8, 9].map(b => (b + shift) % 12);
   }
 
   const dayCache = new Map();
@@ -217,56 +453,69 @@
     const truc = TRUC[trucIdx];
     const info = {
       lun, yearCan, yearChi, monthCan, monthChi, dayCan, dayChi, truc,
-      trucHD: !!TRUC_HD[truc], hourHD: hourHDSet(dayChi), hd: !!TRUC_HD[truc]
+      hd: !!TRUC_HD[truc], hourHD: hourHDSet(dayChi)
     };
     dayCache.set(key, info);
     return info;
   }
 
   // ---------- Trạng thái ----------
-  let curY, curM, selSol = null, cells = [], selIdx = -1;
   const today = new Date();
+  const TODAY = { d: today.getDate(), m: today.getMonth() + 1, y: today.getFullYear() };
+  let curY, curM, selSol = null, cells = [], selIdx = -1;
+  let view = '3d';
 
-  // ---------- Three.js ----------
+  function isSameDay(a, b) { return !!a && !!b && a.d === b.d && a.m === b.m && a.y === b.y; }
+
+  // ---------- Three.js (tùy chọn) ----------
   const stage = $('stage');
-  let renderer;
-  try { renderer = new THREE.WebGLRenderer({ antialias: true }); }
-  catch (e) { stage.textContent = 'Trình duyệt không hỗ trợ WebGL.'; return; }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setClearColor(0x070a12, 1);
-  stage.insertBefore(renderer.domElement, stage.firstChild);
+  const grid = $('grid');
+  const btn3d = document.querySelector('[data-view="3d"]');
+  const btn2d = document.querySelector('[data-view="2d"]');
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
-  camera.position.set(0, 0.6, 14);
-  camera.lookAt(0, 0.2, 0);
-  const rig = new THREE.Group();
-  scene.add(rig);
-  scene.add(new THREE.HemisphereLight(0xfff1d6, 0x1a1410, 0.8));
-  const warm = new THREE.PointLight(0xf5b942, 0.6, 40);
-  warm.position.set(-6, 4, 8);
-  scene.add(warm);
+  let renderer = null, scene, camera, rig, tiles = [];
+  let yaw = 0, tilt = 0;
 
-  // Lưới 6 hàng x 7 cột trên cung tròn
-  const COLS = 7, ROWS = 6, R = 9, DA = 0.2;
-  const tiles = [];
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const a = (c - 3) * DA;
-      const mat = new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.95), mat);
-      mesh.position.set(R * Math.sin(a), 2.5 - r * 1.0, -9 + R * Math.cos(a));
-      mesh.rotation.y = a;
-      mesh.userData.idx = r * COLS + c;
-      rig.add(mesh);
-      tiles.push(mesh);
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x070a12, 1);
+    stage.insertBefore(renderer.domElement, stage.firstChild);
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+    camera.position.set(0, 0.6, 14);
+    camera.lookAt(0, 0.2, 0);
+    rig = new THREE.Group();
+    scene.add(rig);
+    scene.add(new THREE.HemisphereLight(0xfff1d6, 0x1a1410, 0.8));
+    const warm = new THREE.PointLight(0xf5b942, 0.6, 40);
+    warm.position.set(-6, 4, 8);
+    scene.add(warm);
+
+    const R = 9, DA = 0.2;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const a = (c - 3) * DA;
+        const mat = new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.95), mat);
+        mesh.position.set(R * Math.sin(a), 2.5 - r * 1.0, -9 + R * Math.cos(a));
+        mesh.rotation.y = a;
+        mesh.userData.idx = r * COLS + c;
+        rig.add(mesh);
+        tiles.push(mesh);
+      }
     }
+    const frame = new THREE.Mesh(new THREE.TorusGeometry(9.2, 0.02, 8, 120),
+      new THREE.MeshBasicMaterial({ color: 0xf5b942, transparent: true, opacity: 0.25 }));
+    frame.rotation.x = Math.PI / 2;
+    frame.position.set(0, -2.9, -9);
+    rig.add(frame);
+  } catch (e) {
+    renderer = null;
+    stage.innerHTML = '<div class="stage-hint" style="position:static;margin:16px">Trình duyệt không hỗ trợ WebGL — dùng chế độ Lưới.</div>';
+    btn3d.disabled = true;
   }
-  const frame = new THREE.Mesh(new THREE.TorusGeometry(9.2, 0.02, 8, 120),
-    new THREE.MeshBasicMaterial({ color: 0xf5b942, transparent: true, opacity: 0.25 }));
-  frame.rotation.x = Math.PI / 2;
-  frame.position.set(0, -2.9, -9);
-  rig.add(frame);
 
   function tileTexture(cell) {
     const c = document.createElement('canvas');
@@ -275,14 +524,13 @@
     const grd = g.createLinearGradient(0, 0, 0, 190);
     if (!cell.inMonth) { grd.addColorStop(0, '#0c1020'); grd.addColorStop(1, '#080b16'); }
     else if (cell.info.hd) { grd.addColorStop(0, '#6b5520'); grd.addColorStop(1, '#2b2410'); }
-    else if (cell.info.truc === 'Trừ' || cell.info.truc === 'Chấp' || cell.info.truc === 'Phá' || cell.info.truc === 'Nguy' || cell.info.truc === 'Thu' || cell.info.truc === 'Bế') {
+    else if (!cell.info.hd && cell.info.truc !== 'Kiến' && cell.info.truc !== 'Mãn') {
       grd.addColorStop(0, '#2a2c36'); grd.addColorStop(1, '#15171f');
     } else { grd.addColorStop(0, '#1d2438'); grd.addColorStop(1, '#10141f'); }
     g.fillStyle = grd;
     g.fillRect(0, 0, 320, 190);
 
-    const solCol = cell.inMonth ? '#f5ecd4' : '#4b5470';
-    g.fillStyle = solCol;
+    g.fillStyle = cell.inMonth ? '#f5ecd4' : '#4b5470';
     g.font = 'bold 66px Georgia, serif';
     g.textAlign = 'left'; g.textBaseline = 'top';
     g.fillText(String(cell.sol.d), 14, 6);
@@ -307,27 +555,8 @@
     return new THREE.CanvasTexture(c);
   }
 
-  function isSameDay(a, b) { return a && b && a.d === b.d && a.m === b.m && a.y === b.y; }
-
-  // Tạo danh sách 42 ô của tháng hiện tại
-  function buildCells() {
-    const first = new Date(curY, curM - 1, 1);
-    const off = (first.getDay() + 6) % 7;
-    cells = [];
-    for (let i = 0; i < ROWS * COLS; i++) {
-      const dt = new Date(curY, curM - 1, 1 - off + i);
-      const sol = { d: dt.getDate(), m: dt.getMonth() + 1, y: dt.getFullYear() };
-      cells.push({
-        sol,
-        inMonth: dt.getMonth() === curM - 1,
-        isToday: isSameDay(sol, { d: today.getDate(), m: today.getMonth() + 1, y: today.getFullYear() }),
-        info: dayInfo(sol.d, sol.m, sol.y),
-        isSel: false
-      });
-    }
-  }
-
   function refreshTextures() {
+    if (!renderer) return;
     tiles.forEach((mesh, i) => {
       const cell = cells[i];
       cell.isSel = (i === selIdx);
@@ -340,41 +569,86 @@
     });
   }
 
+  // ---------- Lưới 2D ----------
+  function renderGrid() {
+    const frag = cells.map((cell, i) => {
+      const I = cell.info, L = I.lun;
+      const cls = ['gc',
+        cell.inMonth ? '' : 'out',
+        cell.inMonth && I.hd ? 'hd' : (cell.inMonth ? 'hac' : ''),
+        cell.isToday ? 'today' : '',
+        i === selIdx ? 'sel' : ''].filter(Boolean).join(' ');
+      const label = cell.sol.d + '/' + cell.sol.m + ' · ÂL ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') +
+        ' · ' + I.truc + (I.hd ? ' hoàng đạo' : ' hắc đạo');
+      return '<button type="button" class="' + cls + '" data-i="' + i + '" aria-label="' + label + '">' +
+        '<div class="gc-top"><span class="gc-sol">' + cell.sol.d + '</span><span class="gc-lun">' + L.day + '/' + L.month + (L.leap ? 'N' : '') + '</span></div>' +
+        '<div class="gc-truc">' + I.truc + '</div>' +
+        (cell.inMonth ? '<span class="gc-dot"></span>' : '') +
+        '</button>';
+    }).join('');
+    grid.innerHTML = frag;
+  }
+
+  grid.addEventListener('click', e => {
+    const el = e.target.closest('[data-i]');
+    if (el) selectCell(Number(el.dataset.i));
+  });
+
+  // ---------- Dữ liệu tháng ----------
+  function buildCells() {
+    const first = new Date(curY, curM - 1, 1);
+    const off = (first.getDay() + 6) % 7;
+    cells = [];
+    for (let i = 0; i < ROWS * COLS; i++) {
+      const dt = new Date(curY, curM - 1, 1 - off + i);
+      const sol = { d: dt.getDate(), m: dt.getMonth() + 1, y: dt.getFullYear() };
+      cells.push({
+        sol,
+        inMonth: dt.getMonth() === curM - 1,
+        isToday: isSameDay(sol, TODAY),
+        info: dayInfo(sol.d, sol.m, sol.y),
+        isSel: false
+      });
+    }
+  }
+
   function monthTitle() {
     const mid = dayInfo(15, curM, curY);
-    return 'Tháng ' + curM + '/' + curY + ' · ' + CAN[mid.yearCan] + ' ' + CHI[mid.yearChi];
+    return 'Tháng ' + curM + ' · ' + curY + '  —  ' + CAN[mid.yearCan] + ' ' + CHI[mid.yearChi];
+  }
+
+  function refreshViews() {
+    if (view === '3d') refreshTextures();
+    else renderGrid();
+    renderDetail();
   }
 
   function renderMonth() {
     buildCells();
     selIdx = -1;
-    if (selSol) {
-      selIdx = cells.findIndex(c => isSameDay(c.sol, selSol));
-    }
+    if (selSol) selIdx = cells.findIndex(c => isSameDay(c.sol, selSol));
     if (selIdx < 0) {
       selIdx = cells.findIndex(c => c.isToday && c.inMonth);
       if (selIdx < 0) selIdx = cells.findIndex(c => c.inMonth);
     }
-    refreshTextures();
     $('title').textContent = monthTitle();
     $('mSel').value = curM;
     $('yInp').value = curY;
-    renderDetail();
+    refreshViews();
   }
 
   function selectCell(i) {
     if (i < 0 || i >= cells.length) return;
     const cell = cells[i];
     if (!cell.inMonth) {
-      curY = cell.sol.y; curM = cell.sol.m;
       selSol = cell.sol;
+      curY = cell.sol.y; curM = cell.sol.m;
       renderMonth();
       return;
     }
     selSol = cell.sol;
     selIdx = i;
-    refreshTextures();
-    renderDetail();
+    refreshViews();
   }
 
   function selectDate(sol) {
@@ -384,43 +658,84 @@
   }
 
   // ---------- Chi tiết ngày ----------
+  function currentHourIdx() {
+    const h = new Date().getHours();
+    return Math.floor(((h + 1) % 24) / 2);
+  }
+
   function renderDetail() {
     const cell = cells[selIdx];
     if (!cell) return;
     const s = cell.sol, I = cell.info, L = I.lun;
     const wd = WEEK[new Date(s.y, s.m - 1, s.d).getDay()];
-    const hdBadge = I.hd ? '<span class="badge hd">Ngày hoàng đạo</span>' : '<span class="badge hac">Ngày hắc đạo</span>';
+    const isToday = isSameDay(s, TODAY);
+    const nowIdx = isToday ? currentHourIdx() : -1;
+
+    const hdHours = I.hourHD.slice().sort((a, b) => a - b)
+      .map(b => '<span class="chip">' + CHI[b] + ' · ' + HOURS[b].split('–')[0] + '</span>').join('');
 
     const rows = CHI.map((name, b) => {
       const hc = ((I.dayCan % 5) * 2 + b) % 10;
       const isHD = I.hourHD.indexOf(b) >= 0;
-      return '<tr class="' + (isHD ? 'hd' : '') + '"><td>' + name + '</td><td>' + HOURS[b] + '</td>' +
-        '<td>' + CAN[hc] + ' ' + name + '</td><td>' + (isHD ? 'Hoàng đạo' : 'Hắc đạo') + '</td></tr>';
+      const cls = [isHD ? 'hd' : '', b === nowIdx ? 'now' : ''].filter(Boolean).join(' ');
+      return '<tr class="' + cls + '"><td>' + name + '</td><td>' + HOURS[b] + '</td>' +
+        '<td>' + CAN[hc] + ' ' + name + '</td><td class="loai">' + (isHD ? 'Hoàng đạo' : 'Hắc đạo') + '</td></tr>';
     }).join('');
 
     $('detail').innerHTML =
-      '<h2>' + wd + ', ' + s.d + '/' + s.m + '/' + s.y + '</h2>' +
-      '<div class="sub">Dương lịch</div>' +
-      '<h3>Âm lịch</h3>' +
-      '<div class="kv"><span>Ngày</span><span>' + L.day + ' tháng ' + L.month + (L.leap ? ' (nhuận)' : '') + ' năm ' + CAN[I.yearCan] + ' ' + CHI[I.yearChi] + ' (' + L.year + ')</span></div>' +
-      '<h3>Can chi</h3>' +
-      '<div class="kv">' +
-        '<span>Năm</span><span>' + CAN[I.yearCan] + ' ' + CHI[I.yearChi] + '</span>' +
-        '<span>Tháng</span><span>' + CAN[I.monthCan] + ' ' + CHI[I.monthChi] + '</span>' +
-        '<span>Ngày</span><span>' + CAN[I.dayCan] + ' ' + CHI[I.dayChi] + '</span>' +
+      '<div class="d-head">' +
+        '<div class="d-big">' + s.d + '<small>tháng ' + s.m + '</small></div>' +
+        '<div class="d-meta">' +
+          '<h2>' + wd + ', ' + s.d + '/' + s.m + '/' + s.y + (isToday ? ' · Hôm nay' : '') + '</h2>' +
+          '<div class="lunar">Âm lịch ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + ' · ' + L.year + '</div>' +
+          '<div class="sub">' + CAN[I.yearCan] + ' ' + CHI[I.yearChi] + ' năm</div>' +
+        '</div>' +
       '</div>' +
-      '<h3>Trực &amp; hoàng/hắc đạo</h3>' +
-      '<div class="kv"><span>Trực</span><span><b>' + I.truc + '</b></span></div>' +
-      '<div style="margin-top:8px">' + hdBadge + '</div>' +
-      '<h3>Giờ trong ngày</h3>' +
-      '<table><thead><tr><th>Chi</th><th>Khung giờ</th><th>Can chi giờ</th><th>Loại</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-      '<div class="note">Giờ hoàng đạo được tính theo chi của ngày. Ngày hoàng/hắc đạo theo bảng trực (12 trực) với cách phân loại thường dùng. ' +
+      '<span class="badge ' + (I.hd ? 'hd' : 'hac') + '">' + (I.hd ? 'Ngày hoàng đạo' : 'Ngày hắc đạo') + '</span>' +
+
+      '<h3>Can chi</h3>' +
+      '<div class="facts">' +
+        '<div class="fact"><div class="k">Năm</div><div class="v">' + CAN[I.yearCan] + ' ' + CHI[I.yearChi] + '</div></div>' +
+        '<div class="fact"><div class="k">Tháng</div><div class="v">' + CAN[I.monthCan] + ' ' + CHI[I.monthChi] + '</div></div>' +
+        '<div class="fact"><div class="k">Ngày</div><div class="v">' + CAN[I.dayCan] + ' ' + CHI[I.dayChi] + '</div></div>' +
+      '</div>' +
+
+      '<h3>Trực</h3>' +
+      '<div class="truc-line"><b>' + I.truc + '</b> · ' + (I.hd ? 'thuộc nhóm hoàng đạo' : 'thuộc nhóm hắc đạo') + '</div>' +
+
+      '<h3>Giờ hoàng đạo</h3>' +
+      '<div class="chips">' + hdHours + '</div>' +
+
+      '<h3>Các khung giờ</h3>' +
+      '<table><thead><tr><th>Chi</th><th>Khung giờ</th><th>Can chi</th><th>Loại</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+
+      '<div class="note">Giờ hoàng đạo tính theo chi của ngày. Ngày hoàng/hắc đạo theo bảng 12 trực với cách phân loại thường dùng. ' +
       'Lịch chưa có tiết khí và các sao tốt xấu khác; hãy đối chiếu với lịch chính thống khi cần quyết định quan trọng.</div>';
   }
 
-  // ---------- Tương tác ----------
+  // ---------- Chế độ xem ----------
+  function setView(v) {
+    if (v === '3d' && !renderer) return;
+    view = v;
+    stage.hidden = v !== '3d';
+    grid.hidden = v !== '2d';
+    btn3d.classList.toggle('active', v === '3d');
+    btn2d.classList.toggle('active', v === '2d');
+    btn3d.setAttribute('aria-selected', v === '3d');
+    btn2d.setAttribute('aria-selected', v === '2d');
+    refreshViews();
+    if (v === '3d') resize();
+  }
+
+  document.querySelector('.seg').addEventListener('click', e => {
+    const b = e.target.closest('[data-view]');
+    if (b && !b.disabled) setView(b.dataset.view);
+  });
+
+  // ---------- 3D: kích thước, kéo, chọn ----------
   function resize() {
-    const w = stage.clientWidth || 600, h = stage.clientHeight || 520;
+    if (!renderer) return;
+    const w = stage.clientWidth || 600, h = stage.clientHeight || 500;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -429,30 +744,36 @@
   }
   window.addEventListener('resize', resize);
 
-  let yaw = 0, tilt = 0, dragging = false, moved = 0, lx = 0, ly = 0;
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  stage.addEventListener('pointerdown', e => { if (e.target !== renderer.domElement) return; dragging = true; moved = 0; lx = e.clientX; ly = e.clientY; });
-  window.addEventListener('pointermove', e => {
-    if (!dragging) return;
-    const dx = e.clientX - lx, dy = e.clientY - ly;
-    moved += Math.abs(dx) + Math.abs(dy);
-    yaw = Math.max(-0.6, Math.min(0.6, yaw + dx * 0.004));
-    tilt = Math.max(-0.3, Math.min(0.3, tilt + dy * 0.003));
-    lx = e.clientX; ly = e.clientY;
-  });
-  window.addEventListener('pointerup', e => {
-    if (!dragging) return;
-    dragging = false;
-    if (moved >= 5) return;
-    const r = stage.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
-    mouse.x = (e.clientX - r.left) / r.width * 2 - 1;
-    mouse.y = -(e.clientY - r.top) / r.height * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObjects(tiles);
-    if (hits.length) selectCell(hits[0].object.userData.idx);
-  });
+  if (renderer) {
+    let dragging = false, moved = 0, lx = 0, ly = 0;
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    stage.addEventListener('pointerdown', e => {
+      if (e.target !== renderer.domElement) return;
+      dragging = true; moved = 0; lx = e.clientX; ly = e.clientY;
+    });
+    window.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - lx, dy = e.clientY - ly;
+      moved += Math.abs(dx) + Math.abs(dy);
+      yaw = Math.max(-0.6, Math.min(0.6, yaw + dx * 0.004));
+      tilt = Math.max(-0.3, Math.min(0.3, tilt + dy * 0.003));
+      lx = e.clientX; ly = e.clientY;
+    });
+    window.addEventListener('pointerup', e => {
+      if (!dragging) return;
+      dragging = false;
+      if (moved >= 5) return;
+      const r = stage.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+      mouse.x = (e.clientX - r.left) / r.width * 2 - 1;
+      mouse.y = -(e.clientY - r.top) / r.height * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(tiles);
+      if (hits.length) selectCell(hits[0].object.userData.idx);
+    });
+  }
 
   // ---------- Điều khiển ----------
   function shiftMonth(delta) {
@@ -464,44 +785,66 @@
   }
   $('btnPrev').addEventListener('click', () => shiftMonth(-1));
   $('btnNext').addEventListener('click', () => shiftMonth(1));
-  $('btnToday').addEventListener('click', () => {
-    selectDate({ d: today.getDate(), m: today.getMonth() + 1, y: today.getFullYear() });
-  });
+  $('btnToday').addEventListener('click', () => selectDate(TODAY));
   $('btnGo').addEventListener('click', () => {
     const y = Number($('yInp').value), m = Number($('mSel').value);
     if (!y || y < 1900 || y > 2100) return;
     curY = y; curM = m; selSol = null;
     renderMonth();
   });
+  $('mSel').addEventListener('change', () => $('btnGo').click());
+  $('yInp').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnGo').click(); });
   $('btnFind').addEventListener('click', () => {
     const v = $('dInp').value;
     if (!v) return;
     const p = v.split('-');
     selectDate({ y: Number(p[0]), m: Number(p[1]), d: Number(p[2]) });
   });
+  $('dInp').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnFind').click(); });
+
   window.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return;
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'TEXTAREA') return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (selIdx < 0) return;
     const cur = cells[selIdx].sol;
-    const dt = new Date(cur.y, cur.m - 1, cur.d + (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0));
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 7, ArrowUp: -7 }[e.key];
+    if (step !== undefined) {
+      e.preventDefault();
+      const dt = new Date(cur.y, cur.m - 1, cur.d + step);
       selectDate({ d: dt.getDate(), m: dt.getMonth() + 1, y: dt.getFullYear() });
+    } else if (e.key === 'PageDown' || e.key === 'PageUp') {
+      e.preventDefault();
+      shiftMonth(e.key === 'PageDown' ? 1 : -1);
+    } else if (e.key === 'Home') {
+      selectDate(TODAY);
     }
   });
 
   // ---------- Vòng lặp ----------
   function loop() {
-    rig.rotation.y = yaw;
-    rig.rotation.x = tilt;
-    renderer.render(scene, camera);
+    if (renderer && view === '3d') {
+      rig.rotation.y = yaw;
+      rig.rotation.x = tilt;
+      renderer.render(scene, camera);
+    }
     requestAnimationFrame(loop);
   }
 
   // ---------- Khởi tạo ----------
-  curY = today.getFullYear();
-  curM = today.getMonth() + 1;
-  selSol = { d: today.getDate(), m: curM, y: curY };
-  $('dInp').value = curY + '-' + String(curM).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  curY = TODAY.y;
+  curM = TODAY.m;
+  selSol = { ...TODAY };
+  $('dInp').value = curY + '-' + String(curM).padStart(2, '0') + '-' + String(TODAY.d).padStart(2, '0');
+  $('yInp').value = curY;
+
+  view = (window.innerWidth < 720 || !renderer) ? '2d' : '3d';
+  if (!renderer) btn3d.disabled = true;
+  stage.hidden = view !== '3d';
+  grid.hidden = view !== '2d';
+  btn3d.classList.toggle('active', view === '3d');
+  btn2d.classList.toggle('active', view === '2d');
+
   resize();
   renderMonth();
   loop();

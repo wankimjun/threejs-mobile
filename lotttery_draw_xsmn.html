@@ -202,11 +202,40 @@
       <button type="button" class="btn-outline" id="btnReset">Làm mới</button>
     </div>
     <div class="seed-controls" style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px;">
-      <label class="muted" style="font-size:.82rem">Seed (tùy chọn):</label>
+      <label class="muted" style="font-size:.82rem">Client seed (tùy chọn):</label>
       <input type="text" id="drawSeed" placeholder="" style="width:170px;background:rgba(15,23,42,.7);color:#f8fafc;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 8px;font-size:.82rem">
-      <button type="button" class="btn-outline btn-small" id="btnNewSeed">Tạo seed ngẫu nhiên</button>
+      <button type="button" class="btn-outline btn-small" id="btnNewSeed">Tạo client seed ngẫu nhiên</button>
+      <button type="button" class="btn-outline btn-small" id="btnCopyCommit" title="Sao chép commitment">📋</button>
     </div>
-    <div id="usedSeed" class="muted" style="font-size:.78rem;text-align:center;margin-top:4px"></div>
+    <div id="commitmentDisplay" class="muted" style="font-size:.78rem;text-align:center;margin-top:4px;word-break:break-all"></div>
+
+    <div id="revealPanel" style="margin-top:10px;padding:12px;border-radius:10px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.06);display:none">
+      <div class="panel-title" style="margin-bottom:8px;font-size:.9rem">🔓 Mở khóa (reveal) sau khi quay</div>
+      <div style="font-size:.8rem;display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:140px"><div class="muted" style="font-size:.72rem">Server seed</div><div id="revServer" style="font-family:Consolas,monospace;font-size:.72rem;word-break:break-all"></div></div>
+        <div style="flex:1;min-width:140px"><div class="muted" style="font-size:.72rem">Client seed</div><div id="revClient" style="font-family:Consolas,monospace;font-size:.72rem;word-break:break-all"></div></div>
+        <div style="flex:1;min-width:140px"><div class="muted" style="font-size:.72rem">Commitment</div><div id="revCommit" style="font-family:Consolas,monospace;font-size:.72rem;word-break:break-all"></div></div>
+      </div>
+    </div>
+
+    <div id="verifyPanel" style="margin-top:10px;padding:12px;border-radius:10px;border:1px solid rgba(148,163,184,.2);background:rgba(148,163,184,.06);display:none">
+      <div class="panel-title" style="margin-bottom:8px;font-size:.9rem">🔍 Xác minh lần quay đã lưu</div>
+      <div style="font-size:.8rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="vfServer" placeholder="Server seed" style="background:rgba(15,23,42,.7);color:#f8fafc;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 8px;font-size:.78rem;min-width:150px">
+        <input type="text" id="vfClient" placeholder="Client seed" style="background:rgba(15,23,42,.7);color:#f8fafc;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 8px;font-size:.78rem;min-width:150px">
+        <button type="button" class="btn-blue btn-small" id="btnVerify">Xác minh</button>
+      </div>
+      <div id="verifyResult" style="margin-top:8px;font-size:.82rem;min-height:1.2em"></div>
+      <div id="verifyDetail" style="margin-top:6px;font-size:.75rem;color:var(--muted);max-height:220px;overflow-y:auto"></div>
+    </div>
+
+    <div id="historyPanel" style="margin-top:10px">
+      <div class="tlist-head" style="margin:12px 0 6px">
+        <span>Lịch sử các lần quay đã lưu</span>
+        <button type="button" class="btn-outline btn-small" id="btnClearHistory" style="margin-left:6px">Xóa lịch sử</button>
+      </div>
+      <div class="tlist" id="drawHistory"></div>
+    </div>
   </section>
 
   <section class="card">
@@ -317,8 +346,14 @@
   const statusEl = $('status'), numbersEl = $('numbers'), resultTable = $('resultTable');
   const checkArea = $('checkArea'), stepsEl = $('steps'), usedSeedDisplay = $('usedSeed');
   const btnDraw = $('btnDraw'), btnReset = $('btnReset');
+  const commitmentDisplay = $('commitmentDisplay');
+  const revealPanel = $('revealPanel'), revServer = $('revServer'), revClient = $('revClient'), revCommit = $('revCommit');
+  const verifyPanel = $('verifyPanel'), vfServer = $('vfServer'), vfClient = $('vfClient'), btnVerify = $('btnVerify');
+  const verifyResult = $('verifyResult'), verifyDetail = $('verifyDetail');
+  const drawHistory = $('drawHistory'), btnClearHistory = $('btnClearHistory');
 
   let busy = false, stepIndex = 0, sessionRNG = null;
+  let serverSeed = '', clientSeed = '', commitment = '', stepSeeds = [], revealed = false;
   let tickets = [];                 // [{ id, num }]
   let ticketSeq = 1;
   let prizeResults = [];            // prizeResults[pi] = mảng các chuỗi số trúng giải pi
@@ -388,6 +423,22 @@
     pickOne(arr) {
       return arr[this.randInt(arr.length)];
     }
+  }
+
+  async function sha256Hex(str) {
+    const enc = new TextEncoder();
+    const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+    return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+  }
+  function randomHex(bytes) {
+    const buf = new Uint8Array(bytes);
+    try { crypto.getRandomValues(buf); } catch (e) {
+      for (let i = 0; i < bytes; i++) buf[i] = Math.floor(Math.random() * 256);
+    }
+    return Array.from(buf, b => b.toString(16).padStart(2, '0')).join('');
+  }
+  async function deriveStepSeed(serverSeed, clientSeed, nonce) {
+    return await sha256Hex(serverSeed + '|' + clientSeed + '|' + nonce);
   }
 
   // ---------- Lưu trữ ----------
@@ -726,13 +777,14 @@
     drums.push(drum);
   }
 
-  function randomizeBalls(d) {
+  function randomizeBalls(d, rng) {
+    const rngObj = rng || sessionRNG || { next: () => Math.random() };
     d.balls.forEach((b, n) => {
       let x = 0, y = 0, z = 0, ok = false, tries = 0;
       while (!ok && tries < 400) {
-        const r1 = sessionRNG ? sessionRNG.next() : Math.random();
-        const r2 = sessionRNG ? sessionRNG.next() : Math.random();
-        const r3 = sessionRNG ? sessionRNG.next() : Math.random();
+        const r1 = rngObj.next();
+        const r2 = rngObj.next();
+        const r3 = rngObj.next();
         const r = RLIM * 0.9 * Math.sqrt(r1);
         const a = r2 * Math.PI * 2;
         x = r * Math.cos(a); y = r * Math.sin(a);
@@ -752,6 +804,47 @@
       b.locked = false;
       b.mesh.visible = true;
     });
+  }
+
+  // Replay headless (không Three.js) để xác minh: tiêu thụ cùng chuỗi next() như randomizeBalls thực tế.
+  function headlessRandomizeAllDrums(rng) {
+    const drums = [];
+    for (let di = 0; di < 6; di++) {
+      const balls = [];
+      for (let n = 0; n < 10; n++) {
+        let x = 0, y = 0, z = 0, ok = false, tries = 0;
+        while (!ok && tries < 400) {
+          const r1 = rng.next();
+          const r2 = rng.next();
+          const r3 = rng.next();
+          const r = RLIM * 0.9 * Math.sqrt(r1);
+          const a = r2 * Math.PI * 2;
+          x = r * Math.cos(a); y = r * Math.sin(a);
+          z = (r3 * 2 - 1) * ZLIM;
+          ok = true;
+          for (let m = 0; m < n; m++) {
+            const o = balls[m];
+            const dx = x - o.x, dy = y - o.y, dz = z - o.z;
+            const md = 2.05 * BALL_R;
+            if (dx * dx + dy * dy + dz * dz < md * md) { ok = false; break; }
+          }
+          tries++;
+        }
+        balls.push({ x, y, z });
+      }
+      drums.push(balls);
+    }
+    return drums;
+  }
+
+  // Chiếu lại một lượt: randomize tất cả 6 lồng → perturb các lồng aktif → pickFlow (randInt(10) mỗi lồng).
+  function headlessReplayStep(stepIndex, rng) {
+    const step = STEPS[stepIndex];
+    headlessRandomizeAllDrums(rng);
+    step.drums.forEach(di => {
+      for (let n = 0; n < 10; n++) rng.next(); // perturb: 1 next() mỗi bóng (tất cả alive)
+    });
+    return step.drums.map(di => rng.randInt(10));
   }
 
   function stepDrum(d, dt) {
@@ -865,9 +958,10 @@
     return new THREE.Vector3(tx, ty, 0);
   }
 
-  async function pickFlow(d) {
+  async function pickFlow(d, rng) {
+    const r = rng || sessionRNG;
     const cands = d.balls.filter(b => b.alive);
-    const ball = cands[sessionRNG ? sessionRNG.randInt(cands.length) : Math.floor(Math.random() * cands.length)];
+    const ball = cands[r.randInt(cands.length)];
     ball.locked = true;
     const p0 = ball.p.clone();
     const target = holeLocal(d);
@@ -923,25 +1017,25 @@
     });
   }
 
-  async function runStep() {
+  async function runStep(stepRNG) {
     const step = STEPS[stepIndex];
     markStep(stepIndex, 'current');
     statusEl.className = 'status drawing';
     statusEl.textContent = 'Lượt ' + (stepIndex + 1) + '/18 - ' + step.name + ': đang trộn ' + step.drums.length + ' lồng cầu...';
 
-    drums.forEach(randomizeBalls);
+    drums.forEach(d => randomizeBalls(d, stepRNG));
     const active = step.drums.map(i => drums[i]);
 
     await tween(900, k => setOmega(active, MAX_W * ease(k)));
     await tween(2400, () => {
-      active.forEach(d => d.balls.forEach(b => { if (b.alive) b.v.z += ((sessionRNG ? sessionRNG.next() : Math.random()) - 0.5) * 0.5; }));
+      active.forEach(d => d.balls.forEach(b => { if (b.alive) b.v.z += (stepRNG.next() - 0.5) * 0.5; }));
     });
     await tween(1600, k => setOmega(active, MAX_W * (1 - k)));
     setOmega(active, 0);
     await wait(700);
 
     statusEl.textContent = 'Lượt ' + (stepIndex + 1) + '/18 - ' + step.name + ': đang nhặt bóng...';
-    const digits = await Promise.all(active.map(pickFlow));
+    const digits = await Promise.all(active.map(d => pickFlow(d, stepRNG)));
 
     showStepResult(digits);
     setStepDigits(stepIndex, digits);
@@ -978,6 +1072,68 @@
     checkArea.innerHTML = banner;
   }
 
+  // ---------- Xác minh provably fair ----------
+  async function verifyDraw(draw, inputServer, inputClient) {
+    const detail = [];
+    const seedOk = [], digitOk = [];
+    const c1 = await sha256Hex(inputServer + '|' + inputClient);
+    const commitOk = (c1 === draw.commitment);
+    detail.push('Commitment: ' + (commitOk ? 'KHỚP ✓' : 'KHÔNG KHỚP ✗') + ' (tính lại = ' + c1 + ')');
+
+    for (let i = 0; i < (draw.stepSeeds || []).length; i++) {
+      const ss = await sha256Hex(inputServer + '|' + inputClient + '|' + i);
+      const ok = (ss === (draw.stepSeeds[i] || ''));
+      seedOk[i] = ok;
+      detail.push('Lượt ' + i + ' stepSeed: ' + (ok ? 'KHỚP ✓' : 'KHÔNG KHỚP ✗'));
+    }
+    const maxL = Math.max((draw.stepSeeds || []).length, 18);
+    for (let i = 0; i < maxL; i++) {
+      const rng = new SeededRNG(draw.stepSeeds[i] || '');
+      const replay = headlessReplayStep(i, rng);
+      const ok = (replay.join('') === (draw.nums[i] || ''));
+      digitOk[i] = ok;
+      detail.push('Lượt ' + i + ' chữ số: ' + (ok ? 'KHỚP ✓ (' + replay.join('') + ')' : 'KHÔNG KHỚP ✗ (replay=' + replay.join('') + ', lưu=' + (draw.nums[i] || '') + ')'));
+    }
+    const overall = commitOk && seedOk.every(Boolean) && digitOk.every(Boolean);
+    return { overall, commitOk, seedOk, digitOk, detail };
+  }
+
+  function renderHistory() {
+    drawHistory.innerHTML = '';
+    if (!draws.length) {
+      drawHistory.innerHTML = '<div class="empty">Chưa có lần quay nào được lưu.</div>';
+      return;
+    }
+    [...draws].reverse().forEach(d => {
+      const row = document.createElement('div');
+      row.className = 'trow';
+      const time = d.time || '';
+      const nums = (d.nums || []).join(' · ');
+      row.innerHTML = '<span class="tid">' + new Date(d.id).toLocaleString('vi-VN') + '</span>' +
+        '<span class="tnum" title="' + nums + '">' + (d.commitment ? d.commitment.slice(0, 16) + '…' : '-') + '</span>' +
+        '<span class="tv">' + (d.commitment ? '<span style="color:var(--green)">✓ đã băm</span>' : '<span class="muted">chưa có commitment</span>') + '</span>';
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rm';
+      b.textContent = 'Xác minh';
+      b.addEventListener('click', async () => {
+        btnVerify.disabled = true;
+        verifyResult.textContent = 'Đang tính lại…';
+        verifyDetail.textContent = '';
+        const res = await verifyDraw(d, d.serverSeed || '', d.clientSeed || '');
+        verifyResult.textContent = res.overall
+          ? ('✓ Xác minh OK — tất cả lượt khớp (commitment + stepSeed + chữ số).')
+          : ('✗ Xác minh THẤT BẠI — có thành phần không khớp.');
+        verifyResult.className = res.overall ? 'ok' : 'err';
+        verifyDetail.textContent = res.detail.join('\n');
+        drawHistory.querySelectorAll('button').forEach(x => { x.disabled = false; });
+        btnVerify.disabled = false;
+      });
+      row.appendChild(b);
+      drawHistory.appendChild(row);
+    });
+  }
+
   // ---------- Điều khiển ----------
   function lockUI(v) {
     btnDraw.disabled = v;
@@ -1006,7 +1162,10 @@
 
     while (stepIndex < STEPS.length) {
       const step = STEPS[stepIndex];
-      const digits = await runStep();
+      const stepSeed = await deriveStepSeed(serverSeed, clientSeed, String(stepIndex));
+      const stepRNG = new SeededRNG(stepSeed);
+      stepSeeds[stepIndex] = stepSeed;
+      const digits = await runStep(stepRNG);
       prizeResults[step.prizeIndex].push(digits.join(''));
       renderResultTable();
       renderTickets();
@@ -1018,9 +1177,24 @@
     renderResultTable();
     renderCheck();
 
-    draws.push({ id: Date.now(), time: new Date().toLocaleString('vi-VN'), nums: prizeResults.flat() });
+    revealed = true;
+    revServer.textContent = serverSeed;
+    revClient.textContent = clientSeed || '(trống)';
+    revCommit.textContent = commitment;
+    revealPanel.style.display = 'block';
+
+    draws.push({
+      id: Date.now(),
+      time: new Date().toLocaleString('vi-VN'),
+      serverSeed,
+      clientSeed,
+      commitment,
+      stepSeeds,
+      nums: prizeResults.flat()
+    });
     saveDraws();
     renderStats();
+    renderHistory();
 
     busy = false;
     lockUI(false);
@@ -1039,17 +1213,20 @@
     renderTickets();
   }
 
-  btnDraw.addEventListener('click', () => {
+  btnDraw.addEventListener('click', async () => {
     if (busy) return;
     const seedText = $('drawSeed').value.trim();
-    let seedUsed = seedText;
-    if (!seedUsed) {
-      const buf = new Uint32Array(2);
-      try { crypto.getRandomValues(buf); } catch (e) {}
-      seedUsed = String(buf[0]) + '-' + String(buf[1]) + '-' + Date.now();
-    }
-    sessionRNG = new SeededRNG(seedUsed);
-    usedSeedDisplay.textContent = seedText ? ('Seed: ' + seedUsed) : ('Seed tự sinh: ' + seedUsed);
+    clientSeed = seedText;
+    serverSeed = randomHex(32);
+    commitment = await sha256Hex(serverSeed + '|' + clientSeed);
+    stepSeeds = [];
+    revealed = false;
+    commitmentDisplay.textContent = 'Commitment (SHA-256, hiển thị trước khi quay): ' + commitment;
+    revealPanel.style.display = 'none';
+    verifyPanel.style.display = 'none';
+    // sessionRNG dùng cho quick-pick / gợi ý (không liên quan đến chuỗi minh bạch 18 lượt)
+    sessionRNG = new SeededRNG(clientSeed || randomHex(16));
+    usedSeedDisplay.textContent = clientSeed ? ('Client seed: ' + clientSeed) : ('Client seed: (trống)');
     resetAll();
     runAll();
   });
@@ -1108,11 +1285,55 @@
     flash('Đã tạo seed ngẫu nhiên.', true);
   });
 
+  $('btnCopyCommit').addEventListener('click', () => {
+    if (!commitment) return;
+    navigator.clipboard.writeText(commitment).then(() => flash('Đã sao chép commitment.', true));
+  });
+
+  $('btnVerify').addEventListener('click', async () => {
+    const s = vfServer.value.trim(), c = vfClient.value.trim();
+    if (!s) {
+      verifyResult.textContent = 'Vui lòng nhập server seed.';
+      verifyResult.className = 'err';
+      return;
+    }
+    // Tìm bản ghi khớp commitment/server seed (hoặc bản ghi gần nhất nếu chưa nhập)
+    let target = null;
+    if (s) {
+      target = draws.find(d => d.serverSeed === s && d.clientSeed === c);
+    }
+    if (!target && draws.length) target = draws[draws.length - 1];
+    if (!target) {
+      verifyResult.textContent = 'Không tìm thấy bản ghi để xác minh.';
+      verifyResult.className = 'err';
+      return;
+    }
+    btnVerify.disabled = true;
+    verifyResult.textContent = 'Đang tính lại…';
+    verifyDetail.textContent = '';
+    const res = await verifyDraw(target, target.serverSeed || '', target.clientSeed || '');
+    verifyResult.textContent = res.overall
+      ? ('✓ Xác minh OK — tất cả lượt khớp (commitment + stepSeed + chữ số).')
+      : ('✗ Xác minh THẤT BẠI — có thành phần không khớp.');
+    verifyResult.className = res.overall ? 'ok' : 'err';
+    verifyDetail.textContent = res.detail.join('\n');
+    btnVerify.disabled = false;
+  });
+
+  $('btnClearHistory').addEventListener('click', () => {
+    if (!confirm('Xóa toàn bộ lịch sử các lần quay đã lưu?')) return;
+    draws = [];
+    saveDraws();
+    renderHistory();
+    flash('Đã xóa lịch sử.', true);
+  });
+
   // ---------- Khởi tạo ----------
   buildWheels();
   renderSteps();
   renderTickets();
   renderStats();
+  renderHistory();
   resize();
   drums.forEach(randomizeBalls);
   requestAnimationFrame(t => { last = t; loop(t); });

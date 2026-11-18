@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cung điện ký ức</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #07060f; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #e8e4f5; }
+  canvas { position: fixed; inset: 0; display: block; }
+  #ui {
+    position: fixed; top: 16px; left: 16px; width: 290px; max-height: calc(100% - 32px); overflow: auto;
+    background: rgba(15, 12, 30, 0.78); border: 1px solid rgba(180, 160, 255, 0.25); border-radius: 12px;
+    padding: 14px; backdrop-filter: blur(8px); z-index: 2; box-sizing: border-box;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; color: #f3e8ff; }
+  h2 { font-size: 14px; margin: 16px 0 8px; color: #cbb8ff; font-weight: 600; }
+  .hint { font-size: 12px; opacity: 0.6; line-height: 1.5; margin-bottom: 12px; }
+  button { font: inherit; cursor: pointer; color: #e8e4f5; background: rgba(120, 100, 200, 0.25); border: 1px solid rgba(180, 160, 255, 0.3); border-radius: 8px; padding: 6px 10px; }
+  button:hover { background: rgba(140, 120, 230, 0.4); }
+  button.link { background: none; border: none; padding: 4px 0; font-weight: 600; color: #ffd9a8; text-align: left; }
+  button.item { display: block; width: 100%; text-align: left; margin: 3px 0; background: rgba(40, 32, 75, 0.5); border-color: transparent; }
+  button.item.on { background: rgba(140, 120, 230, 0.5); border-color: #cbb8ff; }
+  .roomHead { margin-top: 10px; }
+  #resetBtn { width: 100%; margin-bottom: 4px; }
+  form { display: flex; flex-direction: column; gap: 6px; }
+  input, textarea, select {
+    font: inherit; color: #f3e8ff; background: rgba(8, 6, 20, 0.7); border: 1px solid rgba(180, 160, 255, 0.25);
+    border-radius: 8px; padding: 7px 9px; outline: none; box-sizing: border-box; width: 100%;
+  }
+  input:focus, textarea:focus, select:focus { border-color: #cbb8ff; }
+  textarea { resize: vertical; }
+  form button[type=submit] { background: rgba(160, 120, 255, 0.35); }
+  #detail {
+    position: fixed; right: 16px; top: 16px; width: 300px; background: rgba(15, 12, 30, 0.85);
+    border: 1px solid rgba(180, 160, 255, 0.3); border-radius: 12px; padding: 16px; box-sizing: border-box;
+    backdrop-filter: blur(8px); z-index: 3; transition: opacity 0.3s, transform 0.3s;
+  }
+  #detail.hidden { opacity: 0; transform: translateX(20px); pointer-events: none; }
+  #dRoom { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #ffd9a8; opacity: 0.85; }
+  #dTitle { font-size: 20px; margin: 6px 0 10px; color: #f3e8ff; }
+  #dText { font-size: 14px; line-height: 1.6; opacity: 0.9; white-space: pre-wrap; }
+  #closeDetail { position: absolute; top: 8px; right: 8px; padding: 2px 9px; }
+  #dDelete { margin-top: 12px; background: rgba(255, 90, 120, 0.2); }
+  #dDelete:hover { background: rgba(255, 90, 120, 0.4); }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <h1>Cung điện ký ức</h1>
+  <div class="hint">Kéo để xoay · Cuộn để phóng to/thu nhỏ · Nhấn vào viên pha lê để xem ký ức</div>
+  <button id="resetBtn">Về tổng quan</button>
+  <div id="list"></div>
+
+  <h2>Cất một ký ức mới</h2>
+  <form id="form">
+    <input id="fTitle" placeholder="Tiêu đề" maxlength="40" required>
+    <textarea id="fText" rows="3" placeholder="Ký ức của bạn..."></textarea>
+    <select id="fRoom"></select>
+    <button type="submit">Lưu vào cung điện</button>
+  </form>
+</div>
+
+<div id="detail" class="hidden">
+  <button id="closeDetail">×</button>
+  <div id="dRoom"></div>
+  <div id="dTitle"></div>
+  <div id="dText"></div>
+  <button id="dDelete">Xóa ký ức này</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ---------- Dữ liệu ----------
+const ROOMS = [
+  { name: 'Tuổi thơ',  color: 0xffb36b },
+  { name: 'Tình bạn',  color: 0x6bd6ff },
+  { name: 'Chuyến đi', color: 0x9d7bff },
+  { name: 'Gia đình',  color: 0xff6b9d },
+  { name: 'Tương lai', color: 0x7dffb0 },
+];
+const RING_R = 26;
+const roomPos = i => {
+  const a = (i / ROOMS.length) * Math.PI * 2;
+  return new THREE.Vector3(Math.cos(a) * RING_R, 0, Math.sin(a) * RING_R);
+};
+
+const DEFAULTS = [
+  { title: 'Mùa hè ở quê ngoại', text: 'Tiếng ve râm ran, mùi bưởi chín và những buổi chiều đuổi nhau dưới bờ ao.', room: 0 },
+  { title: 'Chiếc xe đạp đầu tiên', text: 'Ba giữ yên sau, tôi loạng choạng rồi bỗng thấy mình tự đạp được.', room: 0 },
+  { title: 'Người bạn cùng bàn', text: 'Chúng tôi chia nhau từng viên kẹo trong giờ học thuộc lòng.', room: 1 },
+  { title: 'Đêm ở Đà Lạt', text: 'Sương phủ kín con dốc, hai đứa co ro uống trà gừng bên bếp lửa.', room: 2 },
+  { title: 'Bữa cơm chiều', text: 'Mẹ luôn gắp miếng cá ngon nhất cho người đi xa mới về.', room: 3 },
+  { title: 'Lời hứa với chính mình', text: 'Một ngày nào đó sẽ viết xong cuốn sách còn dang dở.', room: 4 },
+];
+
+const KEY = 'memory-palace-v1';
+let memories;
+try { memories = JSON.parse(localStorage.getItem(KEY)); } catch (e) { memories = null; }
+if (!Array.isArray(memories)) memories = DEFAULTS.map((m, i) => ({ ...m, id: 'd' + i }));
+function save() { try { localStorage.setItem(KEY, JSON.stringify(memories)); } catch (e) {} }
+
+// ---------- Scene ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07060f);
+scene.fog = new THREE.FogExp2(0x07060f, 0.008);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.prepend(renderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 400);
+camera.position.set(0, 18, 48);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 4, 0);
+controls.enableDamping = true;
+controls.minDistance = 6;
+controls.maxDistance = 110;
+controls.maxPolarAngle = Math.PI * 0.49;
+
+scene.add(new THREE.AmbientLight(0x6a6a9a, 0.8));
+const sun = new THREE.DirectionalLight(0xddd0ff, 0.6);
+sun.position.set(20, 40, 20);
+scene.add(sun);
+
+// Trung tâm: pha lê lớn và bệ đá
+const hubBase = new THREE.Mesh(
+  new THREE.CylinderGeometry(3.5, 4, 1.2, 48),
+  new THREE.MeshStandardMaterial({ color: 0x2a2350, roughness: 0.5 })
+);
+hubBase.position.y = 0.6;
+scene.add(hubBase);
+
+const hub = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(2.4, 1),
+  new THREE.MeshStandardMaterial({ color: 0xc8b6ff, emissive: 0x6a4dff, emissiveIntensity: 0.8, roughness: 0.2 })
+);
+hub.position.y = 9;
+scene.add(hub);
+
+// Các sợi nối từ trung tâm tới mỗi phòng
+const linkMat = new THREE.LineBasicMaterial({ color: 0x9d8cff, transparent: true, opacity: 0.25 });
+ROOMS.forEach((_, i) => {
+  const p = roomPos(i);
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0.3, 0), new THREE.Vector3(p.x, 0.3, p.z)]);
+  scene.add(new THREE.Line(geo, linkMat));
+});
+
+// Canvas text -> sprite nhãn
+function makeLabel(text, color, scale) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 128;
+  const x = c.getContext('2d');
+  const t = text.length > 22 ? text.slice(0, 21) + '…' : text;
+  x.font = '600 52px system-ui, sans-serif';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.shadowColor = 'rgba(0,0,0,0.8)';
+  x.shadowBlur = 10;
+  x.fillStyle = '#' + new THREE.Color(color).getHexString();
+  x.fillText(t, 256, 64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  s.scale.set(4 * scale, scale, 1);
+  return s;
+}
+
+// ---------- Các phòng (cố định) ----------
+ROOMS.forEach((r, i) => {
+  const p = roomPos(i);
+  const g = new THREE.Group();
+  g.position.copy(p);
+
+  const floor = new THREE.Mesh(
+    new THREE.CylinderGeometry(9, 9.5, 0.8, 64),
+    new THREE.MeshStandardMaterial({ color: 0x1d1838, roughness: 0.6, metalness: 0.3 })
+  );
+  floor.position.y = -0.4;
+  g.add(floor);
+
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(9.2, 0.08, 8, 96),
+    new THREE.MeshBasicMaterial({ color: r.color })
+  );
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.05;
+  g.add(ring);
+
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    const px = Math.cos(a) * 8.5, pz = Math.sin(a) * 8.5;
+    const pil = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.6, 7, 12),
+      new THREE.MeshStandardMaterial({ color: 0x2a2350, roughness: 0.5 })
+    );
+    pil.position.set(px, 3.5, pz);
+    g.add(pil);
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshBasicMaterial({ color: r.color }));
+    orb.position.set(px, 7.2, pz);
+    g.add(orb);
+  }
+
+  const label = makeLabel(r.name, r.color, 1.8);
+  label.position.set(0, 9, 0);
+  g.add(label);
+
+  const light = new THREE.PointLight(r.color, 40, 30);
+  light.position.set(0, 4, 0);
+  g.add(light);
+
+  scene.add(g);
+});
+
+// ---------- Ký ức (pha lê) ----------
+const memGroup = new THREE.Group();
+scene.add(memGroup);
+let crystals = [];
+
+function buildMemories() {
+  memGroup.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) {
+      if (o.material.map) o.material.map.dispose();
+      o.material.dispose();
+    }
+  });
+  memGroup.clear();
+  crystals = [];
+
+  ROOMS.forEach((room, ri) => {
+    const list = memories.filter(m => m.room === ri);
+    const rp = roomPos(ri);
+    const n = list.length;
+    const R = 2.5 + n * 0.35;
+    const col = room.color;
+
+    list.forEach((m, k) => {
+      const a = (k / Math.max(n, 1)) * Math.PI * 2;
+      const x = rp.x + Math.cos(a) * R;
+      const z = rp.z + Math.sin(a) * R;
+
+      const ped = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.8, 1.2, 24),
+        new THREE.MeshStandardMaterial({ color: 0x2a2350, roughness: 0.5 })
+      );
+      ped.position.set(x, 0.6, z);
+
+      const crystal = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.7),
+        new THREE.MeshStandardMaterial({
+          color: col, emissive: col, emissiveIntensity: 0.6,
+          roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.92
+        })
+      );
+      crystal.position.set(x, 2.3, z);
+      crystal.userData = { memId: m.id, base: 2.3, phase: k + ri };
+      crystals.push(crystal);
+
+      const label = makeLabel(m.title, col, 0.6);
+      label.position.set(x, 3.8, z);
+
+      memGroup.add(ped, crystal, label);
+    });
+  });
+}
+
+// ---------- Hạt bụi bay ----------
+const N = 900;
+const pArr = new Float32Array(N * 3);
+for (let i = 0; i < N; i++) {
+  const r = 40 + Math.random() * 60;
+  const th = Math.random() * Math.PI * 2;
+  const ph = Math.acos(2 * Math.random() - 1);
+  pArr[i * 3] = r * Math.sin(ph) * Math.cos(th);
+  pArr[i * 3 + 1] = r * Math.cos(ph) * 0.5 + 10;
+  pArr[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+}
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pArr, 3));
+const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
+  color: 0xcbb8ff, size: 0.25, transparent: true, opacity: 0.7
+}));
+scene.add(particles);
+
+// ---------- Di chuyển camera ----------
+let flyGoal = null;
+function flyTo(target, pos) { flyGoal = { target, pos }; }
+controls.addEventListener('start', () => { flyGoal = null; });
+
+function focusMemory(m) {
+  const c = crystals.find(c => c.userData.memId === m.id);
+  if (!c) return;
+  const p = c.position.clone();
+  flyTo(p, p.clone().add(new THREE.Vector3(0, 2.5, 7)));
+}
+function focusRoom(i) {
+  const rp = roomPos(i);
+  const out = rp.clone().normalize().multiplyScalar(14);
+  flyTo(rp.clone().add(new THREE.Vector3(0, 2, 0)), rp.clone().add(out).add(new THREE.Vector3(0, 9, 0)));
+}
+function focusOverview() {
+  flyTo(new THREE.Vector3(0, 4, 0), new THREE.Vector3(0, 18, 48));
+}
+
+// ---------- UI ----------
+const listEl = document.getElementById('list');
+const form = document.getElementById('form');
+const fTitle = document.getElementById('fTitle');
+const fText = document.getElementById('fText');
+const fRoom = document.getElementById('fRoom');
+const detail = document.getElementById('detail');
+const dRoom = document.getElementById('dRoom');
+const dTitle = document.getElementById('dTitle');
+const dText = document.getElementById('dText');
+const dDelete = document.getElementById('dDelete');
+let selectedId = null;
+
+ROOMS.forEach((r, i) => {
+  const o = document.createElement('option');
+  o.value = i;
+  o.textContent = r.name;
+  fRoom.appendChild(o);
+});
+
+function renderList() {
+  listEl.innerHTML = '';
+  ROOMS.forEach((r, i) => {
+    const h = document.createElement('div');
+    h.className = 'roomHead';
+    const btn = document.createElement('button');
+    btn.className = 'link';
+    btn.textContent = r.name;
+    btn.onclick = () => focusRoom(i);
+    h.appendChild(btn);
+    listEl.appendChild(h);
+
+    memories.filter(m => m.room === i).forEach(m => {
+      const b = document.createElement('button');
+      b.className = 'item' + (m.id === selectedId ? ' on' : '');
+      b.textContent = '• ' + m.title;
+      b.onclick = () => selectMemory(m);
+      listEl.appendChild(b);
+    });
+  });
+}
+
+function showDetail(m) {
+  dRoom.textContent = ROOMS[m.room] ? ROOMS[m.room].name : '';
+  dTitle.textContent = m.title;
+  dText.textContent = m.text || '(không có nội dung)';
+  detail.classList.remove('hidden');
+  dDelete.onclick = () => {
+    if (confirm('Xóa ký ức này?')) {
+      memories = memories.filter(x => x.id !== m.id);
+      save();
+      selectedId = null;
+      detail.classList.add('hidden');
+      rebuild();
+    }
+  };
+}
+
+function selectMemory(m) {
+  selectedId = m.id;
+  focusMemory(m);
+  showDetail(m);
+  renderList();
+}
+
+document.getElementById('closeDetail').onclick = () => {
+  detail.classList.add('hidden');
+  selectedId = null;
+  renderList();
+};
+document.getElementById('resetBtn').onclick = focusOverview;
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const title = fTitle.value.trim();
+  if (!title) return;
+  const m = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    title,
+    text: fText.value.trim(),
+    room: Number(fRoom.value)
+  };
+  memories.push(m);
+  save();
+  form.reset();
+  rebuild();
+  selectMemory(m);
+});
+
+function rebuild() {
+  buildMemories();
+  renderList();
+}
+
+// ---------- Chọn bằng chuột ----------
+const ray = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let downX = 0, downY = 0;
+
+function pick(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+  ray.setFromCamera(mouse, camera);
+  const hits = ray.intersectObjects(crystals, false);
+  return hits.length ? hits[0].object : null;
+}
+
+renderer.domElement.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (Math.hypot(e.clientX - downX, e.clientY - downY) > 5) return;
+  const hit = pick(e);
+  if (hit) {
+    const m = memories.find(x => x.id === hit.userData.memId);
+    if (m) selectMemory(m);
+  }
+});
+renderer.domElement.addEventListener('pointermove', e => {
+  document.body.style.cursor = pick(e) ? 'pointer' : 'default';
+});
+
+// ---------- Vòng lặp ----------
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  for (const c of crystals) {
+    c.rotation.y += 0.01;
+    c.position.y = c.userData.base + Math.sin(t * 1.5 + c.userData.phase) * 0.25;
+  }
+  hub.rotation.y += 0.004;
+  hub.rotation.x += 0.0015;
+  particles.rotation.y += 0.0004;
+
+  if (flyGoal) {
+    controls.target.lerp(flyGoal.target, 0.06);
+    camera.position.lerp(flyGoal.pos, 0.06);
+    if (controls.target.distanceTo(flyGoal.target) < 0.05 && camera.position.distanceTo(flyGoal.pos) < 0.05) {
+      flyGoal = null;
+    }
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+buildMemories();
+renderList();
+animate();
+</script>
+</body>
+</html>

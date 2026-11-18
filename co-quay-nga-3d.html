@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cò quay nga 3D – Súng nước</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0d1b2a;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}
+  #ui{position:fixed;top:0;left:0;right:0;padding:14px 18px;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+  .panel{background:rgba(0,0,0,.55);border-radius:12px;padding:12px 16px;backdrop-filter:blur(4px);pointer-events:auto;max-width:520px}
+  h1{font-size:18px;margin:0 0 6px}
+  .score{display:flex;gap:18px;font-size:15px}
+  .score .active{color:#ffd166;font-weight:700}
+  #status{font-size:16px;min-height:22px;margin-top:8px}
+  #controls{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  button{font-size:16px;padding:12px 22px;border:0;border-radius:10px;cursor:pointer;background:#ffd166;color:#222;font-weight:700;box-shadow:0 4px 0 #b8860b;transition:transform .05s}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.alt{background:#8ecae6;box-shadow:0 4px 0 #3a7ca5}
+  button:active:not(:disabled){transform:translateY(3px);box-shadow:none}
+  #hint{position:fixed;bottom:88px;width:100%;text-align:center;font-size:13px;opacity:.6;pointer-events:none}
+  #splash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(70,170,255,.8),rgba(70,170,255,.3) 55%,transparent 85%)}
+  #splash.show{animation:sp 1.4s ease-out forwards}
+  @keyframes sp{0%{opacity:1}100%{opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <div class="panel">
+    <h1>🔫 Cò quay nga 3D — Súng nước</h1>
+    <div class="score">
+      <span id="s0">Người 1: 0 lần bị tạt</span>
+      <span id="s1">Người 2: 0 lần bị tạt</span>
+    </div>
+    <div id="status">Nhấn "Quay ổ đạn" để bắt đầu.</div>
+  </div>
+</div>
+
+<div id="splash"></div>
+<div id="hint">Kéo chuột để xoay góc nhìn • Lăn chuột để phóng to / thu nhỏ</div>
+
+<div id="controls">
+  <button id="btnSpin">🔄 Quay ổ đạn</button>
+  <button id="btnPull" disabled>🎯 Bóp cò</button>
+  <button id="btnReset" class="alt">↺ Chơi lại</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(() => {
+  // ---------- Scene ----------
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0d1b2a);
+  scene.fog = new THREE.Fog(0x0d1b2a, 12, 26);
+
+  const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0.8, 1.4, 5.2);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0.5, 0, 0);
+  controls.enableDamping = true;
+  controls.enablePan = false;
+  controls.minDistance = 3;
+  controls.maxDistance = 9;
+  controls.maxPolarAngle = Math.PI * 0.52;
+  controls.update();
+
+  // ---------- Lights ----------
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const key = new THREE.DirectionalLight(0xfff1d6, 1.1);
+  key.position.set(3, 5, 4);
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 });
+  scene.add(key);
+  const rim = new THREE.PointLight(0x64b5f6, 0.8, 12);
+  rim.position.set(-3, 2, -2);
+  scene.add(rim);
+
+  // ---------- Table ----------
+  const table = new THREE.Mesh(
+    new THREE.CylinderGeometry(4.5, 4.5, 0.15, 64),
+    new THREE.MeshStandardMaterial({ color: 0x2a6b45, roughness: 0.95 })
+  );
+  table.position.y = -1.5;
+  table.receiveShadow = true;
+  scene.add(table);
+
+  // ---------- Materials & helpers ----------
+  const steel = new THREE.MeshStandardMaterial({ color: 0xaab3bd, metalness: 0.6, roughness: 0.4 });
+  const dark  = new THREE.MeshStandardMaterial({ color: 0x1d1d1d, metalness: 0.3, roughness: 0.6 });
+  const holeMat = new THREE.MeshStandardMaterial({ color: 0x050505 });
+  const wood  = new THREE.MeshStandardMaterial({ color: 0x6b3e1f, roughness: 0.6 });
+
+  function mesh(geo, mat, x = 0, y = 0, z = 0) {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    return m;
+  }
+  // Cylinder whose axis lies along the local X axis
+  function cylX(r, len) {
+    const g = new THREE.CylinderGeometry(r, r, len, 24);
+    g.rotateZ(Math.PI / 2);
+    return g;
+  }
+
+  // ---------- Water gun model (along local +X) ----------
+  const gun = new THREE.Group();
+  gun.position.set(0, -0.5, 0);
+  gun.rotation.set(0, -1.2, 0);
+  scene.add(gun);
+
+  gun.add(mesh(new THREE.BoxGeometry(0.7, 0.42, 0.3), steel, -0.05, 0.08, 0));      // frame
+  gun.add(mesh(new THREE.BoxGeometry(1.0, 0.06, 0.2), steel, 0.2, 0.3, 0));        // top strap
+  gun.add(mesh(cylX(0.08, 1.5), steel, 1.45, 0.08, 0));                            // barrel
+
+  const grip = mesh(new THREE.BoxGeometry(0.3, 0.7, 0.26), wood, -0.4, -0.27, 0);
+  grip.rotation.z = -0.25;
+  gun.add(grip);
+
+  const guard = mesh(new THREE.TorusGeometry(0.16, 0.03, 8, 24, Math.PI), steel, -0.05, -0.2, 0);
+  guard.rotation.z = Math.PI;
+  gun.add(guard);
+
+  const trigGroup = new THREE.Group();
+  trigGroup.position.set(-0.1, -0.1, 0);
+  trigGroup.add(mesh(new THREE.BoxGeometry(0.06, 0.18, 0.06), dark, 0, -0.06, 0));
+  gun.add(trigGroup);
+
+  const COCK = 0.5;
+  const hammerGroup = new THREE.Group();
+  hammerGroup.position.set(-0.22, 0.2, 0);
+  hammerGroup.rotation.z = COCK;
+  hammerGroup.add(mesh(new THREE.BoxGeometry(0.1, 0.2, 0.1), dark, 0, 0.1, 0));
+  gun.add(hammerGroup);
+
+  // Rotating cylinder (6 chambers)
+  const cylGroup = new THREE.Group();
+  cylGroup.position.set(0.5, 0.08, 0);
+  cylGroup.add(mesh(cylX(0.3, 0.5), steel, 0, 0, 0));
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3;
+    cylGroup.add(mesh(cylX(0.05, 0.04), holeMat, 0.25, 0.2 * Math.cos(a), 0.2 * Math.sin(a)));
+  }
+  gun.add(cylGroup);
+
+  // Muzzle anchor for water spray
+  const muzzle = new THREE.Object3D();
+  muzzle.position.set(2.2, 0.08, 0);
+  gun.add(muzzle);
+
+  // ---------- Water particles ----------
+  const PN = 120;
+  const pPos = new Float32Array(PN * 3);
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  const pMat = new THREE.PointsMaterial({ color: 0x58c4ff, size: 0.12, transparent: true, opacity: 1, depthWrite: false });
+  const points = new THREE.Points(pGeo, pMat);
+  points.visible = false;
+  scene.add(points);
+  let particles = [];
+  let sprayT = 0, spraying = false;
+
+  function spray() {
+    const origin = muzzle.getWorldPosition(new THREE.Vector3());
+    const dir = new THREE.Vector3(1, 0, 0).applyQuaternion(gun.getWorldQuaternion(new THREE.Quaternion()));
+    particles = [];
+    for (let i = 0; i < PN; i++) {
+      const v = dir.clone().multiplyScalar(3 + Math.random() * 3).add(
+        new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2)
+      );
+      particles.push({ p: origin.clone(), v });
+    }
+    sprayT = 0;
+    spraying = true;
+    points.visible = true;
+    pMat.opacity = 1;
+  }
+
+  function updateParticles(dt) {
+    if (!spraying) return;
+    sprayT += dt;
+    particles.forEach((part, i) => {
+      part.v.y -= 6 * dt;
+      part.p.addScaledVector(part.v, dt);
+      pPos[i * 3] = part.p.x;
+      pPos[i * 3 + 1] = part.p.y;
+      pPos[i * 3 + 2] = part.p.z;
+    });
+    pGeo.attributes.position.needsUpdate = true;
+    pMat.opacity = Math.max(0, 1 - sprayT / 1.8);
+    if (sprayT > 1.8) {
+      spraying = false;
+      points.visible = false;
+    }
+  }
+
+  // ---------- Tween system ----------
+  const tweens = [];
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  function tween(obj, key, to, dur, ease = easeOut) {
+    return new Promise(res => {
+      tweens.push({ obj, key, from: obj[key], to, dur, t: 0, ease, res });
+    });
+  }
+  function updateTweens(dt) {
+    for (let i = tweens.length - 1; i >= 0; i--) {
+      const tw = tweens[i];
+      tw.t += dt;
+      const k = Math.min(1, tw.t / tw.dur);
+      tw.obj[tw.key] = tw.from + (tw.to - tw.from) * tw.ease(k);
+      if (k >= 1) {
+        tweens.splice(i, 1);
+        tw.res();
+      }
+    }
+  }
+  const wait = s => new Promise(r => setTimeout(r, s * 1000));
+  const linear = t => t;
+
+  // ---------- Sound (WebAudio, no files) ----------
+  let actx = null;
+  function beep(freq = 1500, dur = 0.08) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator();
+      const g = actx.createGain();
+      o.type = 'square';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.15, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+      o.connect(g).connect(actx.destination);
+      o.start();
+      o.stop(actx.currentTime + dur + 0.01);
+    } catch (e) { /* audio not available */ }
+  }
+
+  // ---------- Game state ----------
+  const names = ['Người 1', 'Người 2'];
+  const STEP = Math.PI / 3;
+  let scores = [0, 0];
+  let cur = 0;           // player whose turn it is
+  let roundActive = false;
+  let busy = false;
+  let marked = 0;        // chamber that holds the water pellet this round (hidden)
+  let slot = 0;          // chamber currently under the hammer
+
+  const $ = id => document.getElementById(id);
+  const btnSpin = $('btnSpin'), btnPull = $('btnPull'), btnReset = $('btnReset');
+  const statusEl = $('status'), splash = $('splash');
+
+  function setStatus(t) { statusEl.textContent = t; }
+
+  function updateUI() {
+    $('s0').textContent = `${names[0]}: ${scores[0]} lần bị tạt`;
+    $('s1').textContent = `${names[1]}: ${scores[1]} lần bị tạt`;
+    $('s0').classList.toggle('active', roundActive && cur === 0);
+    $('s1').classList.toggle('active', roundActive && cur === 1);
+    btnSpin.disabled = busy || roundActive;
+    btnPull.disabled = busy || !roundActive;
+    btnReset.disabled = busy;
+  }
+
+  function flashSplash() {
+    splash.classList.remove('show');
+    void splash.offsetWidth; // restart animation
+    splash.classList.add('show');
+  }
+
+  async function spin() {
+    if (busy || roundActive) return;
+    busy = true;
+    updateUI();
+    setStatus(`${names[cur]} đang quay ổ đạn...`);
+
+    const newSlot = Math.floor(Math.random() * 6);
+    const steps = ((newSlot - slot) % 6 + 6) % 6;
+    marked = Math.floor(Math.random() * 6);
+
+    beep(900, 0.05);
+    await tween(cylGroup.rotation, 'x', cylGroup.rotation.x - steps * STEP - 6 * Math.PI, 1.6);
+
+    slot = newSlot;
+    roundActive = true;
+    busy = false;
+    setStatus(`${names[cur]}: bóp cò đi!`);
+    updateUI();
+  }
+
+  async function pull() {
+    if (busy || !roundActive) return;
+    busy = true;
+    updateUI();
+
+    // Trigger pulled back, hammer falls
+    await tween(trigGroup.rotation, 'z', 0.35, 0.1);
+    await tween(hammerGroup.rotation, 'z', 0, 0.05, linear);
+
+    const hit = slot === marked;
+
+    if (hit) {
+      beep(180, 0.3);
+      spray();
+      flashSplash();
+      const loser = cur;
+      scores[loser]++;
+      roundActive = false;
+      cur = 1 - loser;                    // the splashed player doesn't spin next
+      setStatus(`💦 ${names[loser]} bị tạt nước! ${names[cur]} quay ổ đạn lượt sau.`);
+    } else {
+      beep(1500, 0.08);
+      await tween(cylGroup.rotation, 'x', cylGroup.rotation.x - STEP, 0.25);
+      slot = (slot + 1) % 6;
+      cur = 1 - cur;
+      setStatus(`Click! Không trúng. Đến lượt ${names[cur]} bóp cò.`);
+    }
+
+    // Reset trigger and re-cock hammer
+    await tween(trigGroup.rotation, 'z', 0, 0.12);
+    await tween(hammerGroup.rotation, 'z', COCK, 0.25);
+
+    busy = false;
+    updateUI();
+  }
+
+  function resetGame() {
+    if (busy) return;
+    scores = [0, 0];
+    cur = 0;
+    roundActive = false;
+    marked = 0;
+    slot = 0;
+    cylGroup.rotation.x = 0;
+    hammerGroup.rotation.z = COCK;
+    trigGroup.rotation.z = 0;
+    setStatus('Đã chơi lại. Nhấn "Quay ổ đạn" để bắt đầu.');
+    updateUI();
+  }
+
+  btnSpin.onclick = spin;
+  btnPull.onclick = pull;
+  btnReset.onclick = resetGame;
+
+  // ---------- Loop & resize ----------
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    updateTweens(dt);
+    updateParticles(dt);
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  updateUI();
+})();
+</script>
+</body>
+</html>
