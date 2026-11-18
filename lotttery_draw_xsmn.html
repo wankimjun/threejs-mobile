@@ -218,7 +218,7 @@
       </div>
     </div>
 
-    <div id="verifyPanel" style="margin-top:10px;padding:12px;border-radius:10px;border:1px solid rgba(148,163,184,.2);background:rgba(148,163,184,.06);display:none">
+    <div id="verifyPanel" style="margin-top:10px;padding:12px;border-radius:10px;border:1px solid rgba(148,163,184,.2);background:rgba(148,163,184,.06);display:block">
       <div class="panel-title" style="margin-bottom:8px;font-size:.9rem">🔍 Xác minh lần quay đã lưu</div>
       <div style="font-size:.8rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <input type="text" id="vfServer" placeholder="Server seed" style="background:rgba(15,23,42,.7);color:#f8fafc;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 8px;font-size:.78rem;min-width:150px">
@@ -344,7 +344,7 @@
   const $ = id => document.getElementById(id);
   const stage = $('stage');
   const statusEl = $('status'), numbersEl = $('numbers'), resultTable = $('resultTable');
-  const checkArea = $('checkArea'), stepsEl = $('steps'), usedSeedDisplay = $('usedSeed');
+  const checkArea = $('checkArea'), stepsEl = $('steps');
   const btnDraw = $('btnDraw'), btnReset = $('btnReset');
   const commitmentDisplay = $('commitmentDisplay');
   const revealPanel = $('revealPanel'), revServer = $('revServer'), revClient = $('revClient'), revCommit = $('revCommit');
@@ -390,7 +390,7 @@
 
   class SeededRNG {
     constructor(seed) {
-      if (seed) {
+      if (typeof seed === 'string') {
         const [s0, s1] = strToSeed(seed);
         this.s0 = s0;
         this.s1 = s1;
@@ -1027,9 +1027,10 @@
     const active = step.drums.map(i => drums[i]);
 
     await tween(900, k => setOmega(active, MAX_W * ease(k)));
-    await tween(2400, () => {
-      active.forEach(d => d.balls.forEach(b => { if (b.alive) b.v.z += (stepRNG.next() - 0.5) * 0.5; }));
-    });
+    // Tiêu thụ RNG cố định (1 lần cho mỗi bóng còn sống, theo thứ tự lồng) TRƯỚC khi chạy hoạt ảnh,
+    // để số lần gọi không phụ thuộc tốc độ khung hình và khớp với bước replay xác minh.
+    active.forEach(d => d.balls.forEach(b => { if (b.alive) b.v.z += (stepRNG.next() - 0.5) * 0.5; }));
+    await tween(2400, () => {});
     await tween(1600, k => setOmega(active, MAX_W * (1 - k)));
     setOmega(active, 0);
     await wait(700);
@@ -1107,7 +1108,6 @@
     [...draws].reverse().forEach(d => {
       const row = document.createElement('div');
       row.className = 'trow';
-      const time = d.time || '';
       const nums = (d.nums || []).join(' · ');
       row.innerHTML = '<span class="tid">' + new Date(d.id).toLocaleString('vi-VN') + '</span>' +
         '<span class="tnum" title="' + nums + '">' + (d.commitment ? d.commitment.slice(0, 16) + '…' : '-') + '</span>' +
@@ -1151,53 +1151,55 @@
   async function runAll() {
     busy = true;
     lockUI(true);
-    stepIndex = 0;
-    prizeResults = PRIZES.map(() => []);
-    numbersEl.innerHTML = '';
-    checkArea.innerHTML = '';
-    flash('', true);
-    renderSteps();
-    renderResultTable();
-    renderTickets();
-
-    while (stepIndex < STEPS.length) {
-      const step = STEPS[stepIndex];
-      const stepSeed = await deriveStepSeed(serverSeed, clientSeed, String(stepIndex));
-      const stepRNG = new SeededRNG(stepSeed);
-      stepSeeds[stepIndex] = stepSeed;
-      const digits = await runStep(stepRNG);
-      prizeResults[step.prizeIndex].push(digits.join(''));
+    try {
+      stepIndex = 0;
+      prizeResults = PRIZES.map(() => []);
+      numbersEl.innerHTML = '';
+      checkArea.innerHTML = '';
+      flash('', true);
+      renderSteps();
       renderResultTable();
       renderTickets();
-      await wait(400);
+
+      while (stepIndex < STEPS.length) {
+        const step = STEPS[stepIndex];
+        const stepSeed = await deriveStepSeed(serverSeed, clientSeed, String(stepIndex));
+        const stepRNG = new SeededRNG(stepSeed);
+        stepSeeds[stepIndex] = stepSeed;
+        const digits = await runStep(stepRNG);
+        prizeResults[step.prizeIndex].push(digits.join(''));
+        renderResultTable();
+        renderTickets();
+        await wait(400);
+      }
+
+      statusEl.className = 'status done';
+      statusEl.textContent = 'Hoàn thành 18 lượt quay mở thưởng';
+      renderResultTable();
+      renderCheck();
+
+      revealed = true;
+      revServer.textContent = serverSeed;
+      revClient.textContent = clientSeed || '(trống)';
+      revCommit.textContent = commitment;
+      revealPanel.style.display = 'block';
+
+      draws.push({
+        id: Date.now(),
+        time: new Date().toLocaleString('vi-VN'),
+        serverSeed,
+        clientSeed,
+        commitment,
+        stepSeeds,
+        nums: prizeResults.flat()
+      });
+      saveDraws();
+      renderStats();
+      renderHistory();
+    } finally {
+      busy = false;
+      lockUI(false);
     }
-
-    statusEl.className = 'status done';
-    statusEl.textContent = 'Hoàn thành 18 lượt quay mở thưởng';
-    renderResultTable();
-    renderCheck();
-
-    revealed = true;
-    revServer.textContent = serverSeed;
-    revClient.textContent = clientSeed || '(trống)';
-    revCommit.textContent = commitment;
-    revealPanel.style.display = 'block';
-
-    draws.push({
-      id: Date.now(),
-      time: new Date().toLocaleString('vi-VN'),
-      serverSeed,
-      clientSeed,
-      commitment,
-      stepSeeds,
-      nums: prizeResults.flat()
-    });
-    saveDraws();
-    renderStats();
-    renderHistory();
-
-    busy = false;
-    lockUI(false);
   }
 
   function resetAll() {
@@ -1223,10 +1225,8 @@
     revealed = false;
     commitmentDisplay.textContent = 'Commitment (SHA-256, hiển thị trước khi quay): ' + commitment;
     revealPanel.style.display = 'none';
-    verifyPanel.style.display = 'none';
     // sessionRNG dùng cho quick-pick / gợi ý (không liên quan đến chuỗi minh bạch 18 lượt)
     sessionRNG = new SeededRNG(clientSeed || randomHex(16));
-    usedSeedDisplay.textContent = clientSeed ? ('Client seed: ' + clientSeed) : ('Client seed: (trống)');
     resetAll();
     runAll();
   });
@@ -1335,7 +1335,7 @@
   renderStats();
   renderHistory();
   resize();
-  drums.forEach(randomizeBalls);
+  drums.forEach(d => randomizeBalls(d));
   requestAnimationFrame(t => { last = t; loop(t); });
 })();
 </script>
