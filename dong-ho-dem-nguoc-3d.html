@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đếm ngược 3 ngày 3D</title>
+<style>
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #05060f;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #cfe8ff;
+  }
+  canvas { position: fixed; inset: 0; display: block; }
+  #title {
+    position: fixed; top: 18px; width: 100%; text-align: center;
+    font-size: clamp(14px, 2vw, 20px); letter-spacing: .25em;
+    opacity: .85; pointer-events: none;
+    text-shadow: 0 0 12px #3aa0ff;
+  }
+  .label {
+    position: fixed; transform: translate(-50%, 0);
+    font-size: clamp(10px, 1.4vw, 14px); letter-spacing: .3em;
+    color: #6fb8ff; text-shadow: 0 0 8px #3aa0ff;
+    pointer-events: none; white-space: nowrap;
+  }
+  #status {
+    position: fixed; bottom: 80px; width: 100%; text-align: center;
+    font-size: clamp(13px, 2vw, 18px); color: #ffd166;
+    text-shadow: 0 0 10px #ff9f1c; pointer-events: none;
+  }
+  #reset {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: transparent; border: 1px solid #3aa0ff; color: #cfe8ff;
+    padding: 10px 24px; border-radius: 999px; cursor: pointer;
+    font-size: 14px; letter-spacing: .1em; transition: background .2s;
+  }
+  #reset:hover { background: #3aa0ff33; }
+</style>
+</head>
+<body>
+<div id="title">ĐẾM NGƯỢC 3 NGÀY</div>
+<div id="status"></div>
+<button id="reset">Đặt lại 3 ngày</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  const DURATION = 3 * 24 * 3600 * 1000;
+  const KEY = 'countdown3d-target';
+
+  function newTarget() {
+    const t = Date.now() + DURATION;
+    try { localStorage.setItem(KEY, String(t)); } catch (e) {}
+    return t;
+  }
+  function loadTarget() {
+    try {
+      const v = Number(localStorage.getItem(KEY));
+      if (v) return v;
+    } catch (e) {}
+    return newTarget();
+  }
+  let target = loadTarget();
+
+  /* ---------- Renderer / scene ---------- */
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05060f);
+  scene.fog = new THREE.FogExp2(0x05060f, 0.03);
+
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+
+  scene.add(new THREE.AmbientLight(0x404868, 1));
+  const key = new THREE.DirectionalLight(0xffffff, 1.2);
+  key.position.set(3, 6, 8);
+  scene.add(key);
+  const rim = new THREE.PointLight(0x3aa0ff, 2, 40);
+  rim.position.set(-6, -3, 6);
+  scene.add(rim);
+
+  /* ---------- Seven-segment 3D digits ---------- */
+  const H = new THREE.BoxGeometry(0.9, 0.14, 0.35);
+  const V = new THREE.BoxGeometry(0.14, 0.9, 0.35);
+  const SEG = {
+    a: [0, 1, H], b: [0.5, 0.5, V], c: [0.5, -0.5, V], d: [0, -1, H],
+    e: [-0.5, -0.5, V], f: [-0.5, 0.5, V], g: [0, 0, H]
+  };
+  const DIG = {
+    0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg',
+    5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg'
+  };
+
+  const onMat = new THREE.MeshStandardMaterial({
+    color: 0x3aa0ff, emissive: 0x1a6fff, emissiveIntensity: 1.2,
+    roughness: 0.3, metalness: 0.2
+  });
+  const offMat = new THREE.MeshStandardMaterial({
+    color: 0x14203a, roughness: 0.6, metalness: 0.3,
+    transparent: true, opacity: 0.6
+  });
+
+  function makeDigit() {
+    const g = new THREE.Group();
+    const segs = {};
+    for (const k in SEG) {
+      const [x, y, geo] = SEG[k];
+      const m = new THREE.Mesh(geo, offMat);
+      m.position.set(x, y, 0);
+      g.add(m);
+      segs[k] = m;
+    }
+    g.userData = { segs, value: -1, pulse: 0 };
+    return g;
+  }
+
+  function setDigit(g, v) {
+    if (g.userData.value === v) return;
+    g.userData.value = v;
+    g.userData.pulse = 1;
+    const on = DIG[v];
+    for (const k in g.userData.segs) {
+      g.userData.segs[k].material = on.includes(k) ? onMat : offMat;
+    }
+  }
+
+  /* Rig holds the whole clock so it can sway/float together */
+  const rig = new THREE.Group();
+  scene.add(rig);
+
+  const GROUP_X = [-6.3, -2.1, 2.1, 6.3]; // ngày, giờ, phút, giây
+  const DIGIT_OFFSET = 0.85;
+  const digits = [];
+  GROUP_X.forEach((gx) => {
+    [-DIGIT_OFFSET, DIGIT_OFFSET].forEach((dx) => {
+      const d = makeDigit();
+      d.position.set(gx + dx, 0, 0);
+      rig.add(d);
+      digits.push(d);
+    });
+  });
+
+  /* Colons between groups */
+  const colonMat = new THREE.MeshStandardMaterial({
+    color: 0x6fb8ff, emissive: 0x1a6fff, emissiveIntensity: 1.5
+  });
+  const colonGeo = new THREE.SphereGeometry(0.1, 16, 16);
+  for (let i = 0; i < 3; i++) {
+    const cx = (GROUP_X[i] + GROUP_X[i + 1]) / 2;
+    [0.4, -0.4].forEach((y) => {
+      const s = new THREE.Mesh(colonGeo, colonMat);
+      s.position.set(cx, y, 0);
+      rig.add(s);
+    });
+  }
+
+  /* Decorative rings */
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x3aa0ff, transparent: true, opacity: 0.25 });
+  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(9.5, 0.03, 8, 240), ringMat);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(11, 0.02, 8, 240), ringMat);
+  ring2.rotation.x = Math.PI / 2.4;
+  scene.add(ring1, ring2);
+
+  /* Particle starfield */
+  const COUNT = 900;
+  const pos = new Float32Array(COUNT * 3);
+  for (let i = 0; i < COUNT; i++) {
+    const r = 15 + Math.random() * 25;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i * 3 + 2] = r * Math.cos(phi);
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const particles = new THREE.Points(
+    pGeo,
+    new THREE.PointsMaterial({ color: 0x9fd3ff, size: 0.06, transparent: true, opacity: 0.7 })
+  );
+  scene.add(particles);
+
+  /* ---------- Labels (projected from 3D to screen) ---------- */
+  const LABELS = ['NGÀY', 'GIỜ', 'PHÚT', 'GIÂY'];
+  const labelEls = LABELS.map((text) => {
+    const el = document.createElement('div');
+    el.className = 'label';
+    el.textContent = text;
+    document.body.appendChild(el);
+    return el;
+  });
+
+  const statusEl = document.getElementById('status');
+  const resetBtn = document.getElementById('reset');
+
+  /* ---------- Layout / resize ---------- */
+  function onResize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.position.z = w / h < 1 ? 26 : 15;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  /* ---------- Mouse sway ---------- */
+  let mx = 0, my = 0;
+  window.addEventListener('mousemove', (e) => {
+    mx = (e.clientX / window.innerWidth - 0.5) * 0.5;
+    my = (e.clientY / window.innerHeight - 0.5) * 0.3;
+  });
+
+  /* ---------- Countdown logic ---------- */
+  function remainingParts() {
+    let rem = Math.max(0, target - Date.now());
+    const d = Math.floor(rem / 86400000); rem %= 86400000;
+    const h = Math.floor(rem / 3600000);  rem %= 3600000;
+    const m = Math.floor(rem / 60000);    rem %= 60000;
+    const s = Math.floor(rem / 1000);
+    return { d, h, m, s, ms: target - Date.now() };
+  }
+
+  function tick() {
+    const { d, h, m, s, ms } = remainingParts();
+    const parts = [d, h, m, s];
+    for (let i = 0; i < 4; i++) {
+      const str = String(parts[i]).padStart(2, '0');
+      setDigit(digits[i * 2],     Number(str[0]));
+      setDigit(digits[i * 2 + 1], Number(str[1]));
+    }
+
+    const endText = 'Kết thúc: ' + new Date(target).toLocaleString('vi-VN');
+    if (ms <= 0) {
+      statusEl.textContent = 'Đã hết giờ!  ·  ' + endText;
+    } else if (ms < 3600000) {
+      statusEl.textContent = 'Sắp hết giờ!  ·  ' + endText;
+    } else {
+      statusEl.textContent = endText;
+    }
+  }
+
+  resetBtn.addEventListener('click', () => {
+    target = newTarget();
+    tick();
+  });
+
+  /* ---------- Animation loop ---------- */
+  const clock = new THREE.Clock();
+  const tmp = new THREE.Vector3();
+
+  function updateLabels() {
+    rig.updateMatrixWorld(true);
+    GROUP_X.forEach((gx, i) => {
+      tmp.set(gx, -2, 0);
+      rig.localToWorld(tmp);
+      tmp.project(camera);
+      const x = (tmp.x + 1) / 2 * window.innerWidth;
+      const y = (-tmp.y + 1) / 2 * window.innerHeight;
+      labelEls[i].style.left = x + 'px';
+      labelEls[i].style.top = y + 'px';
+    });
+  }
+
+  let lastTick = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    // Sway & float the whole clock
+    rig.rotation.y += (mx - rig.rotation.y) * 0.05;
+    rig.rotation.x += (my - rig.rotation.x) * 0.05;
+    rig.position.y = Math.sin(t * 0.8) * 0.12;
+
+    // Decorations
+    ring1.rotation.z = t * 0.15;
+    ring2.rotation.z = -t * 0.1;
+    particles.rotation.y = t * 0.02;
+
+    // Pulse digits on change
+    for (const d of digits) {
+      if (d.userData.pulse > 0) {
+        d.userData.pulse *= 0.9;
+        d.scale.setScalar(1 + 0.18 * d.userData.pulse);
+        if (d.userData.pulse < 0.01) {
+          d.userData.pulse = 0;
+          d.scale.setScalar(1);
+        }
+      }
+    }
+
+    // Update display every 200ms
+    if (performance.now() - lastTick > 200) {
+      tick();
+      lastTick = performance.now();
+    }
+
+    updateLabels();
+    renderer.render(scene, camera);
+  }
+
+  tick();
+  animate();
+})();
+</script>
+</body>
+</html>

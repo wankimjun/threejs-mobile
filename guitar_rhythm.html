@@ -2,662 +2,1504 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Đàn Guitar 3D · Điệu quét, Finger style, Quạt chả</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Đàn Guitar Acoustic 3D</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-    body { background: radial-gradient(circle at center, #141a29 0%, #07090f 100%); color: #f1f5f9; overflow: hidden; height: 100vh; display: flex; }
-    #canvas-container { flex: 1; position: relative; height: 100%; cursor: grab; }
-    #canvas-container:active { cursor: grabbing; }
-    canvas { display: block; width: 100%; height: 100%; }
+    :root {
+      --bg-1: #1d1612;
+      --bg-2: #0b0908;
+      --panel: rgba(22, 17, 14, 0.9);
+      --border: rgba(244, 193, 109, 0.22);
+      --accent: #f4c16d;
+      --accent-2: #d9821e;
+      --danger: #e9735a;
+      --text: #f4efe6;
+      --muted: rgba(244, 239, 230, 0.62);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 35%, var(--bg-1) 0%, var(--bg-2) 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-    .hud-top-left { position: absolute; top: 20px; left: 24px; pointer-events: none; }
-    .hud-tag { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #94a3b8; }
-    .hud-chord { font-size: 46px; font-weight: 800; color: #fbbf24; line-height: 1.1; text-shadow: 0 4px 20px rgba(251, 191, 36, 0.35); }
-    .hud-pattern { font-size: 14px; color: #cbd5e1; margin-top: 4px; }
-    .hud-bottom { position: absolute; bottom: 16px; left: 24px; font-size: 12px; color: #94a3b8; background: rgba(15, 23, 42, 0.75); padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); }
+    /* ---------- 3D canvas ---------- */
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      cursor: grab;
+      touch-action: none;
+    }
+    #canvas-container.grabbing { cursor: grabbing; }
+    #canvas-container.over-string { cursor: pointer; }
+    #canvas-container canvas { display: block; }
 
-    .sidebar { width: 360px; background: rgba(15, 23, 42, 0.95); border-left: 1px solid rgba(255,255,255,0.1); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-    h1 { font-size: 20px; font-weight: 700; color: #fff; }
-    .subtitle { font-size: 12px; color: #94a3b8; margin-top: 4px; line-height: 1.4; }
+    /* ---------- Header ---------- */
+    .hud {
+      position: fixed;
+      top: 18px;
+      left: 22px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .hud h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.4px;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+    }
+    .hud p {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
 
-    .card { background: rgba(30, 41, 59, 0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; }
-    .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; margin-bottom: 10px; }
+    /* ---------- Panels ---------- */
+    .panel {
+      position: fixed;
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      z-index: 10;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+    }
+    .panel-left {
+      left: 18px;
+      top: 92px;
+      width: 292px;
+      max-height: calc(100vh - 118px);
+      overflow-y: auto;
+    }
+    .panel-right {
+      right: 18px;
+      top: 18px;
+      width: 300px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .field-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .field-head strong { color: var(--text); font-weight: 600; }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    select {
+      width: 100%;
+      background: #241c17;
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-size: 13px;
+      cursor: pointer;
+    }
 
-    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-    button { background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
-    button:hover { background: #334155; border-color: #fbbf24; }
-    button.active { background: #fbbf24; color: #0f172a; font-weight: 700; border-color: #fbbf24; }
-    button.primary { background: #10b981; color: #064e3b; font-weight: 700; border: none; flex: 1; }
-    button.primary.playing { background: #ef4444; color: #fff; }
+    /* ---------- Buttons ---------- */
+    button {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.08s ease;
+      font-family: inherit;
+    }
+    button:hover {
+      background: rgba(244, 193, 109, 0.2);
+      border-color: rgba(244, 193, 109, 0.6);
+    }
+    button:active { transform: scale(0.97); }
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    button[aria-pressed="true"] {
+      background: var(--accent);
+      color: #16110d;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .row > button { flex: 1 1 auto; }
+    .seg {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .btn-play {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      background: var(--accent);
+      color: #16110d;
+      border-color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .btn-play:hover { background: #ffd58a; }
+    .btn-play.playing {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+    .btn-play.playing:hover { background: #f08a74; }
+    .btn-ghost { width: 100%; margin-top: 2px; }
+    kbd {
+      display: inline-block;
+      font-family: inherit;
+      font-size: 10.5px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      margin-left: 4px;
+      vertical-align: 1px;
+    }
 
-    .slider-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
-    .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; }
-    input[type="range"] { width: 100%; accent-color: #fbbf24; cursor: pointer; }
+    /* ---------- Chord panel ---------- */
+    .chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .chip {
+      padding: 8px 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .chord-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .chord-name {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .chord-full {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    #chord-diagram {
+      display: flex;
+      justify-content: center;
+      margin: 4px 0 8px;
+    }
+    #chord-diagram svg { width: 150px; height: 160px; }
+    .d-fret { stroke: rgba(255, 255, 255, 0.2); stroke-width: 1; }
+    .d-string { stroke: rgba(230, 220, 200, 0.55); }
+    .d-nut { fill: #e9e1cf; }
+    .d-dot { fill: var(--accent); }
+    .d-open { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+    .d-x { fill: var(--muted); font-size: 13px; font-weight: 700; text-anchor: middle; }
 
-    .chord-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .chord-btn { padding: 10px; font-size: 15px; font-weight: 700; text-align: center; }
+    table.strings {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    table.strings td {
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    table.strings td:first-child { color: var(--muted); width: 52px; }
+    table.strings td:last-child { text-align: right; color: var(--accent); }
+    table.strings tr.muted td { opacity: 0.5; }
+    .tones {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .tones strong { color: var(--text); font-weight: 600; }
 
-    .rhythm-steps { display: flex; gap: 5px; margin-top: 10px; }
-    .step-box { flex: 1; text-align: center; padding: 7px 2px; border-radius: 6px; background: #0f172a; font-size: 12px; font-weight: 700; color: #64748b; border: 1px solid rgba(255,255,255,0.06); }
-    .step-box.current { background: #fbbf24; color: #0f172a; transform: scale(1.06); }
+    /* ---------- Rhythm bar ---------- */
+    .rhythm {
+      position: fixed;
+      bottom: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+    }
+    .rhythm-head {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .rhythm-head strong { color: var(--accent); }
+    #rhythm-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 44px);
+      gap: 6px;
+    }
+    .cell {
+      height: 46px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.04);
+      transition: background 0.1s ease, transform 0.1s ease, color 0.1s ease;
+    }
+    .cell.beat { border-color: rgba(244, 193, 109, 0.35); }
+    .cell .tok { font-size: 16px; font-weight: 700; line-height: 1; }
+    .cell .cnt { font-size: 10px; color: var(--muted); margin-top: 3px; }
+    .cell.x .tok { opacity: 0.55; }
+    .cell.on {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #16110d;
+      transform: translateY(-2px);
+    }
+    .cell.on .cnt { color: #16110d; }
+
+    /* ---------- Hints & status ---------- */
+    .hint {
+      position: fixed;
+      bottom: 14px;
+      left: 18px;
+      right: 18px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      pointer-events: none;
+      z-index: 5;
+    }
+    #status {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid var(--border);
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+      z-index: 20;
+      white-space: nowrap;
+    }
+    #status.show { opacity: 1; }
+    #fallback {
+      position: fixed;
+      top: 62px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(560px, calc(100vw - 32px));
+      padding: 9px 14px;
+      text-align: center;
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.45;
+      z-index: 25;
+      background: rgba(60, 22, 14, 0.92);
+      border: 1px solid rgba(233, 115, 90, 0.5);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+    #fallback[hidden] { display: none; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 900px) {
+      .hud { top: 12px; left: 14px; max-width: calc(100vw - 28px); }
+      .hud h1 { font-size: 17px; }
+      .panel-right {
+        top: 58px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        padding: 10px 12px;
+      }
+      .chord-name { font-size: 28px; }
+      #chord-diagram svg { width: 120px; height: 128px; }
+      table.strings { display: none; }
+      .tones { margin-top: 6px; }
+      .panel-left {
+        left: 10px;
+        right: 10px;
+        top: auto;
+        bottom: 10px;
+        width: auto;
+        max-height: 40vh;
+      }
+      .rhythm { bottom: calc(40vh + 18px); }
+      .hint { display: none; }
+    }
   </style>
 </head>
 <body>
+  <header class="hud">
+    <h1>Đàn Guitar Acoustic 3D</h1>
+    <p>Kéo để xoay · Cuộn để zoom · Nhấn vào dây để gảy</p>
+  </header>
 
-  <div id="canvas-container">
-    <div class="hud-top-left">
-      <div class="hud-tag" id="hud-mode">ĐIỆU QUÉT</div>
-      <div class="hud-chord" id="hud-chord">C</div>
-      <div class="hud-pattern" id="hud-pattern">Pop · D - DU - UDU</div>
+  <aside class="panel panel-left" aria-label="Điều khiển">
+    <div class="section-title">Phát nhạc</div>
+    <button id="btn-play" class="btn-play" aria-pressed="false">▶ Phát <kbd>Space</kbd></button>
+
+    <div class="row">
+      <button id="btn-down" title="Quét xuống">↓ Quét <kbd>D</kbd></button>
+      <button id="btn-up" title="Quét lên">↑ Quét <kbd>U</kbd></button>
+      <button id="btn-chuck" title="Quạt chả">⚡ Quạt <kbd>Q</kbd></button>
     </div>
-    <div class="hud-bottom">
-      Kéo chuột để xoay 3D · Cuộn để thu phóng · <b>Space</b>: Phát/Dừng · <b>D/U</b>: Quét · <b>Q</b>: Quạt chả · <b>1–6</b>: Gảy dây · <b>R</b>: Đặt lại góc nhìn
+
+    <div class="section-title">Điệu đàn</div>
+    <div class="seg" id="style-row" role="group" aria-label="Điệu đàn">
+      <button data-style="strum">Quét ballad</button>
+      <button data-style="chuck">Quạt chả</button>
+      <button data-style="finger">Finger</button>
     </div>
+
+    <div class="section-title">Chuyển hợp âm</div>
+    <div class="field">
+      <select id="prog" aria-label="Chuỗi hợp âm tự động"></select>
+    </div>
+
+    <div class="section-title">Thông số</div>
+    <div class="field">
+      <div class="field-head"><span>Tempo</span><strong id="tempo-val">100 BPM</strong></div>
+      <input type="range" id="tempo-slider" min="60" max="160" step="1" aria-label="Tempo" />
+    </div>
+    <div class="field">
+      <div class="field-head"><span>Âm lượng</span><strong id="vol-val">80%</strong></div>
+      <input type="range" id="vol-slider" min="10" max="100" step="5" aria-label="Âm lượng" />
+    </div>
+    <div class="field">
+      <div class="field-head"><span>Âm vang</span><strong id="reverb-val">30%</strong></div>
+      <input type="range" id="reverb-slider" min="0" max="100" step="5" aria-label="Âm vang" />
+    </div>
+
+    <button id="btn-reset" class="btn-ghost">⟲ Đặt lại góc nhìn <kbd>R</kbd></button>
+  </aside>
+
+  <aside class="panel panel-right" aria-label="Hợp âm">
+    <div class="section-title">Hợp âm</div>
+    <div class="chips" id="chord-row" role="group" aria-label="Chọn hợp âm"></div>
+
+    <div class="chord-head">
+      <div>
+        <div class="chord-name" id="chord-name">C</div>
+        <div class="chord-full" id="chord-full">Đô trưởng</div>
+      </div>
+      <button id="btn-strum-chord" title="Nghe hợp âm">▶ Nghe</button>
+    </div>
+
+    <div id="chord-diagram" aria-label="Sơ đồ thế bấm"></div>
+
+    <table class="strings">
+      <tbody id="chord-table-body"></tbody>
+    </table>
+    <div class="tones" id="chord-tones"></div>
+  </aside>
+
+  <div class="rhythm" aria-live="polite">
+    <div class="rhythm-head">
+      <span>Mẫu gảy: <strong id="style-name"></strong></span>
+      <span id="bar-info">Nhấn Phát để nghe</span>
+    </div>
+    <div id="rhythm-grid"></div>
   </div>
 
-  <div class="sidebar">
-    <div>
-      <h1>Đàn Guitar 3D</h1>
-      <p class="subtitle">Âm thanh Karplus-Strong · dây rung theo từng nốt · điệu quét, finger style và quạt chả</p>
-    </div>
-
-    <div class="card">
-      <div class="btn-row">
-        <button id="btn-play" class="primary">▶ Phát</button>
-        <button id="btn-rotate">🔄 Tự xoay: Tắt</button>
-        <button id="btn-reset" title="Đặt lại góc nhìn (R)">⟲ (R)</button>
-      </div>
-      <div class="slider-group">
-        <div class="slider-label"><span>Tempo</span><span id="val-tempo">100</span></div>
-        <input type="range" id="slider-tempo" min="60" max="160" value="100" />
-      </div>
-      <div class="slider-group">
-        <div class="slider-label"><span>Âm lượng</span><span id="val-vol">0.8</span></div>
-        <input type="range" id="slider-vol" min="0" max="1" step="0.05" value="0.8" />
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Điệu & Kiểu chơi</div>
-      <div class="btn-row">
-        <button class="mode-btn active" data-mode="strum">Điệu quét</button>
-        <button class="mode-btn" data-mode="chuck">Quạt chả</button>
-        <button class="mode-btn" data-mode="finger">Finger style</button>
-      </div>
-      <div class="rhythm-steps" id="rhythm-steps"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Thao tác nhanh</div>
-      <div class="btn-row">
-        <button id="btn-down">⬇ Quét xuống (D)</button>
-        <button id="btn-up">⬆ Quét lên (U)</button>
-        <button id="btn-chuck">⚡ Quạt chả (Q)</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Chọn hợp âm để thử</div>
-      <div class="chord-grid" id="chord-grid"></div>
-    </div>
+  <div class="hint">
+    <kbd>1–6</kbd> gảy dây &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd> đổi hợp âm &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd> tempo &nbsp;·&nbsp; <kbd>R</kbd> đặt lại góc nhìn
   </div>
+
+  <div id="status" role="status"></div>
+  <div id="fallback" hidden>Không khởi tạo được mô hình 3D (WebGL). Âm thanh, hợp âm và nhịp điệu vẫn hoạt động bình thường.</div>
+  <div id="canvas-container"></div>
 
   <script>
-    // ==========================================
-    // 1. DỮ LIỆU HỢP ÂM & NHỊP ĐIỆU
-    // ==========================================
-    const OPEN_FREQS = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63];
+    const $ = (id) => document.getElementById(id);
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+    // =====================================================================
+    // 1. CẤU HÌNH: DÂY, HỢP ÂM, ĐIỆU ĐÀN, CHUỖI HỢP ÂM
+    // =====================================================================
+    const OPEN_MIDI = [40, 45, 50, 55, 59, 64];              // E2 A2 D3 G3 B3 E4
+    const STRING_NAMES = ["E", "A", "D", "G", "B", "e"];
+    const BASE_FREQS = OPEN_MIDI.map((m) => 440 * Math.pow(2, (m - 69) / 12));
+    const NOTE_LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const NOTE_VN = { C: "Đô", D: "Rê", E: "Mi", F: "Pha", G: "Sol", A: "La", B: "Si" };
+
+    function noteName(midi) {
+      const n = NOTE_LETTERS[midi % 12];
+      return `${NOTE_VN[n[0]]}${n.length > 1 ? "#" : ""} (${n})`;
+    }
+    function noteSolfege(midi) {
+      const n = NOTE_LETTERS[midi % 12];
+      return NOTE_VN[n[0]] + (n.length > 1 ? "#" : "");
+    }
+
+    // frets: 6 → 1 (từ dây trầm E đến dây cao e). -1 = không gảy (X)
     const CHORDS = {
-      'C':  [-1, 3, 2, 0, 1, 0],
-      'G':  [3, 2, 0, 0, 0, 3],
-      'Am': [-1, 0, 2, 2, 1, 0],
-      'F':  [1, 3, 3, 2, 1, 1],
-      'Dm': [-1, -1, 0, 2, 3, 1],
-      'Em': [0, 2, 2, 0, 0, 0]
+      C:  { name: "C",  full: "Đô trưởng",   frets: [-1, 3, 2, 0, 1, 0] },
+      G:  { name: "G",  full: "Sol trưởng",  frets: [3, 2, 0, 0, 0, 3] },
+      D:  { name: "D",  full: "Rê trưởng",   frets: [-1, -1, 0, 2, 3, 2] },
+      A:  { name: "A",  full: "La trưởng",   frets: [-1, 0, 2, 2, 2, 0] },
+      Am: { name: "Am", full: "La thứ",      frets: [-1, 0, 2, 2, 1, 0] },
+      Em: { name: "Em", full: "Mi thứ",      frets: [0, 2, 2, 0, 0, 0] },
+      F:  { name: "F",  full: "Pha trưởng",  frets: [1, 3, 3, 2, 1, 1], barre: 1 },
+      Dm: { name: "Dm", full: "Rê thứ",      frets: [-1, -1, 0, 2, 3, 1] }
+    };
+    const CHORD_ORDER = Object.keys(CHORDS);
+
+    const PROGRESSIONS = {
+      off: null,
+      p1: ["C", "G", "Am", "F"],
+      p2: ["Am", "F", "C", "G"],
+      p3: ["G", "D", "Em", "C"],
+      p4: ["D", "A", "Em", "G"]
+    };
+    const PROG_LABELS = {
+      off: "Tắt (chơi tay)",
+      p1: "C – G – Am – F",
+      p2: "Am – F – C – G",
+      p3: "G – D – Em – C",
+      p4: "D – A – Em – G"
     };
 
-    const PATTERNS = {
-      strum:  { name: 'Pop · D - DU - UDU', steps: ['D', '-', 'D', 'U', '-', 'U', 'D', 'U'] },
-      chuck:  { name: 'Ballad Quạt Chả · D - X - U - X', steps: ['D', '-', 'X', 'U', '-', 'U', 'X', 'U'] },
-      finger: { name: 'Finger style · P - 3 - 2 - 1 - 2 - 3', steps: ['P', '3', '2', '1', '2', '3', '2', '1'] }
+    // Mỗi ô = 1 nốt đen (1/8). Token: D = xuống, U = lên, X = quạt chả (tắt tiếng),
+    // p/i/m/a = ngón cái, trỏ, giữa, áp út (finger style)
+    const STYLES = {
+      strum:  { name: "Quét ballad", pattern: ["D", null, "D", "U", null, "U", "D", "U"] },
+      chuck:  { name: "Quạt chả",    pattern: ["D", "D", "X", "U", "U", "X", "D", "U"] },
+      finger: { name: "Finger style", pattern: ["p", null, "i", "m", "a", "m", "i", "m"] }
     };
+    const FINGER_STRING = { i: 3, m: 4, a: 5 };
+    const COUNTS = ["1", "&", "2", "&", "3", "&", "4", "&"];
 
-    let state = {
-      chord: 'C',
-      mode: 'strum',
+    // =====================================================================
+    // 2. TRẠNG THÁI & LƯU CÀI ĐẶT
+    // =====================================================================
+    const SETTINGS_KEY = "guitar3d-acoustic-v2";
+    const state = {
+      chord: "C",
+      style: "strum",
       tempo: 100,
-      volume: 0.8,
-      isPlaying: false,
-      autoRotate: false,
-      stepIndex: 0
+      volume: 80,
+      reverb: 30,
+      progression: "off"
     };
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      Object.keys(state).forEach((k) => { if (saved[k] !== undefined) state[k] = saved[k]; });
+    } catch (e) { /* bỏ qua nếu localStorage không khả dụng */ }
+    if (!CHORDS[state.chord]) state.chord = "C";
+    if (!STYLES[state.style]) state.style = "strum";
+    if (!PROGRESSIONS[state.progression]) state.progression = "off";
+    state.tempo = clamp(Number(state.tempo) || 100, 60, 160);
+    state.volume = clamp(Number(state.volume) || 80, 10, 100);
+    state.reverb = clamp(Number(state.reverb) || 0, 0, 100);
 
-    // ==========================================
-    // 2. BỘ TỔNG HỢP ÂM THANH KARPLUS-STRONG
-    // ==========================================
-    let audioCtx = null;
+    function saveSettings() {
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(state)); } catch (e) {}
+    }
+
+    let statusTimer = null;
+    function showStatus(msg) {
+      const el = $("status");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => el.classList.remove("show"), 1600);
+    }
+
+    // =====================================================================
+    // 3. ÂM THANH: KARPLUS-STRONG + BUS (LỌC + VANG)
+    // =====================================================================
+    let audioCtx = null, busIn = null, masterGain = null, wetGain = null;
+    const stringVibration = [0, 0, 0, 0, 0, 0];
+
+    function makeImpulse(ctx, seconds) {
+      const len = Math.floor(ctx.sampleRate * seconds);
+      const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let c = 0; c < 2; c++) {
+        const d = buf.getChannelData(c);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      }
+      return buf;
+    }
+    const reverbLevel = () => (state.reverb / 100) * 0.5;
+
     function ensureAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return false;
+        audioCtx = new AC();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = (state.volume / 100) * 0.9;
+        masterGain.connect(audioCtx.destination);
+
+        busIn = audioCtx.createBiquadFilter();
+        busIn.type = "lowpass";
+        busIn.frequency.value = 5200;
+        busIn.Q.value = 0.4;
+        busIn.connect(masterGain);
+
+        const convolver = audioCtx.createConvolver();
+        convolver.buffer = makeImpulse(audioCtx, 2.4);
+        wetGain = audioCtx.createGain();
+        wetGain.gain.value = reverbLevel();
+        busIn.connect(convolver);
+        convolver.connect(wetGain);
+        wetGain.connect(masterGain);
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return true;
     }
 
-    function playKarplusStrong(freq, velocity = 0.8, isMuted = false) {
-      ensureAudio();
-      const sampleRate = audioCtx.sampleRate;
-      const duration = isMuted ? 0.14 : 2.2;
-      const totalSamples = Math.floor(sampleRate * duration);
-      const buffer = audioCtx.createBuffer(1, totalSamples, sampleRate);
-      const data = buffer.getChannelData(0);
+    function pluck(stringIdx, muted = false) {
+      const fret = CHORDS[state.chord].frets[stringIdx];
+      if (fret < 0) return;
+      if (!ensureAudio()) return;
 
-      const period = Math.max(2, Math.floor(sampleRate / freq));
-      const delayLine = new Float32Array(period);
+      stringVibration[stringIdx] = muted ? 0.35 : 1.0;
 
-      for (let i = 0; i < period; i++) {
-        delayLine[i] = (Math.random() * 2 - 1) * velocity * state.volume;
+      const sr = audioCtx.sampleRate;
+      const freq = BASE_FREQS[stringIdx] * Math.pow(2, fret / 12);
+      // Dây trầm ngân lâu hơn dây cao (giống đàn thật)
+      const tau = muted ? 0.05 : 2.6 - stringIdx * 0.22;
+      const dur = muted ? 0.22 : Math.min(3.4, tau * 2.2);
+      const len = Math.floor(sr * dur);
+      const buf = audioCtx.createBuffer(1, len, sr);
+      const out = buf.getChannelData(0);
+
+      const period = Math.max(2, Math.round(sr / freq - 0.5));
+      const ring = new Float32Array(period);
+      const velocity = 0.85 + Math.random() * 0.15;
+      const amp = (muted ? 0.3 : 0.5) * velocity;
+      for (let i = 0; i < period; i++) ring[i] = (Math.random() * 2 - 1) * amp;
+
+      const k = Math.exp(-1 / (tau * sr));
+      let idx = 0;
+      for (let i = 0; i < len; i++) {
+        const nxt = idx + 1 === period ? 0 : idx + 1;
+        const v = 0.5 * (ring[idx] + ring[nxt]) * k;
+        ring[idx] = v;
+        out[i] = v;
+        idx = nxt;
       }
 
-      const decay = isMuted ? 0.76 : 0.994;
-      let ptr = 0;
-      for (let i = 0; i < totalSamples; i++) {
-        const current = delayLine[ptr];
-        const next = delayLine[(ptr + 1) % period];
-        delayLine[ptr] = 0.5 * (current + next) * decay;
-        data[i] = current;
-        ptr = (ptr + 1) % period;
-      }
-
-      const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioCtx.destination);
-      source.start();
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(busIn);
+      src.onended = () => src.disconnect();
+      src.start();
     }
 
-    // ==========================================
-    // 3. ENGINE RENDER 3D ĐÀN GUITAR TỰ CHỨA (ZERO EXTERNAL DEPS)
-    // ==========================================
-    const container = document.getElementById('canvas-container');
-    const canvas = document.createElement('canvas');
-    container.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
-
-    let cam = {
-      yaw: -0.35,
-      pitch: 0.25,
-      zoom: 1.0,
-      isDragging: false,
-      lastX: 0,
-      lastY: 0
-    };
-
-    // Tạo đường biên hình số 8 chuẩn dáng đàn Guitar Acoustic
-    function getBodyOutline(steps = 90) {
-      const pts = [];
-      for (let i = 0; i <= steps; i++) {
-        const t = (i / steps) * Math.PI * 2;
-        const y = -0.24 + 0.25 * Math.cos(t); // Từ y = +0.01 (vai đàn) xuống y = -0.49 (đáy thùng)
-        const normY = (y + 0.49) / 0.50; // 0 ở đáy, 1 ở vai đàn
-        // Hàm hồ sơ chiều rộng đặc trưng của đàn guitar: bầu dưới rộng, eo thắt giữa, bầu trên gọn
-        let halfW = 0;
-        if (normY <= 0.35) {
-          // Bầu dưới (Lower bout)
-          const u = normY / 0.35;
-          halfW = 0.195 * Math.sin(u * Math.PI * 0.52);
-        } else if (normY <= 0.68) {
-          // Eo thắt (Waist)
-          const u = (normY - 0.35) / 0.33;
-          halfW = 0.155 - 0.042 * Math.sin(u * Math.PI);
-        } else {
-          // Bầu trên (Upper bout)
-          const u = (normY - 0.68) / 0.32;
-          halfW = 0.155 * Math.cos(u * Math.PI * 0.48);
-        }
-        const x = Math.sin(t) >= 0 ? halfW : -halfW;
-        pts.push({ x, y });
-      }
-      return pts;
-    }
-
-    const bodyOutline = getBodyOutline(100);
-    const bodyDepth = 0.105; // Độ dày thùng đàn thực tế (không bị kéo dài như ống)
-
-    // Tính vị trí 19 phím đàn theo công thức 12-TET
-    const nutY = 0.45;
-    const saddleY = -0.315;
-    const scaleLen = nutY - saddleY;
-    const fretYs = [nutY];
-    for (let f = 1; f <= 19; f++) {
-      fretYs.push(nutY - scaleLen * (1 - Math.pow(2, -f / 12)));
-    }
-
-    const stringVib = [
-      { amp: 0, phase: 0 },
-      { amp: 0, phase: 0 },
-      { amp: 0, phase: 0 },
-      { amp: 0, phase: 0 },
-      { amp: 0, phase: 0 },
-      { amp: 0, phase: 0 }
-    ];
-
-    // Phép chiếu 3D -> 2D
-    function project(x, y, z) {
-      // Xoay quanh trục Y (yaw)
-      const cosY = Math.cos(cam.yaw), sinY = Math.sin(cam.yaw);
-      let x1 = x * cosY - z * sinY;
-      let z1 = x * sinY + z * cosY;
-
-      // Xoay quanh trục X (pitch)
-      const cosX = Math.cos(cam.pitch), sinX = Math.sin(cam.pitch);
-      let y2 = y * cosX - z1 * sinX;
-      let z2 = y * sinX + z1 * cosX;
-
-      // Nghiêng nhẹ cây đàn cho đẹp mắt
-      const tilt = -0.18;
-      const cosT = Math.cos(tilt), sinT = Math.sin(tilt);
-      let x3 = x1 * cosT - y2 * sinT;
-      let y3 = x1 * sinT + y2 * cosT;
-
-      const fov = 2.6;
-      const dist = fov / (fov + z2 + 1.4);
-      const scale = Math.min(canvas.width, canvas.height) * 0.95 * cam.zoom * dist;
-
-      return {
-        x: canvas.width * 0.5 + x3 * scale,
-        y: canvas.height * 0.52 - y3 * scale,
-        z: z2,
-        scale
-      };
-    }
-
-    function drawPoly(points3D, fillStyle, strokeStyle = null, lineWidth = 1) {
-      const pts2D = points3D.map(p => project(p[0], p[1], p[2]));
-      ctx.beginPath();
-      ctx.moveTo(pts2D[0].x, pts2D[0].y);
-      for (let i = 1; i < pts2D.length; i++) {
-        ctx.lineTo(pts2D[i].x, pts2D[i].y);
-      }
-      ctx.closePath();
-      if (fillStyle) { ctx.fillStyle = fillStyle; ctx.fill(); }
-      if (strokeStyle) { ctx.strokeStyle = strokeStyle; ctx.lineWidth = lineWidth; ctx.stroke(); }
-    }
-
-    function renderScene() {
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Hiệu ứng ánh sáng nền dịu
-      const bgGlow = ctx.createRadialGradient(canvas.width * 0.5, canvas.height * 0.5, 20, canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.55);
-      bgGlow.addColorStop(0, 'rgba(251, 191, 36, 0.06)');
-      bgGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = bgGlow;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Kiểm tra hướng nhìn mặt trước hay mặt sau của đàn
-      const pFront = project(0, -0.2, 0.01);
-      const pBack = project(0, -0.2, -bodyDepth);
-      const isFacingFront = pFront.z < pBack.z;
-
-      // 1. Vẽ mặt lưng thùng đàn (nếu nhìn từ phía sau)
-      const backPts = bodyOutline.map(p => [p.x, p.y, -bodyDepth]);
-      const frontPts = bodyOutline.map(p => [p.x, p.y, 0]);
-
-      if (!isFacingFront) {
-        drawPoly(frontPts, '#d98a3c', '#fde68a', 1.5);
-      }
-
-      // 2. Vẽ thành hông thùng đàn (Sides) chia theo từng dải tứ giác có đổ bóng 3D
-      const sideQuads = [];
-      for (let i = 0; i < bodyOutline.length - 1; i++) {
-        const p1 = bodyOutline[i];
-        const p2 = bodyOutline[i + 1];
-        const midZ = (project(p1.x, p1.y, -bodyDepth * 0.5).z + project(p2.x, p2.y, -bodyDepth * 0.5).z) * 0.5;
-        const shade = Math.max(0.35, Math.min(1, 0.75 + p1.x * 2.2));
-        sideQuads.push({
-          z: midZ,
-          pts: [[p1.x, p1.y, 0], [p2.x, p2.y, 0], [p2.x, p2.y, -bodyDepth], [p1.x, p1.y, -bodyDepth]],
-          color: `rgb(${Math.floor(110 * shade)}, ${Math.floor(52 * shade)}, ${Math.floor(24 * shade)})`
-        });
-      }
-      sideQuads.sort((a, b) => b.z - a.z);
-      sideQuads.forEach(q => drawPoly(q.pts, q.color, q.color, 0.6));
-
-      if (!isFacingFront) {
-        drawPoly(backPts, '#5c2d16', '#3e1d0d', 1.5);
-      }
-
-      // 3. Vẽ Cần đàn (Neck) & Đầu đàn (Headstock) phía sau
-      drawPoly([
-        [-0.026, 0.0, 0], [0.026, 0.0, 0], [0.026, nutY, 0], [-0.026, nutY, 0],
-        [-0.026, nutY, -0.022], [0.026, nutY, -0.022], [0.026, 0.0, -0.022], [-0.026, 0.0, -0.022]
-      ], '#4a2311');
-
-      // Đầu đàn (Headstock)
-      drawPoly([
-        [-0.028, nutY, 0.002], [0.028, nutY, 0.002],
-        [0.036, nutY + 0.15, -0.028], [-0.036, nutY + 0.15, -0.028]
-      ], '#4a2311', '#78350f', 1);
-
-      // 6 khóa đàn 2 bên đầu đàn
-      for (let i = 0; i < 6; i++) {
-        const side = i < 3 ? -1 : 1;
-        const row = i % 3;
-        const py = nutY + 0.035 + row * 0.042;
-        const pz = -0.006 - row * 0.008;
-        const pegStart = project(side * 0.031, py, pz);
-        const pegEnd = project(side * 0.047, py, pz);
-        ctx.beginPath();
-        ctx.moveTo(pegStart.x, pegStart.y);
-        ctx.lineTo(pegEnd.x, pegEnd.y);
-        ctx.strokeStyle = '#cbd5e1';
-        ctx.lineWidth = 3 * cam.zoom;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(pegEnd.x, pegEnd.y, 4 * cam.zoom, 0, Math.PI * 2);
-        ctx.fillStyle = '#f8fafc';
-        ctx.fill();
-      }
-
-      // 4. Vẽ Mặt trước thùng đàn (Soundboard) & Chi tiết
-      if (isFacingFront) {
-        const topGrad = ctx.createLinearGradient(0, project(0, 0.02, 0).y, 0, project(0, -0.49, 0).y);
-        topGrad.addColorStop(0, '#e59a4c');
-        topGrad.addColorStop(0.5, '#d48232');
-        topGrad.addColorStop(1, '#b86820');
-        drawPoly(frontPts, topGrad, '#fef3c7', 1.8);
-
-        // Miếng chống xước (Pickguard)
-        const pgPts = [];
-        for (let a = 0; a <= 20; a++) {
-          const ang = (a / 20) * Math.PI * 2;
-          pgPts.push([0.078 + 0.028 * Math.cos(ang), -0.18 + 0.055 * Math.sin(ang), 0.001]);
-        }
-        drawPoly(pgPts, '#2b1208');
-
-        // Lỗ thoát âm (Soundhole) & Viền Rosette
-        const holeCenter = project(0, -0.135, 0.001);
-        const holeEdge = project(0.052, -0.135, 0.001);
-        const rx = Math.abs(holeEdge.x - holeCenter.x);
-        const ry = rx * Math.max(0.25, Math.cos(cam.pitch));
-
-        ctx.save();
-        ctx.translate(holeCenter.x, holeCenter.y);
-        ctx.rotate(-0.18);
-        // Viền trang trí Rosette
-        ctx.beginPath();
-        ctx.ellipse(0, 0, rx * 1.18, ry * 1.18, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = '#fde68a';
-        ctx.lineWidth = 3 * cam.zoom;
-        ctx.stroke();
-
-        // Lòng lỗ thoát âm tối sâu
-        ctx.beginPath();
-        ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#120904';
-        ctx.fill();
-        ctx.restore();
-
-        // Ngựa đàn (Bridge) & Lược dưới (Saddle)
-        drawPoly([
-          [-0.075, -0.305, 0.002], [0.075, -0.305, 0.002],
-          [0.075, -0.335, 0.002], [-0.075, -0.335, 0.002]
-        ], '#24130b', '#451a03', 1);
-
-        drawPoly([
-          [-0.036, -0.312, 0.005], [0.036, -0.312, 0.005],
-          [0.036, -0.318, 0.005], [-0.036, -0.318, 0.005]
-        ], '#f8fafc');
-      }
-
-      // 5. Vẽ Mặt phím gỗ mun (Fretboard) đè lên phần cổ thùng đàn
-      if (isFacingFront) {
-        drawPoly([
-          [-0.027, -0.085, 0.004], [0.027, -0.085, 0.004],
-          [0.023, nutY, 0.004], [-0.023, nutY, 0.004]
-        ], '#1e110a', '#3f2314', 1);
-
-        // Lược đàn trên (Nut)
-        drawPoly([
-          [-0.023, nutY, 0.006], [0.023, nutY, 0.006],
-          [0.023, nutY + 0.007, 0.006], [-0.023, nutY + 0.007, 0.006]
-        ], '#f8fafc');
-
-        // 19 thanh phím kim loại & chấm khảm ngọc trai
-        const markerFrets = [3, 5, 7, 9, 12, 15];
-        for (let f = 1; f <= 19; f++) {
-          const fy = fretYs[f];
-          const t = (nutY - fy) / (nutY + 0.085);
-          const hw = 0.023 + (0.027 - 0.023) * t;
-          const pL = project(-hw, fy, 0.005);
-          const pR = project(hw, fy, 0.005);
-          ctx.beginPath();
-          ctx.moveTo(pL.x, pL.y);
-          ctx.lineTo(pR.x, pR.y);
-          ctx.strokeStyle = '#cbd5e1';
-          ctx.lineWidth = 1.4 * cam.zoom;
-          ctx.stroke();
-
-          if (markerFrets.includes(f)) {
-            const midY = (fretYs[f] + fretYs[f - 1]) * 0.5;
-            const dotP = project(0, midY, 0.005);
-            ctx.beginPath();
-            ctx.arc(dotP.x, dotP.y, 2.5 * cam.zoom, 0, Math.PI * 2);
-            ctx.fillStyle = '#e2e8f0';
-            ctx.fill();
-          }
-        }
-
-        // 6. Vẽ 6 dây đàn & hiệu ứng rung vật lý
-        const currentFrets = CHORDS[state.chord];
-        for (let i = 0; i < 6; i++) {
-          const xNut = -0.018 + i * 0.0072;
-          const xBridge = -0.025 + i * 0.010;
-          const vib = stringVib[i];
-          const offsetX = vib.amp > 0.00005 ? Math.sin(vib.phase) * vib.amp : 0;
-
-          const pTop = project(xNut, nutY, 0.008);
-          const pMid = project((xNut + xBridge) * 0.5 + offsetX, (nutY + saddleY) * 0.5, 0.008);
-          const pBot = project(xBridge, saddleY, 0.008);
-
-          ctx.beginPath();
-          ctx.moveTo(pTop.x, pTop.y);
-          ctx.quadraticCurveTo(pMid.x, pMid.y, pBot.x, pBot.y);
-          ctx.strokeStyle = i < 4 ? '#eab308' : '#f1f5f9';
-          ctx.lineWidth = (2.1 - i * 0.22) * cam.zoom;
-          ctx.stroke();
-
-          // Điểm bấm ngón tay của hợp âm hiện tại
-          const fretNum = currentFrets[i];
-          if (fretNum > 0 && fretNum < fretYs.length) {
-            const fy = (fretYs[fretNum] + fretYs[fretNum - 1]) * 0.5;
-            const ratio = (nutY - fy) / scaleLen;
-            const fx = xNut + (xBridge - xNut) * ratio;
-            const fp = project(fx, fy, 0.009);
-
-            ctx.beginPath();
-            ctx.arc(fp.x, fp.y, 5.5 * cam.zoom, 0, Math.PI * 2);
-            ctx.fillStyle = '#fbbf24';
-            ctx.fill();
-            ctx.strokeStyle = '#0f172a';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-          }
-        }
-      }
-    }
-
-    // ==========================================
-    // 4. LOGIC CHƠI ĐÀN & ĐIỀU KHIỂN
-    // ==========================================
-    function pluckString(stringIdx, isMuted = false, delayMs = 0) {
-      const fret = CHORDS[state.chord][stringIdx];
-      if (fret === -1) return;
-
-      setTimeout(() => {
-        const freq = OPEN_FREQS[stringIdx] * Math.pow(2, fret / 12);
-        playKarplusStrong(freq, isMuted ? 0.45 : 0.85, isMuted);
-        stringVib[stringIdx].amp = isMuted ? 0.002 : 0.006;
-      }, delayMs);
-    }
-
-    function strum(direction = 'D', isMuted = false) {
-      const order = direction === 'D' ? [0, 1, 2, 3, 4, 5] : [5, 4, 3, 2, 1, 0];
-      order.forEach((strIdx, idx) => {
-        pluckString(strIdx, isMuted, idx * 24);
+    function strum(dir = 1, muted = false) {
+      if (!ensureAudio()) return;
+      const order = dir === 1 ? [0, 1, 2, 3, 4, 5] : [5, 4, 3, 2, 1, 0];
+      order.forEach((s, i) => {
+        setTimeout(() => pluck(s, muted), i * (muted ? 16 : 24) + Math.random() * 5);
       });
     }
 
-    function renderSteps() {
-      const containerSteps = document.getElementById('rhythm-steps');
-      const pattern = PATTERNS[state.mode];
-      document.getElementById('hud-pattern').textContent = pattern.name;
-      containerSteps.innerHTML = pattern.steps.map((s, idx) =>
-        `<div class="step-box ${idx === state.stepIndex && state.isPlaying ? 'current' : ''}">${s}</div>`
-      ).join('');
+    function fingerPluck(token) {
+      const frets = CHORDS[state.chord].frets;
+      if (token === "p") {
+        const bass = frets.findIndex((f) => f >= 0);
+        if (bass >= 0) pluck(bass);
+      } else if (FINGER_STRING[token] !== undefined) {
+        pluck(FINGER_STRING[token]);
+      }
     }
 
-    let timerId = null;
-    function tick() {
-      const pattern = PATTERNS[state.mode].steps;
-      const action = pattern[state.stepIndex];
-      renderSteps();
+    function playToken(tok) {
+      if (!tok) return;
+      if (tok === "D") strum(1, false);
+      else if (tok === "U") strum(-1, false);
+      else if (tok === "X") strum(1, true);
+      else fingerPluck(tok);
+    }
 
-      if (action === 'D') strum('D', false);
-      else if (action === 'U') strum('U', false);
-      else if (action === 'X') strum('D', true);
-      else if (action === 'P') {
-        const bassIdx = CHORDS[state.chord].findIndex(f => f !== -1);
-        if (bassIdx !== -1) pluckString(bassIdx);
-      } else if (['1', '2', '3'].includes(action)) {
-        pluckString(6 - parseInt(action));
+    // =====================================================================
+    // 4. MÔ HÌNH 3D (THREE.JS)
+    // =====================================================================
+    const container = $("canvas-container");
+    const bridgeY = -6.8;
+    const nutY = 23.2;
+    const scaleLength = nutY - bridgeY; // 30
+
+    let scene = null, camera = null, renderer = null, guitarGroup = null, raycaster = null;
+    let stringMeshes = [], stringHitboxes = [], stringMats = [], stringOrig = [];
+    const stringDirty = [false, false, false, false, false, false];
+    let stringBaseXNut = [], stringBaseXBridge = [];
+    let fingerMarkers = [], fretYPositions = [];
+    let hoverIdx = -1;
+
+    const view = { rotX: -0.18, rotY: -0.25, zoom: 46 };
+    const cur = { rotX: -0.18, rotY: -0.25, zoom: 46 };
+
+    function createWoodTexture(baseColor, grainColor, isSpruceTop = false) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(0, 0, 512, 512);
+
+      for (let x = 0; x < 512; x += 2) {
+        const wave = Math.sin(x * 0.08) * 6;
+        ctx.strokeStyle = grainColor;
+        ctx.globalAlpha = isSpruceTop ? (0.06 + (x % 6 === 0 ? 0.06 : 0)) : (0.1 + Math.random() * 0.08);
+        ctx.lineWidth = isSpruceTop ? 1 : 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.bezierCurveTo(x + wave, 170, x - wave, 340, x, 512);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      if (isSpruceTop) {
+        const grad = ctx.createRadialGradient(256, 280, 90, 256, 280, 280);
+        grad.addColorStop(0, "rgba(255, 215, 145, 0.15)");
+        grad.addColorStop(0.75, "rgba(180, 95, 30, 0.18)");
+        grad.addColorStop(1, "rgba(65, 25, 8, 0.55)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function createGuitarBodyShape(scale = 1.0) {
+      const s = new THREE.Shape();
+      s.moveTo(0, -13.5 * scale);
+      s.bezierCurveTo(6.2 * scale, -13.5 * scale, 9.8 * scale, -10.8 * scale, 9.8 * scale, -7.2 * scale);
+      s.bezierCurveTo(9.8 * scale, -4.0 * scale, 6.1 * scale, -2.6 * scale, 6.1 * scale, -0.4 * scale);
+      s.bezierCurveTo(6.1 * scale, 2.2 * scale, 7.6 * scale, 4.4 * scale, 7.4 * scale, 6.6 * scale);
+      s.bezierCurveTo(7.2 * scale, 8.3 * scale, 3.6 * scale, 9.2 * scale, 0, 9.2 * scale);
+      s.bezierCurveTo(-3.6 * scale, 9.2 * scale, -7.2 * scale, 8.3 * scale, -7.4 * scale, 6.6 * scale);
+      s.bezierCurveTo(-7.6 * scale, 4.4 * scale, -6.1 * scale, 2.2 * scale, -6.1 * scale, -0.4 * scale);
+      s.bezierCurveTo(-6.1 * scale, -2.6 * scale, -9.8 * scale, -4.0 * scale, -9.8 * scale, -7.2 * scale);
+      s.bezierCurveTo(-9.8 * scale, -10.8 * scale, -6.2 * scale, -13.5 * scale, 0, -13.5 * scale);
+      return s;
+    }
+
+    function init3D() {
+      if (typeof THREE === "undefined") throw new Error("Three.js chưa tải được");
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      container.appendChild(renderer.domElement);
+
+      raycaster = new THREE.Raycaster();
+
+      scene.add(new THREE.AmbientLight(0xfff5e8, 0.55));
+      const keyLight = new THREE.DirectionalLight(0xfff0dd, 1.45);
+      keyLight.position.set(18, 28, 24);
+      keyLight.castShadow = true;
+      scene.add(keyLight);
+      const fillLight = new THREE.PointLight(0xffb86c, 1.1, 90);
+      fillLight.position.set(-22, -12, 18);
+      scene.add(fillLight);
+      const backLight = new THREE.DirectionalLight(0x9ec5ff, 0.65);
+      backLight.position.set(0, 15, -25);
+      scene.add(backLight);
+
+      const spruceTex = createWoodTexture("#d99343", "#7a3e10", true);
+      const mahoganyTex = createWoodTexture("#592512", "#2b0f05", false);
+      const rosewoodTex = createWoodTexture("#2b1812", "#140906", false);
+
+      const topMat = new THREE.MeshStandardMaterial({ map: spruceTex, roughness: 0.28, metalness: 0.05 });
+      const backSideMat = new THREE.MeshStandardMaterial({ map: mahoganyTex, roughness: 0.35, metalness: 0.05 });
+      const fretboardMat = new THREE.MeshStandardMaterial({ map: rosewoodTex, roughness: 0.55, metalness: 0.02 });
+      const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe6ebf0, roughness: 0.18, metalness: 0.92 });
+      const brassMat = new THREE.MeshStandardMaterial({ color: 0xd9a84e, roughness: 0.25, metalness: 0.85 });
+      const boneMat = new THREE.MeshStandardMaterial({ color: 0xf7f2e4, roughness: 0.4 });
+
+      guitarGroup = new THREE.Group();
+      scene.add(guitarGroup);
+
+      // --- Thân đàn ---
+      const bodyShape = createGuitarBodyShape(1.0);
+      const bodyDepth = 4.4;
+      const bodyGeo = new THREE.ExtrudeGeometry(bodyShape, {
+        depth: bodyDepth, bevelEnabled: true, bevelThickness: 0.16, bevelSize: 0.14, bevelSegments: 4, curveSegments: 48
+      });
+      const bodyMesh = new THREE.Mesh(bodyGeo, backSideMat);
+      bodyMesh.position.z = -bodyDepth;
+      bodyMesh.castShadow = true;
+      bodyMesh.receiveShadow = true;
+      guitarGroup.add(bodyMesh);
+
+      const topMesh = new THREE.Mesh(new THREE.ShapeGeometry(bodyShape, 48), topMat);
+      topMesh.position.z = 0.17;
+      topMesh.receiveShadow = true;
+      guitarGroup.add(topMesh);
+
+      const bindingPts = bodyShape.getPoints(120).map((p) => new THREE.Vector3(p.x, p.y, 0.18));
+      guitarGroup.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(bindingPts),
+        new THREE.LineBasicMaterial({ color: 0xf5ebd6 })
+      ));
+
+      // --- Lỗ thoát âm, rosette, pickguard ---
+      const soundHoleY = 1.6;
+      const soundHoleR = 2.45;
+      const holeMesh = new THREE.Mesh(new THREE.CircleGeometry(soundHoleR, 48), new THREE.MeshBasicMaterial({ color: 0x0c0704 }));
+      holeMesh.position.set(0, soundHoleY, 0.185);
+      guitarGroup.add(holeMesh);
+
+      const rosetteOuter = new THREE.Mesh(
+        new THREE.RingGeometry(soundHoleR + 0.12, soundHoleR + 0.36, 64),
+        new THREE.MeshStandardMaterial({ color: 0xe6be7a, roughness: 0.3 })
+      );
+      rosetteOuter.position.set(0, soundHoleY, 0.188);
+      guitarGroup.add(rosetteOuter);
+
+      const rosetteInner = new THREE.Mesh(
+        new THREE.RingGeometry(soundHoleR + 0.04, soundHoleR + 0.09, 64),
+        new THREE.MeshBasicMaterial({ color: 0x1a0e08 })
+      );
+      rosetteInner.position.set(0, soundHoleY, 0.189);
+      guitarGroup.add(rosetteInner);
+
+      const pgShape = new THREE.Shape();
+      pgShape.moveTo(2.4, 2.3);
+      pgShape.bezierCurveTo(3.2, 2.1, 5.4, 0.3, 5.9, -2.5);
+      pgShape.bezierCurveTo(6.2, -4.3, 4.9, -5.6, 3.2, -5.3);
+      pgShape.bezierCurveTo(1.7, -5.0, 1.3, -3.5, 2.1, -1.8);
+      pgShape.bezierCurveTo(2.7, -0.5, 2.6, 1.1, 2.4, 2.3);
+      const pgMesh = new THREE.Mesh(
+        new THREE.ShapeGeometry(pgShape, 36),
+        new THREE.MeshStandardMaterial({ color: 0x3b1208, roughness: 0.18, metalness: 0.08 })
+      );
+      pgMesh.position.z = 0.19;
+      guitarGroup.add(pgMesh);
+
+      // --- Ngựa đàn & xương ngựa ---
+      const bridgeGroup = new THREE.Group();
+      bridgeGroup.position.set(0, bridgeY, 0.18);
+      guitarGroup.add(bridgeGroup);
+
+      const bridgeShape = new THREE.Shape();
+      bridgeShape.moveTo(-3.4, -0.55);
+      bridgeShape.lineTo(3.4, -0.55);
+      bridgeShape.lineTo(3.1, 0.45);
+      bridgeShape.bezierCurveTo(1.5, 0.72, -1.5, 0.72, -3.1, 0.45);
+      bridgeShape.closePath();
+      bridgeGroup.add(new THREE.Mesh(
+        new THREE.ExtrudeGeometry(bridgeShape, { depth: 0.34, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04 }),
+        fretboardMat
+      ));
+
+      const saddleMesh = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.12, 0.24), boneMat);
+      saddleMesh.position.set(0, 0.18, 0.38);
+      saddleMesh.rotation.z = -0.04;
+      bridgeGroup.add(saddleMesh);
+
+      // --- Cần đàn & phím ---
+      const neckStartY = 9.0;
+      const neckLen = nutY - neckStartY;
+      const neckGroup = new THREE.Group();
+      guitarGroup.add(neckGroup);
+
+      const fbBottomY = 4.3;
+      const fbLen = nutY - fbBottomY;
+      const fbShape = new THREE.Shape();
+      fbShape.moveTo(-1.32, fbBottomY);
+      fbShape.lineTo(1.32, fbBottomY);
+      fbShape.lineTo(1.02, nutY);
+      fbShape.lineTo(-1.02, nutY);
+      fbShape.closePath();
+      const fretboardMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(fbShape, { depth: 0.22, bevelEnabled: false }), fretboardMat);
+      fretboardMesh.position.z = 0.19;
+      neckGroup.add(fretboardMesh);
+
+      const backNeckMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.02, 1.32, neckLen, 20, 1, false, Math.PI, Math.PI),
+        backSideMat
+      );
+      backNeckMesh.position.set(0, neckStartY + neckLen / 2, 0.19);
+      backNeckMesh.rotation.y = Math.PI / 2;
+      neckGroup.add(backNeckMesh);
+
+      const heelMesh = new THREE.Mesh(new THREE.ConeGeometry(1.35, 3.8, 20), backSideMat);
+      heelMesh.position.set(0, 9.2, -1.7);
+      heelMesh.rotation.x = Math.PI;
+      neckGroup.add(heelMesh);
+
+      const nutMesh = new THREE.Mesh(new THREE.BoxGeometry(2.08, 0.22, 0.25), boneMat);
+      nutMesh.position.set(0, nutY + 0.08, 0.42);
+      neckGroup.add(nutMesh);
+
+      // Phím theo luật 12-TET (quy tắc 17.817)
+      fretYPositions = [nutY];
+      const inlayFrets = new Set([3, 5, 7, 9, 12, 15, 17]);
+      for (let f = 1; f <= 20; f++) {
+        const distFromNut = scaleLength * (1 - Math.pow(2, -f / 12));
+        const fy = nutY - distFromNut;
+        fretYPositions.push(fy);
+
+        const t = (fy - fbBottomY) / fbLen;
+        const fretWidth = 2.62 * (1 - t) + 2.04 * t;
+        const fretWire = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, fretWidth, 10), chromeMat);
+        fretWire.rotation.z = Math.PI / 2;
+        fretWire.position.set(0, fy, 0.425);
+        neckGroup.add(fretWire);
+
+        if (inlayFrets.has(f)) {
+          const midY = (fretYPositions[f - 1] + fy) / 2;
+          const dotGeo = new THREE.CircleGeometry(0.14, 20);
+          if (f === 12) {
+            const dotL = new THREE.Mesh(dotGeo, boneMat);
+            dotL.position.set(-0.42, midY, 0.415);
+            const dotR = new THREE.Mesh(dotGeo, boneMat);
+            dotR.position.set(0.42, midY, 0.415);
+            neckGroup.add(dotL, dotR);
+          } else {
+            const dot = new THREE.Mesh(dotGeo, boneMat);
+            dot.position.set(0, midY, 0.415);
+            neckGroup.add(dot);
+          }
+        }
       }
 
-      state.stepIndex = (state.stepIndex + 1) % pattern.length;
+      // --- Đầu đàn & khóa ---
+      const headstockGroup = new THREE.Group();
+      headstockGroup.position.set(0, nutY + 0.1, 0.25);
+      headstockGroup.rotation.x = -0.22;
+      guitarGroup.add(headstockGroup);
+
+      const hsShape = new THREE.Shape();
+      hsShape.moveTo(-1.02, 0);
+      hsShape.lineTo(1.02, 0);
+      hsShape.lineTo(1.38, 4.6);
+      hsShape.quadraticCurveTo(0, 5.05, -1.38, 4.6);
+      hsShape.closePath();
+      const hsMesh = new THREE.Mesh(
+        new THREE.ExtrudeGeometry(hsShape, { depth: 0.55, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 }),
+        fretboardMat
+      );
+      hsMesh.position.z = -0.45;
+      headstockGroup.add(hsMesh);
+
+      const tunerPostPositions = [];
+      for (let i = 0; i < 6; i++) {
+        const isLeft = i < 3;
+        const row = isLeft ? i : (5 - i);
+        const py = 1.15 + row * 1.35;
+        const px = isLeft ? -0.82 : 0.82;
+
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.55, 14), chromeMat);
+        post.rotation.x = Math.PI / 2;
+        post.position.set(px, py, 0.28);
+        headstockGroup.add(post);
+
+        const bushing = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.1, 6), chromeMat);
+        bushing.rotation.x = Math.PI / 2;
+        bushing.position.set(px, py, 0.14);
+        headstockGroup.add(bushing);
+
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.75, 10), chromeMat);
+        shaft.rotation.z = Math.PI / 2;
+        shaft.position.set(isLeft ? -1.45 : 1.45, py, -0.18);
+        headstockGroup.add(shaft);
+
+        const knob = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.52, 0.22), chromeMat);
+        knob.position.set(isLeft ? -1.85 : 1.85, py, -0.18);
+        headstockGroup.add(knob);
+
+        headstockGroup.updateMatrixWorld(true);
+        tunerPostPositions[i] = new THREE.Vector3(px, py, 0.42).applyMatrix4(headstockGroup.matrixWorld);
+      }
+
+      // --- 6 dây đàn: thân dây có thể rung + vùng bắt chuột (hitbox vô hình) ---
+      const stringRadii = [0.044, 0.036, 0.029, 0.023, 0.017, 0.013];
+      for (let i = 0; i < 6; i++) {
+        const t = i / 5;
+        const xBridge = -1.35 + t * 2.7;
+        const xNut = -0.82 + t * 1.64;
+        stringBaseXBridge.push(xBridge);
+        stringBaseXNut.push(xNut);
+
+        const pin = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 14), boneMat);
+        pin.position.set(xBridge, bridgeY - 0.18, 0.54);
+        guitarGroup.add(pin);
+
+        const baseMat = i < 4 ? brassMat : chromeMat;
+        const mat = baseMat.clone();
+        mat.emissive = new THREE.Color(0x000000);
+        stringMats.push(mat);
+
+        const geo = new THREE.CylinderGeometry(stringRadii[i], stringRadii[i], scaleLength, 8, 24);
+        stringOrig.push(geo.attributes.position.array.slice());
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set((xBridge + xNut) / 2, (bridgeY + nutY) / 2, 0.56);
+        mesh.rotation.z = Math.atan2(xBridge - xNut, scaleLength);
+        guitarGroup.add(mesh);
+        stringMeshes.push(mesh);
+
+        const hitbox = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.28, 0.28, scaleLength, 8, 1),
+          new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+        );
+        mesh.add(hitbox);
+        stringHitboxes.push(hitbox);
+
+        const pNut = new THREE.Vector3(xNut, nutY + 0.08, 0.55);
+        const pTuner = tunerPostPositions[i];
+        const topSegLen = pNut.distanceTo(pTuner);
+        const topSegMesh = new THREE.Mesh(new THREE.CylinderGeometry(stringRadii[i], stringRadii[i], topSegLen, 6), mat);
+        topSegMesh.position.copy(pNut).add(pTuner).multiplyScalar(0.5);
+        topSegMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pTuner.clone().sub(pNut).normalize());
+        guitarGroup.add(topSegMesh);
+      }
+
+      // --- Điểm đánh dấu ngón bấm ---
+      for (let i = 0; i < 6; i++) {
+        const marker = new THREE.Mesh(
+          new THREE.SphereGeometry(0.24, 18, 18),
+          new THREE.MeshStandardMaterial({ color: 0xf4c16d, emissive: 0xd9821e, emissiveIntensity: 0.65, roughness: 0.2 })
+        );
+        marker.visible = false;
+        guitarGroup.add(marker);
+        fingerMarkers.push(marker);
+      }
+
+      guitarGroup.position.set(1.5, -3.5, 0);
+      guitarGroup.rotation.set(view.rotX, view.rotY, -0.14);
+
+      updateFingerMarkers();
+      window.addEventListener("resize", onResize);
+      bindPointer();
+      animate();
+    }
+
+    function updateFingerMarkers() {
+      if (!fingerMarkers.length) return;
+      const frets = CHORDS[state.chord].frets;
+      frets.forEach((f, i) => {
+        const m = fingerMarkers[i];
+        if (f <= 0) { m.visible = false; return; }
+        const yMid = (fretYPositions[f - 1] + fretYPositions[f]) / 2;
+        const ratio = (nutY - yMid) / scaleLength;
+        const x = stringBaseXNut[i] * (1 - ratio) + stringBaseXBridge[i] * ratio;
+        m.position.set(x, yMid, 0.58);
+        m.visible = true;
+      });
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function pickString(clientX, clientY) {
+      if (!raycaster || !renderer) return -1;
+      const rect = renderer.domElement.getBoundingClientRect();
+      const m = new THREE.Vector2(
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1
+      );
+      raycaster.setFromCamera(m, camera);
+      const hits = raycaster.intersectObjects(stringHitboxes, false);
+      return hits.length ? stringHitboxes.indexOf(hits[0].object) : -1;
+    }
+
+    function setHover(i) {
+      if (i === hoverIdx) return;
+      if (hoverIdx >= 0) stringMats[hoverIdx].emissive.setHex(0x000000);
+      hoverIdx = i;
+      if (i >= 0) stringMats[i].emissive.setHex(0x553210);
+      container.classList.toggle("over-string", i >= 0);
+    }
+
+    function updateStrings(now, dt) {
+      const L = scaleLength;
+      for (let i = 0; i < 6; i++) {
+        const amp = stringVibration[i];
+        const mesh = stringMeshes[i];
+        const attr = mesh.geometry.attributes.position;
+        const arr = attr.array;
+        const orig = stringOrig[i];
+
+        if (amp > 0.004) {
+          const s = Math.sin(now * (75 + i * 18)) * amp * 0.16;
+          for (let v = 0; v < attr.count; v++) {
+            const y = orig[v * 3 + 1];
+            const env = Math.sin(((y + L / 2) / L) * Math.PI); // hai đầu cố định
+            arr[v * 3] = orig[v * 3] + s * env;
+          }
+          attr.needsUpdate = true;
+          stringDirty[i] = true;
+          stringVibration[i] *= Math.pow(0.18, dt);
+        } else if (stringDirty[i]) {
+          arr.set(orig);
+          attr.needsUpdate = true;
+          stringDirty[i] = false;
+          stringVibration[i] = 0;
+        }
+        mesh.position.x = (stringBaseXBridge[i] + stringBaseXNut[i]) / 2;
+      }
+    }
+
+    let lastT = performance.now() / 1000;
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now() / 1000;
+      const dt = Math.min(now - lastT, 0.05);
+      lastT = now;
+
+      cur.rotX += (view.rotX - cur.rotX) * 0.12;
+      cur.rotY += (view.rotY - cur.rotY) * 0.12;
+      cur.zoom += (view.zoom - cur.zoom) * 0.12;
+      guitarGroup.rotation.x = cur.rotX;
+      guitarGroup.rotation.y = cur.rotY;
+      camera.position.set(0, 2, cur.zoom);
+      camera.lookAt(0, 2, 0);
+
+      updateStrings(now, dt);
+      renderer.render(scene, camera);
+    }
+
+    // =====================================================================
+    // 5. TƯƠNG TÁC CHUỘT / CẢM ỨNG (POINTER EVENTS)
+    // =====================================================================
+    let pDown = false, dragged = false;
+    let sX = 0, sY = 0, pX = 0, pY = 0;
+
+    function bindPointer() {
+      container.addEventListener("pointerdown", (e) => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        pDown = true;
+        dragged = false;
+        sX = pX = e.clientX;
+        sY = pY = e.clientY;
+        container.setPointerCapture(e.pointerId);
+        container.classList.add("grabbing");
+      });
+
+      container.addEventListener("pointermove", (e) => {
+        if (pDown) {
+          if (!dragged && Math.hypot(e.clientX - sX, e.clientY - sY) > 6) dragged = true;
+          if (dragged) {
+            view.rotY += (e.clientX - pX) * 0.008;
+            view.rotX = clamp(view.rotX + (e.clientY - pY) * 0.008, -1.1, 1.1);
+          }
+          pX = e.clientX;
+          pY = e.clientY;
+        } else if (e.pointerType === "mouse") {
+          setHover(pickString(e.clientX, e.clientY));
+        }
+      });
+
+      const endPress = (e) => {
+        container.classList.remove("grabbing");
+        if (pDown && !dragged && e.type === "pointerup") {
+          const s = pickString(e.clientX, e.clientY);
+          if (s >= 0) pluck(s);
+        }
+        pDown = false;
+      };
+      container.addEventListener("pointerup", endPress);
+      container.addEventListener("pointercancel", endPress);
+      container.addEventListener("pointerleave", () => setHover(-1));
+
+      container.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        view.zoom = clamp(view.zoom + e.deltaY * 0.035, 22, 85);
+      }, { passive: false });
+    }
+
+    // =====================================================================
+    // 6. GIAO DIỆN: HỢP ÂM, SƠ ĐỒ THẾ BẤM, NHỊP
+    // =====================================================================
+    function chordDiagramSVG(frets, barre) {
+      const W = 150, H = 160;
+      const x0 = 26, sx = 20, y0 = 44, sy = 24, nFrets = 4;
+      const xs = (i) => x0 + i * sx;
+      const yf = (f) => y0 + f * sy;
+      let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Sơ đồ thế bấm">`;
+
+      for (let i = 0; i < 6; i++) {
+        const f = frets[i];
+        const cx = xs(i), cy = y0 - 14;
+        if (f < 0) s += `<text x="${cx}" y="${cy + 4}" class="d-x">×</text>`;
+        else if (f === 0) s += `<circle cx="${cx}" cy="${cy}" r="5" class="d-open"/>`;
+      }
+
+      s += `<rect x="${x0 - 2}" y="${y0 - 3}" width="${sx * 5 + 4}" height="5" rx="1.5" class="d-nut"/>`;
+      for (let f = 1; f <= nFrets; f++) {
+        s += `<line x1="${x0}" y1="${yf(f)}" x2="${x0 + sx * 5}" y2="${yf(f)}" class="d-fret"/>`;
+      }
+      for (let i = 0; i < 6; i++) {
+        s += `<line x1="${xs(i)}" y1="${y0}" x2="${xs(i)}" y2="${yf(nFrets)}" class="d-string" style="stroke-width:${(1.6 - i * 0.15).toFixed(2)}"/>`;
+      }
+      if (barre) {
+        const idxs = frets.map((f, i) => (f === barre ? i : -1)).filter((i) => i >= 0);
+        const a = Math.min(...idxs), b = Math.max(...idxs);
+        s += `<rect x="${xs(a) - 6}" y="${yf(barre) - sy / 2 - 6}" width="${xs(b) - xs(a) + 12}" height="12" rx="6" class="d-dot"/>`;
+      }
+      frets.forEach((f, i) => {
+        if (f > 0) s += `<circle cx="${xs(i)}" cy="${yf(f) - sy / 2}" r="6.5" class="d-dot"/>`;
+      });
+      s += `</svg>`;
+      return s;
+    }
+
+    function updateChordUI() {
+      const c = CHORDS[state.chord];
+      $("chord-name").textContent = c.name;
+      $("chord-full").textContent = c.full;
+      $("chord-diagram").innerHTML = chordDiagramSVG(c.frets, c.barre);
+
+      const rows = [];
+      const tones = new Set();
+      for (let i = 0; i < 6; i++) {
+        const f = c.frets[i];
+        const stringNo = 6 - i;
+        let status, note = "—", muted = false;
+        if (f < 0) { status = "Tắt (×)"; muted = true; }
+        else if (f === 0) { status = "Buông"; note = noteName(OPEN_MIDI[i]); tones.add(noteSolfege(OPEN_MIDI[i])); }
+        else {
+          status = `Ngăn ${f}`;
+          note = noteName(OPEN_MIDI[i] + f);
+          tones.add(noteSolfege(OPEN_MIDI[i] + f));
+        }
+        rows.push(`<tr class="${muted ? "muted" : ""}"><td>Dây ${stringNo} · ${STRING_NAMES[i]}</td><td>${status}</td><td>${note}</td></tr>`);
+      }
+      // Hiện theo thứ tự dây 6 → 1 (dây trầm đến dây cao)
+      $("chord-table-body").innerHTML = rows.join("");
+      $("chord-tones").innerHTML = `Nốt của hợp âm: <strong>${[...tones].join(" · ")}</strong>`;
+
+      document.querySelectorAll("#chord-row .chip").forEach((b) => {
+        const on = b.dataset.chord === state.chord;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-pressed", on);
+      });
+      updateFingerMarkers();
+    }
+
+    function buildChordChips() {
+      const row = $("chord-row");
+      row.innerHTML = "";
+      CHORD_ORDER.forEach((key) => {
+        const b = document.createElement("button");
+        b.className = "chip";
+        b.dataset.chord = key;
+        b.textContent = CHORDS[key].name;
+        b.setAttribute("aria-pressed", "false");
+        b.addEventListener("click", () => chooseChord(key, true));
+        row.appendChild(b);
+      });
+    }
+
+    function setChord(key, strumIt = false) {
+      state.chord = key;
+      updateChordUI();
+      saveSettings();
+      if (strumIt) strum(1, false);
+    }
+
+    // Người dùng chọn tay → tắt chuỗi tự động
+    function chooseChord(key, strumIt = true) {
+      if (state.progression !== "off") {
+        state.progression = "off";
+        $("prog").value = "off";
+        saveSettings();
+        showStatus("Đã tắt chuyển hợp âm tự động");
+      }
+      setChord(key, strumIt);
+    }
+
+    function buildRhythmGrid() {
+      const grid = $("rhythm-grid");
+      grid.innerHTML = "";
+      const pat = STYLES[state.style].pattern;
+      pat.forEach((tok, i) => {
+        const c = document.createElement("div");
+        c.className = "cell" + (i % 2 === 0 ? " beat" : "") + (tok === "X" ? " x" : "");
+        const label = tok === null ? "·" : ({ D: "↓", U: "↑", X: "×" }[tok] || tok);
+        c.innerHTML = `<span class="tok">${label}</span><span class="cnt">${COUNTS[i]}</span>`;
+        grid.appendChild(c);
+      });
+      $("style-name").textContent = STYLES[state.style].name;
+    }
+
+    function highlightCell(i) {
+      document.querySelectorAll("#rhythm-grid .cell").forEach((c, j) => c.classList.toggle("on", j === i));
+    }
+
+    // =====================================================================
+    // 7. TRÌNH PHÁT NHỊP (LOOKAHEAD THEO THỜI GIAN THỰC, KHÔNG BỊ TRÔI)
+    // =====================================================================
+    let playing = false, step = 0, nextTime = 0, timer = null;
+
+    function tick() {
+      if (!playing) return;
+      const cell = step % 8;
+      const prog = PROGRESSIONS[state.progression];
+
+      if (cell === 0 && prog) {
+        const bar = Math.floor(step / 8) % prog.length;
+        if (prog[bar] !== state.chord) setChord(prog[bar], false);
+        $("bar-info").innerHTML = `Ô <strong>${bar + 1}/${prog.length}</strong> · hợp âm <strong>${CHORDS[state.chord].name}</strong>`;
+      } else if (cell === 0) {
+        $("bar-info").innerHTML = `Đang phát · <strong>${state.tempo} BPM</strong>`;
+      }
+
+      playToken(STYLES[state.style].pattern[cell]);
+      highlightCell(cell);
+      step++;
+
+      nextTime += 30000 / state.tempo; // 1 ô = nốt móc đơn (1/8)
+      timer = setTimeout(tick, Math.max(0, nextTime - performance.now()));
+    }
+
+    function startPlay() {
+      ensureAudio();
+      playing = true;
+      step = 0;
+      nextTime = performance.now();
+      const prog = PROGRESSIONS[state.progression];
+      if (prog && prog[0] !== state.chord) setChord(prog[0], false);
+      tick();
+      updatePlayUI();
+    }
+
+    function stopPlay() {
+      playing = false;
+      clearTimeout(timer);
+      highlightCell(-1);
+      $("bar-info").textContent = "Nhấn Phát để nghe";
+      updatePlayUI();
     }
 
     function togglePlay() {
-      state.isPlaying = !state.isPlaying;
-      const btn = document.getElementById('btn-play');
-      if (state.isPlaying) {
-        ensureAudio();
-        btn.textContent = '⏸ Dừng';
-        btn.classList.add('playing');
-        state.stepIndex = 0;
-        tick();
-        timerId = setInterval(tick, (60 / state.tempo / 2) * 1000);
-      } else {
-        btn.textContent = '▶ Phát';
-        btn.classList.remove('playing');
-        clearInterval(timerId);
-        renderSteps();
-      }
+      playing ? stopPlay() : startPlay();
     }
 
-    // Khởi tạo nút hợp âm
-    const chordGrid = document.getElementById('chord-grid');
-    Object.keys(CHORDS).forEach(ch => {
-      const b = document.createElement('button');
-      b.className = `chord-btn ${ch === state.chord ? 'active' : ''}`;
-      b.textContent = ch;
-      b.onclick = () => {
-        state.chord = ch;
-        document.querySelectorAll('.chord-btn').forEach(el => el.classList.remove('active'));
-        b.classList.add('active');
-        document.getElementById('hud-chord').textContent = ch;
-        strum('D');
-      };
-      chordGrid.appendChild(b);
-    });
+    function updatePlayUI() {
+      const btn = $("btn-play");
+      btn.innerHTML = playing ? `■ Dừng <kbd>Space</kbd>` : `▶ Phát <kbd>Space</kbd>`;
+      btn.classList.toggle("playing", playing);
+      btn.setAttribute("aria-pressed", playing);
+    }
 
-    document.getElementById('btn-play').onclick = togglePlay;
-    document.getElementById('btn-down').onclick = () => strum('D', false);
-    document.getElementById('btn-up').onclick = () => strum('U', false);
-    document.getElementById('btn-chuck').onclick = () => strum('D', true);
+    // =====================================================================
+    // 8. KHỞI TẠO GIAO DIỆN & SỰ KIỆN
+    // =====================================================================
+    function applyControls() {
+      $("tempo-slider").value = state.tempo;
+      $("tempo-val").textContent = `${state.tempo} BPM`;
+      $("vol-slider").value = state.volume;
+      $("vol-val").textContent = `${state.volume}%`;
+      $("reverb-slider").value = state.reverb;
+      $("reverb-val").textContent = `${state.reverb}%`;
 
-    document.getElementById('btn-rotate').onclick = (e) => {
-      state.autoRotate = !state.autoRotate;
-      e.target.textContent = `🔄 Tự xoay: ${state.autoRotate ? 'Bật' : 'Tắt'}`;
-    };
-
-    document.getElementById('btn-reset').onclick = () => {
-      cam.yaw = -0.35;
-      cam.pitch = 0.25;
-      cam.zoom = 1.0;
-    };
-
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.onclick = () => {
-        state.mode = btn.dataset.mode;
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('hud-mode').textContent = btn.textContent.toUpperCase();
-        state.stepIndex = 0;
-        renderSteps();
-      };
-    });
-
-    document.getElementById('slider-tempo').oninput = (e) => {
-      state.tempo = parseInt(e.target.value);
-      document.getElementById('val-tempo').textContent = state.tempo;
-      if (state.isPlaying) {
-        clearInterval(timerId);
-        timerId = setInterval(tick, (60 / state.tempo / 2) * 1000);
-      }
-    };
-
-    document.getElementById('slider-vol').oninput = (e) => {
-      state.volume = parseFloat(e.target.value);
-      document.getElementById('val-vol').textContent = state.volume;
-    };
-
-    // Điều khiển xoay & thu phóng bằng chuột
-    container.addEventListener('mousedown', (e) => {
-      cam.isDragging = true;
-      cam.lastX = e.clientX;
-      cam.lastY = e.clientY;
-    });
-    window.addEventListener('mousemove', (e) => {
-      if (!cam.isDragging) return;
-      cam.yaw += (e.clientX - cam.lastX) * 0.008;
-      cam.pitch = Math.max(-1.2, Math.min(1.2, cam.pitch + (e.clientY - cam.lastY) * 0.008));
-      cam.lastX = e.clientX;
-      cam.lastY = e.clientY;
-    });
-    window.addEventListener('mouseup', () => { cam.isDragging = false; });
-    container.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      cam.zoom = Math.max(0.5, Math.min(2.2, cam.zoom - e.deltaY * 0.001));
-    }, { passive: false });
-
-    // Phím tắt
-    window.addEventListener('keydown', (e) => {
-      const k = e.key.toLowerCase();
-      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-      else if (k === 'd') strum('D', false);
-      else if (k === 'u') strum('U', false);
-      else if (k === 'q') strum('D', true);
-      else if (k === 'r') document.getElementById('btn-reset').click();
-      else if (['1','2','3','4','5','6'].includes(k)) pluckString(6 - parseInt(k));
-    });
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (state.autoRotate && !cam.isDragging) {
-        cam.yaw += 0.01;
-      }
-      stringVib.forEach(s => {
-        if (s.amp > 0.00005) {
-          s.phase += 1.45;
-          s.amp *= 0.94;
-        }
+      document.querySelectorAll("#style-row button").forEach((b) => {
+        b.setAttribute("aria-pressed", b.dataset.style === state.style);
       });
-      renderScene();
+
+      const sel = $("prog");
+      sel.innerHTML = "";
+      Object.keys(PROGRESSIONS).forEach((k) => {
+        const o = document.createElement("option");
+        o.value = k;
+        o.textContent = PROG_LABELS[k];
+        sel.appendChild(o);
+      });
+      sel.value = state.progression;
     }
 
-    renderSteps();
-    animate();
+    buildChordChips();
+    applyControls();
+    buildRhythmGrid();
+    updatePlayUI();
+    $("bar-info").textContent = "Nhấn Phát để nghe";
+
+    $("btn-play").addEventListener("click", togglePlay);
+    $("btn-down").addEventListener("click", () => { ensureAudio(); strum(1, false); });
+    $("btn-up").addEventListener("click", () => { ensureAudio(); strum(-1, false); });
+    $("btn-chuck").addEventListener("click", () => { ensureAudio(); strum(1, true); });
+    $("btn-strum-chord").addEventListener("click", () => { ensureAudio(); strum(1, false); });
+
+    $("btn-reset").addEventListener("click", resetView);
+    function resetView() {
+      view.rotX = -0.18; view.rotY = -0.25; view.zoom = 46;
+      showStatus("Đã đặt lại góc nhìn");
+    }
+
+    $("tempo-slider").addEventListener("input", (e) => {
+      state.tempo = Number(e.target.value);
+      $("tempo-val").textContent = `${state.tempo} BPM`;
+      saveSettings();
+    });
+    $("vol-slider").addEventListener("input", (e) => {
+      state.volume = Number(e.target.value);
+      $("vol-val").textContent = `${state.volume}%`;
+      if (masterGain) masterGain.gain.value = (state.volume / 100) * 0.9;
+      saveSettings();
+    });
+    $("reverb-slider").addEventListener("input", (e) => {
+      state.reverb = Number(e.target.value);
+      $("reverb-val").textContent = `${state.reverb}%`;
+      if (wetGain) wetGain.gain.value = reverbLevel();
+      saveSettings();
+    });
+
+    document.querySelectorAll("#style-row button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.style = btn.dataset.style;
+        document.querySelectorAll("#style-row button").forEach((b) => {
+          b.setAttribute("aria-pressed", b === btn);
+        });
+        buildRhythmGrid();
+        saveSettings();
+      });
+    });
+
+    $("prog").addEventListener("change", (e) => {
+      state.progression = e.target.value;
+      saveSettings();
+      if (playing && PROGRESSIONS[state.progression]) {
+        step = step - (step % 8); // bắt đầu ô nhịp mới
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = e.target && e.target.tagName;
+      if (tag === "SELECT" || tag === "INPUT") return;
+      if (tag === "BUTTON" && (e.code === "Space" || e.code === "Enter")) return; // để nút tự xử lý
+
+      if (e.code === "Space") { e.preventDefault(); if (!e.repeat) togglePlay(); return; }
+      const k = e.key.toLowerCase();
+      if (k === "d") { ensureAudio(); strum(1, false); }
+      else if (k === "u") { ensureAudio(); strum(-1, false); }
+      else if (k === "q") { ensureAudio(); strum(1, true); }
+      else if (k === "r") resetView();
+      else if (["1", "2", "3", "4", "5", "6"].includes(e.key)) {
+        ensureAudio();
+        pluck(6 - Number(e.key));
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const idx = CHORD_ORDER.indexOf(state.chord);
+        const next = (idx + (e.key === "ArrowRight" ? 1 : -1) + CHORD_ORDER.length) % CHORD_ORDER.length;
+        chooseChord(CHORD_ORDER[next], true);
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        state.tempo = clamp(state.tempo + (e.key === "ArrowUp" ? 5 : -5), 60, 160);
+        $("tempo-slider").value = state.tempo;
+        $("tempo-val").textContent = `${state.tempo} BPM`;
+        saveSettings();
+      }
+    });
+
+    // =====================================================================
+    // 9. TẢI THREE.JS (THỬ NHIỀU CDN) & KHỞI TẠO 3D
+    // =====================================================================
+    function showFallback(msg) {
+      const el = $("fallback");
+      el.textContent = msg;
+      el.hidden = false;
+    }
+
+    const THREE_SOURCES = [
+      "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+      "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js",
+      "https://unpkg.com/three@0.128.0/build/three.min.js"
+    ];
+
+    function loadThree(done) {
+      if (typeof THREE !== "undefined") return done(true);
+      let i = 0;
+      const tryNext = () => {
+        if (i >= THREE_SOURCES.length) return done(false);
+        const s = document.createElement("script");
+        s.src = THREE_SOURCES[i++];
+        s.onload = () => done(typeof THREE !== "undefined");
+        s.onerror = tryNext;
+        document.head.appendChild(s);
+      };
+      tryNext();
+    }
+
+    loadThree((ok) => {
+      if (!ok) {
+        showFallback("Không tải được thư viện 3D (Three.js) từ các CDN. Âm thanh, hợp âm và nhịp vẫn hoạt động bình thường.");
+        return;
+      }
+      try {
+        init3D();
+      } catch (err) {
+        console.error(err);
+        showFallback("Không khởi tạo được mô hình 3D (WebGL" + (err && err.message ? ": " + err.message : "") + "). Âm thanh, hợp âm và nhịp vẫn hoạt động bình thường.");
+      }
+    });
   </script>
 </body>
 </html>

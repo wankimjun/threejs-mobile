@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Học Nhạc Lý 3D</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0d1117;color:#e6edf3;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  #app{position:fixed;inset:0}
+  #top{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;background:rgba(13,17,23,.8);backdrop-filter:blur(6px);border-bottom:1px solid #30363d;z-index:2}
+  #top h1{font-size:17px;margin:0 10px 0 0}
+  button,select{font:inherit;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:8px;padding:7px 12px;cursor:pointer}
+  button:hover,select:hover{border-color:#58a6ff}
+  button.active{background:#1f6feb;border-color:#1f6feb}
+  button.primary{background:#238636;border-color:#238636}
+  #panel{position:absolute;top:70px;left:12px;width:270px;background:rgba(22,27,34,.92);border:1px solid #30363d;border-radius:12px;padding:14px;z-index:2;display:flex;flex-direction:column;gap:9px;font-size:14px;line-height:1.5}
+  #panel label{font-size:12px;color:#8b949e;margin-top:2px}
+  #panel select{width:100%}
+  #panel .row{display:flex;gap:8px;flex-wrap:wrap}
+  #panel .row button{flex:1}
+  #info{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(22,27,34,.92);border:1px solid #30363d;border-radius:12px;padding:12px 18px;z-index:2;max-width:92vw;text-align:center;font-size:15px;line-height:1.6}
+  #info b{color:#f0883e}
+  .legend{font-size:12px;color:#8b949e;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+  @media (max-width:700px){
+    #panel{width:200px;top:110px;font-size:13px}
+    #info{font-size:13px;bottom:8px}
+  }
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>🎼 Học Nhạc Lý 3D</h1>
+  <button data-mode="piano" class="active">Phím đàn</button>
+  <button data-mode="chord">Hợp âm</button>
+  <button data-mode="interval">Quãng</button>
+  <button data-mode="scale">Thang âm</button>
+  <button data-mode="circle">Vòng quãng năm</button>
+</div>
+<div id="panel"></div>
+<div id="info"></div>
+<div id="app"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ================= DỮ LIỆU LÝ THUYẾT ================= */
+const NAMES    = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SOLFEGE = ['Đô','Đô#','Rê','Rê#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+const BLACK    = [1,3,6,8,10];
+const BASE = 48;   // C3
+const TOP  = 71;   // B4
+const FIFTHS = [0,7,2,9,4,11,6,1,8,3,10,5];
+const CONS = [0,3,4,5,7,8,9];      // quãng hòa âm (êm tai)
+const DEG  = {0:'1',1:'♭2',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♯5',9:'6',10:'♭7',11:'7'};
+
+const INTERVALS = ['Đồng âm','2 thứ','2 trưởng','3 thứ','3 trưởng','4 đúng','4 tăng (tritone)',
+                   '5 đúng','6 thứ','6 trưởng','7 thứ','7 trưởng','8 đúng'];
+
+const CHORDS = {
+  maj:  {n:'Trưởng',          iv:[0,4,7]},
+  min:  {n:'Thứ',             iv:[0,3,7]},
+  dim:  {n:'Giảm',            iv:[0,3,6]},
+  aug:  {n:'Tăng',            iv:[0,4,8]},
+  maj7: {n:'Trưởng 7',        iv:[0,4,7,11]},
+  dom7: {n:'Át 7 (dominant)', iv:[0,4,7,10]},
+  min7: {n:'Thứ 7',           iv:[0,3,7,10]},
+};
+
+const SCALES = {
+  maj:  {n:'Trưởng (Major)',                 iv:[0,2,4,5,7,9,11], deg:['I','II','III','IV','V','VI','VII']},
+  min:  {n:'Thứ tự nhiên (Natural minor)',   iv:[0,2,3,5,7,8,10], deg:['I','II','♭III','IV','V','♭VI','♭VII']},
+  harm: {n:'Thứ hòa thanh (Harmonic minor)', iv:[0,2,3,5,7,8,11], deg:['I','II','♭III','IV','V','♭VI','VII']},
+  pent: {n:'Ngũ cung trưởng (Pentatonic)',   iv:[0,2,4,7,9],      deg:['I','II','III','V','VI']},
+};
+
+const ROOT_C = 0xf0883e;  // cam: âm chủ
+const GOOD_C = 0x3fb950;  // xanh: nốt trong hợp âm / thang
+const SEC_C  = 0x58a6ff;  // xanh dương: nốt thứ hai của quãng
+
+const nameOf = m => NAMES[((m % 12) + 12) % 12];
+const solOf  = m => SOLFEGE[((m % 12) + 12) % 12];
+const freq   = m => 440 * Math.pow(2, (m - 69) / 12);
+
+/* ================= ÂM THANH ================= */
+let actx = null;
+function ctx(){
+  if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if(actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(m, delay = 0, dur = 1.2){
+  const c = ctx(), t = c.currentTime + delay;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'triangle';
+  o.frequency.value = freq(m);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+const playNote = m => tone(m, 0, 1.0);
+const playMany = (ms) => ms.forEach(m => tone(m, 0, 1.6));
+const playSeq  = (ms, gap = 0.45) => ms.forEach((m, i) => tone(m, i * gap, gap * 1.6));
+
+/* ================= 3D: CẢNH ================= */
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1117);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 7, 15);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 0, 0);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+sun.position.set(6, 12, 8);
+scene.add(sun);
+const rim = new THREE.DirectionalLight(0x58a6ff, 0.4);
+rim.position.set(-8, 4, -6);
+scene.add(rim);
+
+// Nhãn chữ dạng sprite (luôn quay về phía camera)
+function label(main, sub = '', size = 1){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 160;
+  const g = c.getContext('2d');
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillStyle = '#e6edf3';
+  g.font = 'bold 70px system-ui, sans-serif';
+  g.fillText(main, 128, sub ? 62 : 80);
+  if(sub){
+    g.fillStyle = '#8b949e';
+    g.font = '36px system-ui, sans-serif';
+    g.fillText(sub, 128, 128);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false}));
+  sp.scale.set(2.4 * size, 1.5 * size, 1);
+  sp.renderOrder = 10;
+  return sp;
+}
+
+/* ---------- ĐÀN PIANO 3D ---------- */
+const pianoGroup = new THREE.Group();
+scene.add(pianoGroup);
+
+const keys = [];          // {mesh, midi, black}
+const keyMeshes = [];
+
+const allNotes = [];
+for(let m = BASE; m <= TOP; m++) allNotes.push(m);
+const W = allNotes.filter(m => !BLACK.includes(m % 12)).length;
+
+const whiteGeo = new THREE.BoxGeometry(0.92, 0.35, 4.6);
+const blackGeo = new THREE.BoxGeometry(0.56, 0.4, 2.7);
+
+function addKey(mesh, m, black, restY){
+  mesh.userData = {kind: 'key', midi: m, restY};
+  pianoGroup.add(mesh);
+  keys.push({mesh, midi: m, black});
+  keyMeshes.push(mesh);
+}
+
+let wi = 0;
+for(const m of allNotes){
+  const pc = m % 12;
+  if(BLACK.includes(pc)){
+    const mesh = new THREE.Mesh(blackGeo, new THREE.MeshStandardMaterial({color: 0x1a1d23, roughness: 0.3}));
+    mesh.position.set(wi - W / 2, 0.55, -0.95);
+    addKey(mesh, m, true, 0.55);
+  } else {
+    const mesh = new THREE.Mesh(whiteGeo, new THREE.MeshStandardMaterial({color: 0xf5f5f5, roughness: 0.4}));
+    mesh.position.set(wi - W / 2 + 0.5, 0.175, 0);
+    addKey(mesh, m, false, 0.175);
+    const lb = label(NAMES[pc], SOLFEGE[pc], 0.5);
+    lb.position.set(mesh.position.x, 0.95, 2.9);
+    pianoGroup.add(lb);
+    wi++;
+  }
+}
+
+// Tô màu phím: fn(midi) trả về mã màu hoặc null
+function paintKeys(fn){
+  for(const k of keys){
+    const c = fn(k.midi);
+    const m = k.mesh.material;
+    if(c != null){
+      m.color.set(c);
+      m.emissive.set(c);
+      m.emissiveIntensity = 0.35;
+    } else {
+      m.color.set(k.black ? 0x1a1d23 : 0xf5f5f5);
+      m.emissive.set(0x000000);
+    }
+  }
+}
+
+// Phím nhún xuống khi bấm
+function pressKey(mesh){
+  const y = mesh.userData.restY;
+  mesh.position.y = y - 0.12;
+  setTimeout(() => { mesh.position.y = y; }, 160);
+}
+
+/* ---------- VÒNG QUÃNG NĂM 3D ---------- */
+const ringGroup = new THREE.Group();
+ringGroup.visible = false;
+scene.add(ringGroup);
+
+const ringMajors = [];   // các quả cầu trưởng (ngoài)
+const ringPickables = [];
+const R = 5.2, r2 = 3.1;
+
+{
+  const pts = [];
+  for(let j = 0; j <= 96; j++){
+    const a = j / 96 * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * R, 0, Math.sin(a) * R));
+  }
+  ringGroup.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({color: 0x30363d})
+  ));
+}
+
+FIFTHS.forEach((pc, i) => {
+  const a = Math.PI / 2 - i * Math.PI / 6;
+  const cx = Math.cos(a), cz = Math.sin(a);
+
+  // Giọng trưởng (vòng ngoài, xanh dương)
+  const major = new THREE.Mesh(
+    new THREE.SphereGeometry(0.62, 32, 16),
+    new THREE.MeshStandardMaterial({color: 0x2f81f7, roughness: 0.35})
+  );
+  major.position.set(cx * R, 0.6, cz * R);
+  major.userData = {kind: 'major', idx: i};
+  const ml = label(NAMES[pc], SOLFEGE[pc], 1);
+  ml.position.set(cx * R, 2.0, cz * R);
+  ringGroup.add(major, ml);
+  ringMajors.push(major);
+  ringPickables.push(major);
+
+  // Giọng thứ song song (vòng trong, tím) – cùng dấu hóa với giọng trưởng
+  const minor = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 24, 12),
+    new THREE.MeshStandardMaterial({color: 0x8957e5, roughness: 0.35})
+  );
+  minor.position.set(cx * r2, 0.4, cz * r2);
+  minor.userData = {kind: 'major', idx: i};
+  const sl = label(NAMES[(pc + 9) % 12] + 'm', '', 0.7);
+  sl.position.set(cx * r2, 1.3, cz * r2);
+  ringGroup.add(minor, sl);
+  ringPickables.push(minor);
+});
+
+let ringSelected = -1;
+function selectRing(i){
+  ringSelected = i;
+  ringMajors.forEach((s, j) => s.material.emissive.set(j === i ? ROOT_C : 0x000000));
+  const pc = FIFTHS[i];
+  const sig = i === 0 ? 'không có dấu hóa'
+            : i < 6  ? `${i} dấu thăng (♯)`
+            : i === 6 ? '6 dấu thăng hoặc 6 dấu giáng'
+            : `${12 - i} dấu giáng (♭)`;
+  playMany([60 + pc, 64 + pc, 67 + pc]);
+  showInfo(
+    `Giọng <b>${NAMES[pc]} trưởng</b> (${SOLFEGE[pc]} trưởng): ${sig}.<br>` +
+    `Giọng thứ song song: <b>${NAMES[(pc + 9) % 12]} thứ</b>. ` +
+    `Đi theo chiều kim đồng hồ, mỗi bước thêm một dấu thăng; ngược lại thêm một dấu giáng.`
+  );
+}
+
+/* ================= TƯƠNG TÁC ================= */
+const ray = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let downPos = null;
+let pickables = keyMeshes;
+
+renderer.domElement.addEventListener('pointerdown', e => { downPos = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if(!downPos) return;
+  if(Math.hypot(e.clientX - downPos[0], e.clientY - downPos[1]) > 6) return; // đang kéo xoay
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(pickables, false)[0];
+  if(hit) onPick(hit.object);
+});
+
+function onPick(obj){
+  const d = obj.userData;
+  if(d.kind === 'key'){
+    playNote(d.midi);
+    pressKey(obj);
+    if(mode === 'piano'){
+      showInfo(`Nốt <b>${nameOf(d.midi)}</b> (${solOf(d.midi)}) · tần số ${freq(d.midi).toFixed(1)} Hz`);
+    }
+  } else if(d.kind === 'major'){
+    selectRing(d.idx);
+  }
+}
+
+/* ================= TRẠNG THÁI & GIAO DIỆN ================= */
+const panel = document.getElementById('panel');
+const info  = document.getElementById('info');
+let mode = 'piano';
+
+const st = {
+  chord:    {root: 0, qual: 'maj'},
+  interval: {root: 0, iv: 7},
+  scale:    {root: 0, sc: 'maj'},
+};
+
+const DEFAULT_INFO = {
+  piano:  'Nhấn một phím đàn để nghe nốt. Chuyển sang các tab khác để học hợp âm, quãng và thang âm.',
+  circle: 'Nhấn một quả cầu để xem giọng tương ứng: số dấu hóa và giọng thứ song song.',
+};
+
+function showInfo(html){ info.innerHTML = html; }
+
+const opt = (v, t, sel) => `<option value="${v}" ${String(v) === String(sel) ? 'selected' : ''}>${t}</option>`;
+const rootOpts = sel => NAMES.map((n, i) => opt(i, `${n} – ${SOLFEGE[i]}`, sel)).join('');
+const on = (id, ev, fn) => document.getElementById(id).addEventListener(ev, fn);
+
+function refresh(){
+  if(mode === 'piano'){
+    paintKeys(() => null);
+    showInfo(DEFAULT_INFO.piano);
+  } else if(mode === 'chord') refreshChord();
+  else if(mode === 'interval') refreshInterval();
+  else if(mode === 'scale') refreshScale();
+}
+
+function refreshChord(){
+  const s = st.chord, c = CHORDS[s.qual];
+  const pcs = c.iv.map(i => (s.root + i) % 12);
+  paintKeys(m => {
+    const pc = m % 12;
+    if(pc === s.root) return ROOT_C;
+    return pcs.includes(pc) ? GOOD_C : null;
+  });
+  showInfo(
+    `<b>${NAMES[s.root]} ${c.n}</b> — các nốt: ${pcs.map(p => NAMES[p]).join(' – ')}<br>` +
+    `Công thức: ${c.iv.map(i => DEG[i]).join(' – ')}`
+  );
+}
+
+function refreshInterval(){
+  const s = st.interval;
+  const pc2 = (s.root + s.iv) % 12;
+  paintKeys(m => {
+    const pc = m % 12;
+    if(pc === s.root) return ROOT_C;
+    if(pc === pc2) return SEC_C;
+    return null;
+  });
+  const cons = CONS.includes(s.iv % 12) ? 'Êm tai (hòa âm)' : 'Căng (bất hòa âm)';
+  showInfo(
+    `<b>${NAMES[s.root]} → ${NAMES[pc2]}</b>: quãng ${INTERVALS[s.iv]} (${s.iv} nửa cung)<br>${cons}`
+  );
+}
+
+function refreshScale(){
+  const s = st.scale, sc = SCALES[s.sc];
+  const pcs = sc.iv.map(i => (s.root + i) % 12);
+  paintKeys(m => {
+    const pc = m % 12;
+    if(pc === s.root) return ROOT_C;
+    return pcs.includes(pc) ? GOOD_C : null;
+  });
+  showInfo(
+    `<b>${NAMES[s.root]} – ${sc.n}</b><br>` +
+    sc.iv.map((i, k) => `${sc.deg[k]}: ${NAMES[(s.root + i) % 12]}`).join(' · ')
+  );
+}
+
+function renderPanel(){
+  if(mode === 'piano'){
+    panel.innerHTML = `
+      <b>Phím đàn</b>
+      <div>Hai quãng tám từ Đô (C3) đến Si (B4). Nhấn phím để nghe và xem tên nốt.</div>
+      <div class="legend"><span><span class="dot" style="background:#f0883e"></span>Âm chủ</span></div>
+      <div style="color:#8b949e;font-size:12px">Kéo chuột để xoay, cuộn để phóng to.</div>`;
+  }
+  else if(mode === 'chord'){
+    const s = st.chord;
+    panel.innerHTML = `
+      <b>Hợp âm</b>
+      <label>Âm chủ</label>
+      <select id="c-root">${rootOpts(s.root)}</select>
+      <label>Loại hợp âm</label>
+      <select id="c-qual">${Object.entries(CHORDS).map(([k, v]) => opt(k, v.n, s.qual)).join('')}</select>
+      <div class="row">
+        <button class="primary" id="c-play">▶ Nghe cùng lúc</button>
+        <button id="c-arp">🎵 Rải</button>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#f0883e"></span>Âm chủ</span>
+        <span><span class="dot" style="background:#3fb950"></span>Nốt hợp âm</span>
+      </div>`;
+    on('c-root', 'change', e => { s.root = +e.target.value; refresh(); });
+    on('c-qual', 'change', e => { s.qual = e.target.value; refresh(); });
+    on('c-play', 'click', () => playMany(CHORDS[s.qual].iv.map(i => 60 + s.root + i)));
+    on('c-arp',  'click', () => playSeq(CHORDS[s.qual].iv.map(i => 60 + s.root + i), 0.3));
+  }
+  else if(mode === 'interval'){
+    const s = st.interval;
+    panel.innerHTML = `
+      <b>Quãng</b>
+      <label>Nốt gốc</label>
+      <select id="i-root">${rootOpts(s.root)}</select>
+      <label>Loại quãng</label>
+      <select id="i-iv">${INTERVALS.map((n, k) => opt(k, `${n} (${k})`, s.iv)).join('')}</select>
+      <div class="row">
+        <button class="primary" id="i-play">▶ Cùng lúc</button>
+        <button id="i-seq">🎵 Liên tiếp</button>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#f0883e"></span>Nốt gốc</span>
+        <span><span class="dot" style="background:#58a6ff"></span>Nốt thứ hai</span>
+      </div>`;
+    on('i-root', 'change', e => { s.root = +e.target.value; refresh(); });
+    on('i-iv',   'change', e => { s.iv = +e.target.value; refresh(); });
+    on('i-play', 'click', () => playMany([60 + s.root, 60 + s.root + s.iv]));
+    on('i-seq',  'click', () => playSeq([60 + s.root, 60 + s.root + s.iv], 0.7));
+  }
+  else if(mode === 'scale'){
+    const s = st.scale;
+    panel.innerHTML = `
+      <b>Thang âm</b>
+      <label>Âm chủ</label>
+      <select id="s-root">${rootOpts(s.root)}</select>
+      <label>Loại thang âm</label>
+      <select id="s-sc">${Object.entries(SCALES).map(([k, v]) => opt(k, v.n, s.sc)).join('')}</select>
+      <div class="row"><button class="primary" id="s-play">▶ Nghe thang âm</button></div>
+      <div class="legend">
+        <span><span class="dot" style="background:#f0883e"></span>Âm chủ</span>
+        <span><span class="dot" style="background:#3fb950"></span>Bậc khác</span>
+      </div>`;
+    on('s-root', 'change', e => { s.root = +e.target.value; refresh(); });
+    on('s-sc',   'change', e => { s.sc = e.target.value; refresh(); });
+    on('s-play', 'click', () => {
+      const sc = SCALES[s.sc];
+      const ms = sc.iv.map(i => 60 + s.root + i);
+      ms.push(60 + s.root + 12);
+      playSeq(ms, 0.4);
+    });
+  }
+  else if(mode === 'circle'){
+    panel.innerHTML = `
+      <b>Vòng quãng năm</b>
+      <div>Các giọng xếp theo quãng 5 đúng. Quả cầu <span style="color:#58a6ff">xanh</span> là giọng trưởng,
+      quả cầu <span style="color:#8957e5">tím</span> bên trong là giọng thứ song song.</div>
+      <div>Đi theo chiều kim đồng hồ: mỗi bước thêm một dấu thăng. Ngược chiều: thêm một dấu giáng.</div>`;
+  }
+}
+
+function setMode(m){
+  mode = m;
+  document.querySelectorAll('#top [data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+  pianoGroup.visible = m !== 'circle';
+  ringGroup.visible  = m === 'circle';
+  pickables = m === 'circle' ? ringPickables : keyMeshes;
+  camera.position.set(0, m === 'circle' ? 12 : 7, m === 'circle' ? 9 : 15);
+  controls.target.set(0, 0, 0);
+  renderPanel();
+  if(m === 'circle'){
+    showInfo(ringSelected >= 0 ? '' : DEFAULT_INFO.circle);
+    if(ringSelected >= 0) selectRing(ringSelected);
+  } else {
+    refresh();
+  }
+}
+
+document.querySelectorAll('#top [data-mode]').forEach(b =>
+  b.addEventListener('click', () => setMode(b.dataset.mode))
+);
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ================= VÒNG LẶP ================= */
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+setMode('piano');
+</script>
+</body>
+</html>

@@ -2,47 +2,185 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cò quay nga 3D – Súng nước</title>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#0d1b2a;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}
-  #ui{position:fixed;top:0;left:0;right:0;padding:14px 18px;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
-  .panel{background:rgba(0,0,0,.55);border-radius:12px;padding:12px 16px;backdrop-filter:blur(4px);pointer-events:auto;max-width:520px}
-  h1{font-size:18px;margin:0 0 6px}
-  .score{display:flex;gap:18px;font-size:15px}
-  .score .active{color:#ffd166;font-weight:700}
-  #status{font-size:16px;min-height:22px;margin-top:8px}
-  #controls{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-  button{font-size:16px;padding:12px 22px;border:0;border-radius:10px;cursor:pointer;background:#ffd166;color:#222;font-weight:700;box-shadow:0 4px 0 #b8860b;transition:transform .05s}
-  button:disabled{opacity:.4;cursor:not-allowed}
-  button.alt{background:#8ecae6;box-shadow:0 4px 0 #3a7ca5}
-  button:active:not(:disabled){transform:translateY(3px);box-shadow:none}
-  #hint{position:fixed;bottom:88px;width:100%;text-align:center;font-size:13px;opacity:.6;pointer-events:none}
-  #splash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(70,170,255,.8),rgba(70,170,255,.3) 55%,transparent 85%)}
-  #splash.show{animation:sp 1.4s ease-out forwards}
-  @keyframes sp{0%{opacity:1}100%{opacity:0}}
+  :root {
+    --p1: #ffd166;
+    --p2: #8ecae6;
+    --ink: #0d1b2a;
+    --panel: rgba(8, 18, 32, .78);
+    --panel-line: rgba(255, 255, 255, .12);
+    --text: #f2f5fa;
+    --muted: #9fb0c5;
+    --hit: #ff6b6b;
+    --ok: #7bd389;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden; background: var(--ink); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  canvas { position: fixed; inset: 0; display: block; }
+  [hidden] { display: none !important; }
+  button { font: inherit; }
+  button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* ---------- Phần trên: tiêu đề, thẻ điểm, thông báo ---------- */
+  #ui {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    width: min(760px, calc(100% - 28px)); display: grid; gap: 10px; pointer-events: none;
+  }
+  .titlebar { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 4px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 800; letter-spacing: .2px; }
+  .titlebar .sub { font-size: 13px; color: var(--muted); }
+
+  .scores {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: stretch; pointer-events: auto;
+  }
+  .card {
+    --c: var(--p1);
+    padding: 12px 14px; border: 2px solid var(--panel-line); transition: border-color .2s, box-shadow .2s, transform .2s;
+    position: relative; overflow: hidden; min-width: 0;
+  }
+  .card.p2 { --c: var(--p2); }
+  .card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c);
+  }
+  .card.turn {
+    border-color: var(--c);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, .05), 0 10px 30px -10px var(--c);
+    transform: translateY(-2px);
+  }
+  .pname { font-size: 14px; font-weight: 700; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pnum { font-size: 40px; font-weight: 800; line-height: 1.05; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .plabel { font-size: 12px; color: var(--muted); }
+  .turn-tag {
+    display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 700; padding: 3px 9px;
+    border-radius: 999px; background: rgba(255, 255, 255, .06); color: var(--muted);
+  }
+  .card.turn .turn-tag { background: var(--c); color: var(--ink); }
+
+  .chamber-box {
+    padding: 10px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    min-width: 128px;
+  }
+  .clabel { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; }
+  .chambers { display: grid; grid-template-columns: repeat(3, 14px); gap: 6px; }
+  .ch { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #4b6078; background: transparent; }
+  .ch.passed { background: #4b6078; border-color: #4b6078; }
+  .ch.cur { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, .25); }
+  .cnote { font-size: 12px; color: var(--muted); }
+
+  .banner {
+    padding: 11px 16px; font-size: 15px; line-height: 1.4; pointer-events: auto;
+    border-left: 4px solid #4b6078; transition: border-color .2s, background .2s;
+  }
+  .banner.hit { border-left-color: var(--hit); background: rgba(255, 107, 107, .12); }
+  .banner.ok { border-left-color: var(--ok); }
+  .banner.busy { border-left-color: #9fb0c5; }
+
+  /* ---------- Phần dưới: nút điều khiển ---------- */
+  #dock {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    width: min(560px, calc(100% - 28px)); padding: 10px; display: grid; gap: 6px; pointer-events: auto;
+  }
+  .actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; }
+  .btn {
+    border: 0; border-radius: 12px; padding: 14px 16px; font-size: 16px; font-weight: 800; cursor: pointer;
+    color: var(--ink); background: #d7dee8; box-shadow: 0 4px 0 #6b7a8c; transition: transform .05s, opacity .2s;
+    min-height: 52px; white-space: nowrap;
+  }
+  .btn.primary { background: linear-gradient(180deg, #ffe08a, var(--p1)); box-shadow: 0 5px 0 #b8860b; font-size: 18px; }
+  .btn.secondary { background: linear-gradient(180deg, #b5e2f5, var(--p2)); box-shadow: 0 4px 0 #3a7ca5; }
+  .btn.ghost { background: transparent; color: var(--text); box-shadow: none; border: 2px solid var(--panel-line); padding: 12px 14px; font-size: 15px; }
+  .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+  .btn:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+  .btn.dim { opacity: .55; }
+  .hint { font-size: 12px; color: var(--muted); text-align: center; margin: 0 0 2px; }
+
+  /* ---------- Hiệu ứng tạt nước ---------- */
+  #splash {
+    position: fixed; inset: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(70, 170, 255, .8), rgba(70, 170, 255, .3) 55%, transparent 85%);
+  }
+  #splash.show { animation: sp 1.4s ease-out forwards; }
+  @keyframes sp { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* ---------- Màn hình nhỏ ---------- */
+  @media (max-width: 560px) {
+    #ui { top: 10px; width: calc(100% - 20px); gap: 8px; }
+    h1 { font-size: 16px; }
+    .titlebar .sub { display: none; }
+    .scores { grid-template-columns: 1fr 1fr; }
+    .chamber-box { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 12px; min-width: 0; padding: 8px; order: 3; }
+    .chambers { grid-template-columns: repeat(6, 12px); gap: 5px; }
+    .ch { width: 12px; height: 12px; }
+    .cnote { font-size: 12px; }
+    .pnum { font-size: 32px; }
+    .card { padding: 10px 12px; }
+    .turn-tag { font-size: 11px; }
+    .banner { font-size: 14px; padding: 9px 12px; }
+    #dock { bottom: 10px; width: calc(100% - 20px); padding: 8px; }
+    .actions { grid-template-columns: 1fr 1fr; }
+    .btn.ghost { grid-column: 1 / -1; min-height: 44px; }
+    .btn { min-height: 50px; font-size: 15px; }
+    .btn.primary { font-size: 16px; }
+    .hint { display: none; }
+  }
+  @media (max-width: 360px) {
+    .pnum { font-size: 28px; }
+    .pname { font-size: 13px; }
+  }
 </style>
 </head>
 <body>
 
 <div id="ui">
-  <div class="panel">
-    <h1>🔫 Cò quay nga 3D — Súng nước</h1>
-    <div class="score">
-      <span id="s0">Người 1: 0 lần bị tạt</span>
-      <span id="s1">Người 2: 0 lần bị tạt</span>
+  <header class="titlebar panel" style="padding:10px 14px">
+    <h1>🔫 Cò quay nga 3D</h1>
+    <span class="sub">Súng nước · 2 người chơi</span>
+  </header>
+
+  <section class="scores" aria-label="Bảng điểm">
+    <article class="card panel p1" id="card0">
+      <div class="pname" id="name0">Người 1</div>
+      <div class="pnum" id="n0" aria-live="polite">0</div>
+      <div class="plabel">lần bị tạt</div>
+      <span class="turn-tag" id="tag0">Chờ lượt</span>
+    </article>
+
+    <div class="chamber-box panel" aria-label="Ổ đạn">
+      <div class="clabel">Ổ đạn</div>
+      <div class="chambers" id="chambers" aria-hidden="true"></div>
+      <div class="cnote" id="cnote">Chưa quay</div>
     </div>
-    <div id="status">Nhấn "Quay ổ đạn" để bắt đầu.</div>
-  </div>
+
+    <article class="card panel p2" id="card1">
+      <div class="pname" id="name1">Người 2</div>
+      <div class="pnum" id="n1" aria-live="polite">0</div>
+      <div class="plabel">lần bị tạt</div>
+      <span class="turn-tag" id="tag1">Chờ lượt</span>
+    </article>
+  </section>
+
+  <div id="status" class="banner panel info" role="status" aria-live="polite">Nhấn "Quay ổ đạn" để bắt đầu.</div>
 </div>
 
 <div id="splash"></div>
-<div id="hint">Kéo chuột để xoay góc nhìn • Lăn chuột để phóng to / thu nhỏ</div>
 
-<div id="controls">
-  <button id="btnSpin">🔄 Quay ổ đạn</button>
-  <button id="btnPull" disabled>🎯 Bóp cò</button>
-  <button id="btnReset" class="alt">↺ Chơi lại</button>
+<div id="dock" class="panel">
+  <p class="hint">Kéo để xoay góc nhìn · Lăn chuột để phóng to / thu nhỏ · Phím Space để bóp cò</p>
+  <div class="actions">
+    <button id="btnSpin" class="btn secondary">🔄 Quay ổ đạn</button>
+    <button id="btnPull" class="btn primary" disabled>🎯 Bóp cò</button>
+    <button id="btnReset" class="btn ghost">↺ Chơi lại</button>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
@@ -62,7 +200,7 @@
   renderer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  document.body.appendChild(renderer.domElement);
+  document.body.insertBefore(renderer.domElement, document.getElementById('splash'));
 
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.set(0.5, 0, 0);
@@ -225,7 +363,6 @@
       }
     }
   }
-  const wait = s => new Promise(r => setTimeout(r, s * 1000));
   const linear = t => t;
 
   // ---------- Sound (WebAudio, no files) ----------
@@ -254,21 +391,61 @@
   let busy = false;
   let marked = 0;        // chamber that holds the water pellet this round (hidden)
   let slot = 0;          // chamber currently under the hammer
+  let passed = [false, false, false, false, false, false]; // chambers already clicked this round
 
   const $ = id => document.getElementById(id);
   const btnSpin = $('btnSpin'), btnPull = $('btnPull'), btnReset = $('btnReset');
-  const statusEl = $('status'), splash = $('splash');
+  const statusEl = $('status');
+  const splash = $('splash');
+  const chambersEl = $('chambers');
 
-  function setStatus(t) { statusEl.textContent = t; }
+  // Tạo 6 chấm ổ đạn
+  for (let i = 0; i < 6; i++) {
+    const d = document.createElement('span');
+    d.className = 'ch';
+    chambersEl.appendChild(d);
+  }
+
+  // Trạng thái: 'info' | 'ok' | 'hit' | 'busy'
+  function setStatus(text, type = 'info') {
+    statusEl.textContent = text;
+    statusEl.className = 'banner panel ' + type;
+  }
+
+  function updateChambers() {
+    const dots = chambersEl.children;
+    for (let i = 0; i < 6; i++) {
+      dots[i].className = 'ch' +
+        (passed[i] ? ' passed' : '') +
+        (roundActive && i === slot ? ' cur' : '');
+    }
+    const n = passed.filter(Boolean).length;
+    $('cnote').textContent = roundActive ? `Đã qua ${n}/6 khoang` : (busy ? 'Đang quay...' : 'Chưa quay');
+  }
 
   function updateUI() {
-    $('s0').textContent = `${names[0]}: ${scores[0]} lần bị tạt`;
-    $('s1').textContent = `${names[1]}: ${scores[1]} lần bị tạt`;
-    $('s0').classList.toggle('active', roundActive && cur === 0);
-    $('s1').classList.toggle('active', roundActive && cur === 1);
+    for (let i = 0; i < 2; i++) {
+      $('n' + i).textContent = scores[i];
+      $('card' + i).classList.toggle('turn', cur === i);
+      const tag = $('tag' + i);
+      if (cur !== i) tag.textContent = 'Chờ lượt';
+      else if (busy) tag.textContent = roundActive ? 'Đang bóp cò' : 'Đang quay';
+      else tag.textContent = roundActive ? 'Đến lượt bóp cò' : 'Đến lượt quay';
+    }
+
     btnSpin.disabled = busy || roundActive;
     btnPull.disabled = busy || !roundActive;
     btnReset.disabled = busy;
+
+    // Nút chính đổi theo bước tiếp theo của lượt
+    btnSpin.classList.toggle('primary', !roundActive);
+    btnSpin.classList.toggle('secondary', roundActive);
+    btnPull.classList.toggle('primary', roundActive);
+    btnPull.classList.toggle('secondary', !roundActive);
+    btnSpin.classList.toggle('dim', roundActive);
+    btnPull.classList.toggle('dim', !roundActive);
+
+    updateChambers();
   }
 
   function flashSplash() {
@@ -280,8 +457,9 @@
   async function spin() {
     if (busy || roundActive) return;
     busy = true;
+    passed = [false, false, false, false, false, false];
+    setStatus(`${names[cur]} đang quay ổ đạn...`, 'busy');
     updateUI();
-    setStatus(`${names[cur]} đang quay ổ đạn...`);
 
     const newSlot = Math.floor(Math.random() * 6);
     const steps = ((newSlot - slot) % 6 + 6) % 6;
@@ -293,13 +471,14 @@
     slot = newSlot;
     roundActive = true;
     busy = false;
-    setStatus(`${names[cur]}: bóp cò đi!`);
+    setStatus(`${names[cur]}: bóp cò đi!`, 'info');
     updateUI();
   }
 
   async function pull() {
     if (busy || !roundActive) return;
     busy = true;
+    setStatus(`${names[cur]} bóp cò...`, 'busy');
     updateUI();
 
     // Trigger pulled back, hammer falls
@@ -316,13 +495,14 @@
       scores[loser]++;
       roundActive = false;
       cur = 1 - loser;                    // the splashed player doesn't spin next
-      setStatus(`💦 ${names[loser]} bị tạt nước! ${names[cur]} quay ổ đạn lượt sau.`);
+      setStatus(`💦 ${names[loser]} bị tạt nước! ${names[cur]} quay ổ đạn ở lượt sau.`, 'hit');
     } else {
       beep(1500, 0.08);
+      passed[slot] = true;
       await tween(cylGroup.rotation, 'x', cylGroup.rotation.x - STEP, 0.25);
       slot = (slot + 1) % 6;
       cur = 1 - cur;
-      setStatus(`Click! Không trúng. Đến lượt ${names[cur]} bóp cò.`);
+      setStatus(`Click! Không trúng. Đến lượt ${names[cur]} bóp cò.`, 'ok');
     }
 
     // Reset trigger and re-cock hammer
@@ -340,16 +520,24 @@
     roundActive = false;
     marked = 0;
     slot = 0;
+    passed = [false, false, false, false, false, false];
     cylGroup.rotation.x = 0;
     hammerGroup.rotation.z = COCK;
     trigGroup.rotation.z = 0;
-    setStatus('Đã chơi lại. Nhấn "Quay ổ đạn" để bắt đầu.');
+    setStatus('Đã chơi lại. Nhấn "Quay ổ đạn" để bắt đầu.', 'info');
     updateUI();
   }
 
   btnSpin.onclick = spin;
   btnPull.onclick = pull;
   btnReset.onclick = resetGame;
+
+  // Phím Space bóp cò khi không đang focus vào nút (nút đã tự xử lý Space)
+  window.addEventListener('keydown', e => {
+    if (e.code !== 'Space' || e.repeat) return;
+    if (document.activeElement && document.activeElement.tagName === 'BUTTON') return;
+    if (!btnPull.disabled) { e.preventDefault(); pull(); }
+  });
 
   // ---------- Loop & resize ----------
   let last = performance.now();

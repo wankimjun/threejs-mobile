@@ -2,72 +2,195 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cung điện ký ức</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #07060f; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #e8e4f5; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #07060f;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #e8e4f5; font-size: 15px; }
   canvas { position: fixed; inset: 0; display: block; }
-  #ui {
-    position: fixed; top: 16px; left: 16px; width: 290px; max-height: calc(100% - 32px); overflow: auto;
-    background: rgba(15, 12, 30, 0.78); border: 1px solid rgba(180, 160, 255, 0.25); border-radius: 12px;
-    padding: 14px; backdrop-filter: blur(8px); z-index: 2; box-sizing: border-box;
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid #cbb8ff; outline-offset: 2px;
   }
-  h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; color: #f3e8ff; }
-  h2 { font-size: 14px; margin: 16px 0 8px; color: #cbb8ff; font-weight: 600; }
-  .hint { font-size: 12px; opacity: 0.6; line-height: 1.5; margin-bottom: 12px; }
-  button { font: inherit; cursor: pointer; color: #e8e4f5; background: rgba(120, 100, 200, 0.25); border: 1px solid rgba(180, 160, 255, 0.3); border-radius: 8px; padding: 6px 10px; }
-  button:hover { background: rgba(140, 120, 230, 0.4); }
-  button.link { background: none; border: none; padding: 4px 0; font-weight: 600; color: #ffd9a8; text-align: left; }
-  button.item { display: block; width: 100%; text-align: left; margin: 3px 0; background: rgba(40, 32, 75, 0.5); border-color: transparent; }
-  button.item.on { background: rgba(140, 120, 230, 0.5); border-color: #cbb8ff; }
-  .roomHead { margin-top: 10px; }
-  #resetBtn { width: 100%; margin-bottom: 4px; }
-  form { display: flex; flex-direction: column; gap: 6px; }
+  [hidden] { display: none !important; }
+
+  .panel {
+    position: fixed; background: rgba(15, 12, 30, .84); border: 1px solid rgba(180, 160, 255, .22);
+    border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 2;
+  }
+
+  /* ---------- Nút ---------- */
+  .btn {
+    background: rgba(120, 100, 200, .2); border: 1px solid rgba(180, 160, 255, .3); border-radius: 10px;
+    padding: 9px 14px; cursor: pointer; font-weight: 500; transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: rgba(140, 120, 230, .35); border-color: rgba(203, 184, 255, .6); }
+  .btn.primary {
+    background: linear-gradient(135deg, #b89cff, #ff9ecf); border: 0; color: #15101f; font-weight: 700;
+  }
+  .btn.primary:hover { filter: brightness(1.07); background: linear-gradient(135deg, #b89cff, #ff9ecf); }
+  .btn.danger { background: #e0476a; border: 0; color: #fff; font-weight: 600; }
+  .btn.danger:hover { background: #f05a7c; }
+  .btn.quiet { background: transparent; border-color: rgba(180, 160, 255, .2); }
+  .icon-btn {
+    background: transparent; border: 0; width: 34px; height: 34px; border-radius: 50%;
+    font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; color: #cbb8ff;
+  }
+  .icon-btn:hover { background: rgba(180, 160, 255, .15); }
+
+  /* ---------- Bảng trái: danh sách ---------- */
+  #ui { top: 16px; left: 16px; width: 300px; max-height: calc(100% - 32px); display: flex; flex-direction: column; }
+  .head { padding: 16px 16px 12px; border-bottom: 1px solid rgba(180, 160, 255, .15); }
+  h1 { font-size: 19px; margin: 0; font-weight: 600; color: #f3e8ff; }
+  .sub { font-size: 13px; color: #a9a2c4; margin: 4px 0 0; }
+  .actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 12px 16px 0; }
+
+  #form { margin: 12px 16px 0; padding: 12px; background: rgba(8, 6, 20, .55); border-radius: 12px;
+    display: flex; flex-direction: column; gap: 8px; }
+  #form h2 { font-size: 14px; margin: 0; color: #cbb8ff; font-weight: 600; }
+  label.fl { font-size: 12px; color: #a9a2c4; display: flex; flex-direction: column; gap: 4px; }
   input, textarea, select {
-    font: inherit; color: #f3e8ff; background: rgba(8, 6, 20, 0.7); border: 1px solid rgba(180, 160, 255, 0.25);
-    border-radius: 8px; padding: 7px 9px; outline: none; box-sizing: border-box; width: 100%;
+    background: rgba(8, 6, 20, .8); border: 1px solid rgba(180, 160, 255, .25); border-radius: 9px;
+    padding: 8px 10px; width: 100%; outline: none; color: #f3e8ff;
   }
   input:focus, textarea:focus, select:focus { border-color: #cbb8ff; }
-  textarea { resize: vertical; }
-  form button[type=submit] { background: rgba(160, 120, 255, 0.35); }
-  #detail {
-    position: fixed; right: 16px; top: 16px; width: 300px; background: rgba(15, 12, 30, 0.85);
-    border: 1px solid rgba(180, 160, 255, 0.3); border-radius: 12px; padding: 16px; box-sizing: border-box;
-    backdrop-filter: blur(8px); z-index: 3; transition: opacity 0.3s, transform 0.3s;
+  input.invalid { border-color: #ff6b8a; }
+  textarea { resize: vertical; min-height: 64px; }
+  .err { font-size: 12px; color: #ff8fa6; min-height: 0; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; }
+
+  #list { flex: 1; overflow-y: auto; padding: 10px 8px 6px; margin-top: 6px; min-height: 80px; }
+  .room { margin-bottom: 6px; }
+  .room-btn {
+    width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    background: transparent; border: 0; border-radius: 9px; padding: 8px 10px; cursor: pointer;
+    font-weight: 600; color: #ffd9a8; text-align: left;
   }
-  #detail.hidden { opacity: 0; transform: translateX(20px); pointer-events: none; }
-  #dRoom { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #ffd9a8; opacity: 0.85; }
-  #dTitle { font-size: 20px; margin: 6px 0 10px; color: #f3e8ff; }
-  #dText { font-size: 14px; line-height: 1.6; opacity: 0.9; white-space: pre-wrap; }
-  #closeDetail { position: absolute; top: 8px; right: 8px; padding: 2px 9px; }
-  #dDelete { margin-top: 12px; background: rgba(255, 90, 120, 0.2); }
-  #dDelete:hover { background: rgba(255, 90, 120, 0.4); }
+  .room-btn:hover { background: rgba(180, 160, 255, .1); }
+  .room-btn.current { background: rgba(180, 160, 255, .16); }
+  .count { font-size: 12px; font-weight: 500; color: #a9a2c4; background: rgba(8, 6, 20, .6);
+    border-radius: 999px; padding: 1px 8px; }
+  .mem-btn {
+    display: block; width: 100%; text-align: left; background: transparent; border: 0; border-radius: 8px;
+    padding: 7px 10px 7px 22px; cursor: pointer; color: #d8d2ea; font-size: 14px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mem-btn:hover { background: rgba(180, 160, 255, .08); }
+  .mem-btn.on { background: rgba(180, 160, 255, .22); color: #fff; box-shadow: inset 3px 0 0 #ffb36b; }
+  .empty { font-size: 13px; color: #8c86a6; padding: 6px 22px; font-style: italic; }
+
+  .hint { font-size: 12px; color: #8c86a6; padding: 10px 16px 14px; border-top: 1px solid rgba(180, 160, 255, .12); }
+
+  /* ---------- Bảng phải: chi tiết ---------- */
+  #detail {
+    top: 16px; right: 16px; width: 320px; padding: 18px; transition: opacity .25s, transform .25s;
+  }
+  #detail.hidden { opacity: 0; transform: translateX(16px); pointer-events: none; }
+  .d-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .room-tag { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .9px; color: #ffd9a8; }
+  #dTitle { font-size: 21px; margin: 8px 0 10px; color: #f3e8ff; font-weight: 600; line-height: 1.3; }
+  #dText { font-size: 15px; line-height: 1.65; color: #d8d2ea; white-space: pre-wrap; margin: 0; }
+  #dText.empty { color: #8c86a6; font-style: italic; }
+  .d-nav { display: flex; gap: 8px; margin-top: 16px; }
+  .d-nav .btn { flex: 1; }
+  .danger-zone { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 110, 140, .18); }
+  .danger-zone .btn.quiet { color: #ff8fa6; border-color: rgba(255, 110, 140, .3); }
+  .danger-zone .btn.quiet:hover { background: rgba(255, 90, 120, .12); border-color: rgba(255, 110, 140, .55); }
+  #dConfirm { display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: #ffc2cf; }
+  #dConfirm .row { justify-content: stretch; }
+  #dConfirm .row .btn { flex: 1; }
+
+  /* ---------- Thông báo ---------- */
+  #toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translate(-50%, 12px); opacity: 0;
+    background: rgba(15, 12, 30, .92); border: 1px solid rgba(180, 160, 255, .35); border-radius: 999px;
+    padding: 9px 18px; font-size: 14px; z-index: 5; pointer-events: none; transition: opacity .25s, transform .25s;
+    white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- Di động ---------- */
+  @media (max-width: 640px) {
+    #ui { top: 10px; left: 10px; right: 10px; width: auto; max-height: 44vh; }
+    .hint { display: none; }
+    .head { padding: 12px 14px 10px; }
+    h1 { font-size: 17px; }
+    .sub { display: none; }
+    .actions { padding: 10px 12px 0; }
+    #form { margin: 10px 12px 0; }
+    #list { padding: 6px 6px 4px; }
+    #detail { top: auto; left: 10px; right: 10px; bottom: 10px; width: auto; max-height: 52vh; overflow-y: auto;
+      padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+    #detail.hidden { transform: translateY(16px); }
+    .btn { min-height: 40px; }
+    #toast { bottom: auto; top: 12px; }
+  }
 </style>
 </head>
 <body>
 
-<div id="ui">
-  <h1>Cung điện ký ức</h1>
-  <div class="hint">Kéo để xoay · Cuộn để phóng to/thu nhỏ · Nhấn vào viên pha lê để xem ký ức</div>
-  <button id="resetBtn">Về tổng quan</button>
-  <div id="list"></div>
+<!-- Bảng danh sách và thêm ký ức -->
+<aside id="ui" class="panel" aria-label="Danh sách ký ức">
+  <div class="head">
+    <h1>Cung điện ký ức</h1>
+    <p class="sub">Mỗi viên pha lê là một ký ức.</p>
+  </div>
 
-  <h2>Cất một ký ức mới</h2>
-  <form id="form">
-    <input id="fTitle" placeholder="Tiêu đề" maxlength="40" required>
-    <textarea id="fText" rows="3" placeholder="Ký ức của bạn..."></textarea>
-    <select id="fRoom"></select>
-    <button type="submit">Lưu vào cung điện</button>
+  <div class="actions">
+    <button type="button" class="btn primary" id="addBtn" aria-expanded="false" aria-controls="form">+ Thêm ký ức</button>
+    <button type="button" class="btn quiet" id="resetBtn" title="Quay về góc nhìn tổng quan">Tổng quan</button>
+  </div>
+
+  <form id="form" hidden novalidate>
+    <h2>Thêm ký ức mới</h2>
+    <label class="fl">Tiêu đề
+      <input id="fTitle" maxlength="40" placeholder="Ví dụ: Buổi sáng ở biển">
+    </label>
+    <div class="err" id="fErr" role="alert"></div>
+    <label class="fl">Nội dung
+      <textarea id="fText" rows="3" placeholder="Viết vài dòng về ký ức này (không bắt buộc)"></textarea>
+    </label>
+    <label class="fl">Phòng
+      <select id="fRoom"></select>
+    </label>
+    <div class="row">
+      <button type="button" class="btn quiet" id="cancelBtn">Hủy</button>
+      <button type="submit" class="btn primary">Thêm ký ức</button>
+    </div>
   </form>
-</div>
 
-<div id="detail" class="hidden">
-  <button id="closeDetail">×</button>
-  <div id="dRoom"></div>
-  <div id="dTitle"></div>
-  <div id="dText"></div>
-  <button id="dDelete">Xóa ký ức này</button>
-</div>
+  <nav id="list" aria-label="Các phòng và ký ức"></nav>
+
+  <div class="hint">Kéo để xoay · Cuộn để phóng to · Chạm viên pha lê để xem</div>
+</aside>
+
+<!-- Chi tiết ký ức -->
+<aside id="detail" class="panel hidden" role="dialog" aria-labelledby="dTitle" aria-live="polite">
+  <div class="d-top">
+    <span id="dRoom" class="room-tag"></span>
+    <button type="button" id="closeDetail" class="icon-btn" aria-label="Đóng chi tiết">×</button>
+  </div>
+  <h2 id="dTitle"></h2>
+  <p id="dText"></p>
+  <div class="d-nav">
+    <button type="button" class="btn" id="prevBtn">‹ Trước</button>
+    <button type="button" class="btn" id="nextBtn">Sau ›</button>
+  </div>
+
+  <div class="danger-zone">
+    <button type="button" class="btn quiet" id="dDelete">Xóa ký ức</button>
+    <div id="dConfirm" hidden>
+      <span>Xóa ký ức này? Hành động không thể hoàn tác.</span>
+      <div class="row">
+        <button type="button" class="btn" id="dKeep">Giữ lại</button>
+        <button type="button" class="btn danger" id="dYes">Xóa</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script type="importmap">
 {
@@ -81,6 +204,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
 
 // ---------- Dữ liệu ----------
 const ROOMS = [
@@ -122,10 +247,12 @@ renderer.setSize(innerWidth, innerHeight);
 document.body.prepend(renderer.domElement);
 
 const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 400);
-camera.position.set(0, 18, 48);
+const HOME_POS = new THREE.Vector3(0, 18, 48);
+const HOME_TGT = new THREE.Vector3(0, 4, 0);
+camera.position.copy(HOME_POS);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 4, 0);
+controls.target.copy(HOME_TGT);
 controls.enableDamping = true;
 controls.minDistance = 6;
 controls.maxDistance = 110;
@@ -229,17 +356,23 @@ ROOMS.forEach((r, i) => {
 const memGroup = new THREE.Group();
 scene.add(memGroup);
 let crystals = [];
+let hoveredCrystal = null;
 
-function buildMemories() {
-  memGroup.traverse(o => {
+function disposeGroup(group) {
+  group.traverse(o => {
     if (o.geometry) o.geometry.dispose();
     if (o.material) {
       if (o.material.map) o.material.map.dispose();
       o.material.dispose();
     }
   });
-  memGroup.clear();
+  group.clear();
+}
+
+function buildMemories() {
+  disposeGroup(memGroup);
   crystals = [];
+  hoveredCrystal = null;
 
   ROOMS.forEach((room, ri) => {
     const list = memories.filter(m => m.room === ri);
@@ -313,21 +446,25 @@ function focusRoom(i) {
   flyTo(rp.clone().add(new THREE.Vector3(0, 2, 0)), rp.clone().add(out).add(new THREE.Vector3(0, 9, 0)));
 }
 function focusOverview() {
-  flyTo(new THREE.Vector3(0, 4, 0), new THREE.Vector3(0, 18, 48));
+  flyTo(HOME_TGT.clone(), HOME_POS.clone());
 }
 
-// ---------- UI ----------
-const listEl = document.getElementById('list');
-const form = document.getElementById('form');
-const fTitle = document.getElementById('fTitle');
-const fText = document.getElementById('fText');
-const fRoom = document.getElementById('fRoom');
-const detail = document.getElementById('detail');
-const dRoom = document.getElementById('dRoom');
-const dTitle = document.getElementById('dTitle');
-const dText = document.getElementById('dText');
-const dDelete = document.getElementById('dDelete');
+// ---------- Trạng thái UI ----------
+const listEl = $('list');
+const form = $('form');
+const fTitle = $('fTitle');
+const fText = $('fText');
+const fRoom = $('fRoom');
+const fErr = $('fErr');
+const addBtn = $('addBtn');
+const detail = $('detail');
+const dRoom = $('dRoom');
+const dTitle = $('dTitle');
+const dText = $('dText');
+const dDelete = $('dDelete');
+const dConfirm = $('dConfirm');
 let selectedId = null;
+let currentRoom = 0;
 
 ROOMS.forEach((r, i) => {
   const o = document.createElement('option');
@@ -336,73 +473,191 @@ ROOMS.forEach((r, i) => {
   fRoom.appendChild(o);
 });
 
+// ---------- Thông báo ----------
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ---------- Form thêm ----------
+function openForm() {
+  form.hidden = false;
+  addBtn.setAttribute('aria-expanded', 'true');
+  fRoom.value = currentRoom;
+  fTitle.focus();
+}
+function closeForm() {
+  form.hidden = true;
+  addBtn.setAttribute('aria-expanded', 'false');
+  form.reset();
+  fErr.textContent = '';
+  fTitle.classList.remove('invalid');
+}
+addBtn.addEventListener('click', () => (form.hidden ? openForm() : closeForm()));
+$('cancelBtn').addEventListener('click', closeForm);
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const title = fTitle.value.trim();
+  if (!title) {
+    fErr.textContent = 'Hãy nhập tiêu đề cho ký ức.';
+    fTitle.classList.add('invalid');
+    fTitle.focus();
+    return;
+  }
+  const room = Number(fRoom.value);
+  const m = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    title,
+    text: fText.value.trim(),
+    room
+  };
+  memories.push(m);
+  save();
+  closeForm();
+  rebuild();
+  toast('Đã thêm ký ức vào ' + ROOMS[room].name);
+  selectMemory(m);
+});
+fTitle.addEventListener('input', () => {
+  if (fTitle.value.trim()) { fErr.textContent = ''; fTitle.classList.remove('invalid'); }
+});
+
+// ---------- Danh sách ----------
 function renderList() {
   listEl.innerHTML = '';
   ROOMS.forEach((r, i) => {
-    const h = document.createElement('div');
-    h.className = 'roomHead';
-    const btn = document.createElement('button');
-    btn.className = 'link';
-    btn.textContent = r.name;
-    btn.onclick = () => focusRoom(i);
-    h.appendChild(btn);
-    listEl.appendChild(h);
+    const items = memories.filter(m => m.room === i);
+    const wrap = document.createElement('div');
+    wrap.className = 'room';
 
-    memories.filter(m => m.room === i).forEach(m => {
-      const b = document.createElement('button');
-      b.className = 'item' + (m.id === selectedId ? ' on' : '');
-      b.textContent = '• ' + m.title;
-      b.onclick = () => selectMemory(m);
-      listEl.appendChild(b);
+    const head = document.createElement('button');
+    head.type = 'button';
+    head.className = 'room-btn' + (i === currentRoom ? ' current' : '');
+    head.style.color = '#' + new THREE.Color(r.color).getHexString();
+    head.innerHTML = '';
+    const name = document.createElement('span');
+    name.textContent = r.name;
+    const count = document.createElement('span');
+    count.className = 'count';
+    count.textContent = items.length;
+    head.append(name, count);
+    head.addEventListener('click', () => {
+      currentRoom = i;
+      focusRoom(i);
+      renderList();
     });
+    wrap.appendChild(head);
+
+    if (!items.length) {
+      const e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'Chưa có ký ức nào';
+      wrap.appendChild(e);
+    }
+    items.forEach(m => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'mem-btn' + (m.id === selectedId ? ' on' : '');
+      b.textContent = m.title;
+      b.title = m.title;
+      b.addEventListener('click', () => selectMemory(m));
+      wrap.appendChild(b);
+    });
+    listEl.appendChild(wrap);
   });
+}
+
+// ---------- Chi tiết ----------
+function currentList() {
+  return memories.filter(m => m.room === currentRoom);
 }
 
 function showDetail(m) {
   dRoom.textContent = ROOMS[m.room] ? ROOMS[m.room].name : '';
   dTitle.textContent = m.title;
-  dText.textContent = m.text || '(không có nội dung)';
+  dText.textContent = m.text || 'Ký ức này chưa có nội dung.';
+  dText.classList.toggle('empty', !m.text);
+  resetConfirm();
   detail.classList.remove('hidden');
-  dDelete.onclick = () => {
-    if (confirm('Xóa ký ức này?')) {
-      memories = memories.filter(x => x.id !== m.id);
-      save();
-      selectedId = null;
-      detail.classList.add('hidden');
-      rebuild();
-    }
-  };
+  const list = currentList();
+  const idx = list.findIndex(x => x.id === m.id);
+  $('prevBtn').disabled = list.length < 2 || idx <= 0;
+  $('nextBtn').disabled = list.length < 2 || idx >= list.length - 1;
 }
 
 function selectMemory(m) {
   selectedId = m.id;
+  currentRoom = m.room;
   focusMemory(m);
   showDetail(m);
   renderList();
 }
 
-document.getElementById('closeDetail').onclick = () => {
+function closeDetail() {
   detail.classList.add('hidden');
   selectedId = null;
+  resetConfirm();
   renderList();
-};
-document.getElementById('resetBtn').onclick = focusOverview;
+}
 
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  const title = fTitle.value.trim();
-  if (!title) return;
-  const m = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    title,
-    text: fText.value.trim(),
-    room: Number(fRoom.value)
-  };
-  memories.push(m);
+function stepMemory(dir) {
+  const list = currentList();
+  const idx = list.findIndex(x => x.id === selectedId);
+  const next = list[idx + dir];
+  if (next) selectMemory(next);
+}
+
+$('closeDetail').addEventListener('click', closeDetail);
+$('prevBtn').addEventListener('click', () => stepMemory(-1));
+$('nextBtn').addEventListener('click', () => stepMemory(1));
+$('resetBtn').addEventListener('click', () => {
+  selectedId = null;
+  detail.classList.add('hidden');
+  resetConfirm();
+  focusOverview();
+  renderList();
+});
+
+// ---------- Xóa: tách riêng và có xác nhận ----------
+function resetConfirm() {
+  dConfirm.hidden = true;
+  dDelete.hidden = false;
+}
+dDelete.addEventListener('click', () => {
+  dDelete.hidden = true;
+  dConfirm.hidden = false;
+  $('dKeep').focus();
+});
+$('dKeep').addEventListener('click', resetConfirm);
+$('dYes').addEventListener('click', () => {
+  const m = memories.find(x => x.id === selectedId);
+  if (!m) return;
+  memories = memories.filter(x => x.id !== m.id);
   save();
-  form.reset();
+  const roomName = ROOMS[m.room].name;
+  selectedId = null;
+  detail.classList.add('hidden');
+  resetConfirm();
   rebuild();
-  selectMemory(m);
+  toast('Đã xóa ký ức khỏi ' + roomName);
+});
+
+// ---------- Phím tắt ----------
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (!detail.classList.contains('hidden')) closeDetail();
+    else if (!form.hidden) closeForm();
+  }
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (selectedId && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    stepMemory(e.key === 'ArrowLeft' ? -1 : 1);
+  }
 });
 
 function rebuild() {
@@ -434,7 +689,9 @@ renderer.domElement.addEventListener('pointerup', e => {
   }
 });
 renderer.domElement.addEventListener('pointermove', e => {
-  document.body.style.cursor = pick(e) ? 'pointer' : 'default';
+  const hit = pick(e);
+  hoveredCrystal = hit;
+  document.body.style.cursor = hit ? 'pointer' : 'default';
 });
 
 // ---------- Vòng lặp ----------
@@ -445,13 +702,22 @@ window.addEventListener('resize', () => {
 });
 
 const clock = new THREE.Clock();
+const scaleTarget = new THREE.Vector3();
+
 function animate() {
   requestAnimationFrame(animate);
   const t = clock.getElapsedTime();
 
   for (const c of crystals) {
+    const isSel = c.userData.memId === selectedId;
+    const isHov = c === hoveredCrystal;
     c.rotation.y += 0.01;
     c.position.y = c.userData.base + Math.sin(t * 1.5 + c.userData.phase) * 0.25;
+    // Phản hồi trạng thái: đang chọn > đang trỏ > bình thường
+    const s = isSel ? 1.35 : isHov ? 1.15 : 1;
+    scaleTarget.set(s, s, s);
+    c.scale.lerp(scaleTarget, 0.12);
+    c.material.emissiveIntensity = isSel ? 1.2 : isHov ? 0.9 : 0.6;
   }
   hub.rotation.y += 0.004;
   hub.rotation.x += 0.0015;

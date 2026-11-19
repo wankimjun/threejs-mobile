@@ -5,59 +5,445 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>10 bài tập toàn thân của Eugen Sandow · 3D</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --bg:#0b0d12; --panel:#141821; --panel2:#1b2130; --line:#2a3142; --text:#ecebe6; --muted:#9aa1b2; --gold:#d8b26a; --gold2:#f0cf8a; --red:#b5483a; }
-  body { font-family:'Georgia','Segoe UI',serif; background:radial-gradient(1000px 600px at 50% -10%, #2a2216 0%, transparent 60%), var(--bg);
-    color:var(--text); min-height:100vh; padding:20px 14px 40px; }
-  .wrap { max-width:1180px; margin:0 auto; }
-  header { text-align:center; margin-bottom:14px; }
-  h1 { font-size:1.9rem; letter-spacing:.5px; font-weight:700; }
-  h1 span { color:var(--gold); }
-  header p { color:var(--muted); font-size:.92rem; margin-top:4px; font-family:'Segoe UI',system-ui,sans-serif; }
+  * { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+  }
+  
+  :root { 
+    --bg: #0a0c12;
+    --panel: #141821; 
+    --panel2: #1b2130; 
+    --line: #2a3142; 
+    --text: #ecebe6; 
+    --muted: #9aa1b2; 
+    --gold: #d8b26a; 
+    --gold2: #f0cf8a; 
+    --red: #b5483a;
+    --accent: #5d8aa8;
+    --success: #4caf50;
+    --warning: #ff9800;
+  }
+  
+  body { 
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background: radial-gradient(1200px 700px at 50% -10%, #2a2216 0%, transparent 60%), var(--bg);
+    color: var(--text); 
+    min-height: 100vh; 
+    padding: 20px 14px 40px; 
+    line-height: 1.6;
+  }
+  
+  .wrap { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+  }
+  
+  header { 
+    text-align: center; 
+    margin-bottom: 24px; 
+    padding: 0 10px;
+  }
+  
+  h1 { 
+    font-size: 2.2rem; 
+    letter-spacing: 0.5px; 
+    font-weight: 800;
+    margin-bottom: 8px;
+    background: linear-gradient(to right, var(--gold), var(--gold2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 4px rgba(216, 178, 106, 0.2);
+  }
+  
+  header p { 
+    color: var(--muted); 
+    font-size: 1rem; 
+    margin-top: 4px; 
+    max-width: 600px;
+    margin: 0 auto;
+  }
 
-  .layout { display:grid; grid-template-columns:1fr 380px; gap:14px; align-items:start; }
-  @media (max-width:960px) { .layout { grid-template-columns:1fr; } }
+  .layout { 
+    display: grid; 
+    grid-template-columns: 1fr 400px; 
+    gap: 20px; 
+    align-items: start; 
+  }
+  
+  @media (max-width: 960px) { 
+    .layout { 
+      grid-template-columns: 1fr; 
+    } 
+  }
 
-  .stage-box { position:relative; }
-  #stage { width:100%; height:500px; border-radius:18px; overflow:hidden; position:relative; border:1px solid var(--line);
-    background:#0b0d12; cursor:grab; touch-action:none; box-shadow:0 24px 60px -12px rgba(0,0,0,.7); }
-  #stage:active { cursor:grabbing; }
-  #stage canvas { display:block; width:100%; height:100%; }
-  .hud { position:absolute; left:16px; top:14px; pointer-events:none; font-family:'Segoe UI',system-ui,sans-serif; }
-  .hud .ex { font-size:1.35rem; font-weight:700; color:var(--gold2); text-shadow:0 0 12px rgba(216,178,106,.3); }
-  .hud .rep { font-size:1.05rem; margin-top:4px; }
-  .hud .ph { font-size:.9rem; color:var(--muted); margin-top:2px; }
-  .hud .done { color:#9be08f; font-weight:700; margin-top:6px; }
-  .hint { position:absolute; right:14px; bottom:10px; font-size:.72rem; color:#6b7286; pointer-events:none; font-family:'Segoe UI',system-ui,sans-serif; }
+  .stage-box { 
+    position: relative; 
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(216, 178, 106, 0.2);
+  }
+  
+  #stage { 
+    width: 100%; 
+    height: 520px; 
+    border-radius: 18px; 
+    overflow: hidden; 
+    position: relative; 
+    border: 1px solid var(--line);
+    background: #0b0d12; 
+    cursor: grab; 
+    touch-action: none; 
+    box-shadow: 0 24px 60px -12px rgba(0, 0, 0, .7); 
+  }
+  
+  #stage:active { 
+    cursor: grabbing; 
+  }
+  
+  #stage canvas { 
+    display: block; 
+    width: 100%; 
+    height: 100%; 
+  }
+  
+  .hud { 
+    position: absolute; 
+    left: 20px; 
+    top: 18px; 
+    pointer-events: none; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    background: rgba(10, 12, 18, 0.7);
+    padding: 12px 16px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(216, 178, 106, 0.15);
+  }
+  
+  .hud .ex { 
+    font-size: 1.4rem; 
+    font-weight: 800; 
+    color: var(--gold2); 
+    text-shadow: 0 0 12px rgba(216, 178, 106, .3); 
+    margin-bottom: 4px;
+  }
+  
+  .hud .rep { 
+    font-size: 1.1rem; 
+    margin: 6px 0;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  
+  .hud .ph { 
+    font-size: 0.95rem; 
+    color: var(--muted); 
+    margin-top: 2px; 
+    font-weight: 500;
+  }
+  
+  .hud .done { 
+    color: var(--success);
+    font-weight: 700; 
+    margin-top: 8px;
+    font-size: 1.1rem;
+    text-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+  }
+  
+  .hint { 
+    position: absolute; 
+    right: 16px; 
+    bottom: 14px; 
+    font-size: 0.8rem; 
+    color: #6b7286; 
+    pointer-events: none; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    background: rgba(10, 12, 18, 0.6);
+    padding: 6px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+  }
 
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:14px; }
-  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-family:'Segoe UI',system-ui,sans-serif; }
-  .lab { font-size:.85rem; color:var(--muted); display:flex; align-items:center; gap:8px; }
-  .val { color:var(--gold); font-weight:700; min-width:3em; font-variant-numeric:tabular-nums; }
-  input[type=range] { accent-color:var(--gold); width:140px; }
-  button { font:inherit; font-family:'Segoe UI',system-ui,sans-serif; color:#111; background:linear-gradient(135deg,var(--gold2),var(--gold)); border:none;
-    border-radius:9px; padding:9px 14px; font-weight:700; cursor:pointer; }
-  button:hover { filter:brightness(1.08); }
-  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
-  button.play { min-width:110px; }
-  .grow { flex:1; }
+  .panel { 
+    background: var(--panel); 
+    border: 1px solid var(--line); 
+    border-radius: 16px; 
+    padding: 20px; 
+    margin-top: 20px; 
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .controls { 
+    display: flex; 
+    gap: 12px; 
+    align-items: center; 
+    flex-wrap: wrap; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    margin-bottom: 20px;
+  }
+  
+  .lab { 
+    font-size: 0.9rem; 
+    color: var(--muted); 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    background: var(--panel2);
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+  }
+  
+  .val { 
+    color: var(--gold); 
+    font-weight: 700; 
+    min-width: 3em; 
+    font-variant-numeric: tabular-nums; 
+  }
+  
+  input[type=range] { 
+    accent-color: var(--gold); 
+    width: 140px; 
+  }
+  
+  button { 
+    font: inherit; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    color: #111; 
+    background: linear-gradient(135deg, var(--gold2), var(--gold)); 
+    border: none;
+    border-radius: 10px; 
+    padding: 10px 16px; 
+    font-weight: 700; 
+    cursor: pointer; 
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(216, 178, 106, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  button:hover { 
+    filter: brightness(1.12);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(216, 178, 106, 0.3);
+  }
+  
+  button:active {
+    transform: translateY(0);
+  }
+  
+  button.ghost { 
+    background: transparent; 
+    color: var(--text); 
+    border: 1px solid var(--line); 
+    box-shadow: none;
+  }
+  
+  button.ghost:hover {
+    background: rgba(216, 178, 106, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  button.play { 
+    min-width: 120px; 
+    font-size: 1rem;
+  }
+  
+  .grow { 
+    flex: 1; 
+  }
 
-  .list { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:12px; font-family:'Segoe UI',system-ui,sans-serif; }
-  .list button { text-align:left; background:var(--panel2); color:var(--text); border:1px solid var(--line); font-weight:600; font-size:.86rem; padding:8px 10px; }
-  .list button.active { background:var(--gold); color:#111; border-color:var(--gold); }
+  .list { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 10px; 
+    margin-top: 16px; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+  }
+  
+  .list button { 
+    text-align: left; 
+    background: var(--panel2); 
+    color: var(--text); 
+    border: 1px solid var(--line); 
+    font-weight: 600; 
+    font-size: 0.9rem; 
+    padding: 12px 14px; 
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .list button:before {
+    content: "•";
+    color: var(--gold);
+    font-size: 1.2rem;
+  }
+  
+  .list button.active { 
+    background: linear-gradient(90deg, var(--gold), #e6c88a); 
+    color: #111; 
+    border-color: var(--gold); 
+    font-weight: 700;
+  }
+  
+  .list button.active:before {
+    content: "✓";
+  }
 
-  .side { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; height:500px; overflow-y:auto; font-family:'Segoe UI',system-ui,sans-serif; }
-  .side h2 { font-size:1.2rem; color:var(--gold2); font-family:Georgia,serif; }
-  .side .en { color:var(--muted); font-size:.85rem; font-style:italic; margin-top:2px; }
-  .side .meta { display:flex; gap:14px; flex-wrap:wrap; margin:10px 0; font-size:.86rem; color:var(--muted); }
-  .side .meta b { color:var(--text); }
-  .side h3 { font-size:.72rem; color:var(--gold); text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px; }
-  .side ol, .side ul { padding-left:18px; font-size:.9rem; line-height:1.65; }
-  .side li { margin-bottom:4px; }
+  .side { 
+    background: var(--panel); 
+    border: 1px solid var(--line); 
+    border-radius: 16px; 
+    padding: 22px; 
+    height: 520px; 
+    overflow-y: auto; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .side h2 { 
+    font-size: 1.4rem; 
+    color: var(--gold2); 
+    font-family: Georgia, serif; 
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+  }
+  
+  .side .en { 
+    color: var(--muted); 
+    font-size: 0.95rem; 
+    font-style: italic; 
+    margin-top: 4px; 
+    margin-bottom: 16px;
+  }
+  
+  .side .meta { 
+    display: flex; 
+    gap: 20px; 
+    flex-wrap: wrap; 
+    margin: 14px 0; 
+    font-size: 0.95rem; 
+    color: var(--muted); 
+    padding: 14px;
+    background: var(--panel2);
+    border-radius: 12px;
+  }
+  
+  .side .meta b { 
+    color: var(--text); 
+  }
+  
+  .side h3 { 
+    font-size: 0.85rem; 
+    color: var(--gold); 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    margin: 20px 0 12px; 
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(216, 178, 106, 0.2);
+  }
+  
+  .side ol, .side ul { 
+    padding-left: 22px; 
+    font-size: 0.95rem; 
+    line-height: 1.7; 
+  }
+  
+  .side li { 
+    margin-bottom: 10px; 
+    padding-left: 8px;
+  }
+  
+  .side li:before {
+    content: "•";
+    color: var(--gold);
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+  }
 
-  .sources { margin-top:14px; font-size:.8rem; color:var(--muted); line-height:1.7; font-family:'Segoe UI',system-ui,sans-serif; }
-  .sources a { color:var(--gold2); }
-  .disc { margin-top:10px; font-size:.78rem; color:#7d8496; line-height:1.6; font-family:'Segoe UI',system-ui,sans-serif; }
+  .sources { 
+    margin-top: 20px; 
+    font-size: 0.85rem; 
+    color: var(--muted); 
+    line-height: 1.7; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    padding: 16px;
+    background: var(--panel2);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+  }
+  
+  .sources b { 
+    color: var(--gold2); 
+    display: block;
+    margin-bottom: 8px;
+  }
+  
+  .sources a { 
+    color: var(--gold2); 
+    text-decoration: none;
+  }
+  
+  .sources a:hover {
+    text-decoration: underline;
+  }
+  
+  .disc { 
+    margin-top: 16px; 
+    font-size: 0.82rem; 
+    color: #7d8496; 
+    line-height: 1.6; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    padding: 14px;
+    background: rgba(216, 178, 106, 0.05);
+    border-radius: 12px;
+    border-left: 3px solid var(--gold);
+  }
+  
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: var(--panel);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gold);
+  }
+  
+  /* Progress bar */
+  .progress-container {
+    height: 6px;
+    background: var(--panel2);
+    border-radius: 3px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+  
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold2));
+    width: 0%;
+    transition: width 0.3s ease;
+  }
 </style>
 <script src="three.min.js"></script>
 <script>
@@ -69,7 +455,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>10 bài tập toàn thân của <span>Eugen Sandow</span></h1>
+    <h1>10 bài tập toàn thân của <span style="color: var(--gold)">Eugen Sandow</span></h1>
     <p>Mô phỏng 3D · tạ tay nhẹ · đầu gối luôn hơi khuỵu · làm đủ 10 bài theo thứ tự</p>
   </header>
 
@@ -82,6 +468,9 @@
             <div class="rep" id="hudRep"></div>
             <div class="ph" id="hudPh"></div>
             <div class="done" id="hudDone"></div>
+          </div>
+          <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
           </div>
         </div>
         <div class="hint">Kéo để xoay · Space: phát/dừng · ←/→: bài trước/sau</div>
@@ -391,9 +780,11 @@
       box.appendChild(b);
     });
   }
+  
   function markList() {
     document.querySelectorAll('#list button').forEach((b, i) => b.classList.toggle('active', i === exI));
   }
+  
   function renderDetail() {
     const ex = EX[exI];
     $('detail').innerHTML =
@@ -403,15 +794,29 @@
       '<h3>Cách làm</h3><ol>' + ex.steps.map(s => '<li>' + s + '</li>').join('') + '</ol>' +
       '<h3>Lưu ý</h3><ul>' + ex.tips.map(s => '<li>' + s + '</li>').join('') + '</ul>';
   }
+  
   function setEx(i, keepPlaying) {
     exI = i; t = 0;
     playing = !!keepPlaying;
     $('hudDone').textContent = '';
     renderDetail(); markList(); updatePlayBtn();
+    updateProgressBar();
   }
-  function updatePlayBtn() { $('btnPlay').textContent = playing ? '⏸ Dừng' : '▶ Phát'; }
+  
+  function updatePlayBtn() { 
+    $('btnPlay').textContent = playing ? '⏸ Dừng' : '▶ Phát'; 
+  }
+  
+  function updateProgressBar() {
+    const ex = EX[exI];
+    const progress = Math.min(100, (poseAt(ex, t).reps / ex.target) * 100);
+    $('progressBar').style.width = progress + '%';
+  }
+  
   function togglePlay() {
-    if (!playing && exI === EX.length - 1 && t > 0 && poseAt(EX[exI], t).reps >= EX[exI].target) { exI = 0; t = 0; renderDetail(); markList(); }
+    if (!playing && exI === EX.length - 1 && t > 0 && poseAt(EX[exI], t).reps >= EX[exI].target) { 
+      exI = 0; t = 0; renderDetail(); markList(); 
+    }
     playing = !playing;
     updatePlayBtn();
   }
@@ -422,22 +827,34 @@
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     const ex = EX[exI];
+    
     if (playing) {
       t += dt;
       const r = poseAt(ex, t);
+      
       if (autoRun && r.reps >= ex.target) {
         if (exI < EX.length - 1) setEx(exI + 1, true);
-        else { playing = false; t = 0; updatePlayBtn(); $('hudDone').textContent = 'Hoàn thành 10 bài.'; }
+        else { 
+          playing = false; 
+          t = 0; 
+          updatePlayBtn(); 
+          $('hudDone').textContent = 'Hoàn thành 10 bài!'; 
+        }
       }
     }
+    
     const r = poseAt(ex, t);
     applyPose(r.pose);
+    
     $('hudEx').textContent = (exI + 1) + '/' + EX.length + ' · ' + ex.vn;
     $('hudRep').textContent = 'Lần ' + Math.min(r.reps, ex.target) + ' / ' + ex.target + (ex.spin ? ' vòng' : '');
     $('hudPh').textContent = r.phase;
+    
     rig.rotation.y = yaw;
     rig.rotation.x = tilt;
+    
     renderer.render(scene, camera);
+    updateProgressBar();
     requestAnimationFrame(frame);
   }
 
@@ -449,16 +866,27 @@
     renderer.domElement.style.width = w + 'px';
     renderer.domElement.style.height = h + 'px';
   }
+  
   window.addEventListener('resize', resize);
 
-  stage.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; });
-  window.addEventListener('pointerup', () => { dragging = false; });
+  stage.addEventListener('pointerdown', e => { 
+    dragging = true; 
+    lx = e.clientX; 
+    ly = e.clientY; 
+  });
+  
+  window.addEventListener('pointerup', () => { 
+    dragging = false; 
+  });
+  
   window.addEventListener('pointermove', e => {
     if (!dragging) return;
     yaw += (e.clientX - lx) * 0.008;
     tilt = Math.max(-0.4, Math.min(0.4, tilt + (e.clientY - ly) * 0.004));
-    lx = e.clientX; ly = e.clientY;
+    lx = e.clientX; 
+    ly = e.clientY;
   });
+  
   stage.addEventListener('wheel', e => {
     e.preventDefault();
     camera.position.z = Math.max(5, Math.min(14, camera.position.z + e.deltaY * 0.01));
@@ -468,15 +896,29 @@
   $('btnPlay').addEventListener('click', togglePlay);
   $('btnPrev').addEventListener('click', () => setEx(Math.max(0, exI - 1), playing));
   $('btnNext').addEventListener('click', () => setEx(Math.min(EX.length - 1, exI + 1), playing));
-  $('btnReset').addEventListener('click', () => { t = 0; playing = false; $('hudDone').textContent = ''; updatePlayBtn(); });
+  $('btnReset').addEventListener('click', () => { 
+    t = 0; 
+    playing = false; 
+    $('hudDone').textContent = ''; 
+    updatePlayBtn(); 
+    updateProgressBar();
+  });
+  
   $('speed').addEventListener('input', () => {
     speed = Number($('speed').value);
     $('speedVal').textContent = speed.toFixed(1) + 'x';
   });
-  $('auto').addEventListener('change', () => { autoRun = $('auto').checked; });
+  
+  $('auto').addEventListener('change', () => { 
+    autoRun = $('auto').checked; 
+  });
+  
   window.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    if (e.code === 'Space') { 
+      e.preventDefault(); 
+      togglePlay(); 
+    }
     else if (e.key === 'ArrowLeft') setEx(Math.max(0, exI - 1), playing);
     else if (e.key === 'ArrowRight') setEx(Math.min(EX.length - 1, exI + 1), playing);
   });
@@ -487,7 +929,10 @@
   markList();
   updatePlayBtn();
   resize();
-  requestAnimationFrame(t0 => { last = t0; frame(t0); });
+  requestAnimationFrame(t0 => { 
+    last = t0; 
+    frame(t0); 
+  });
 })();
 </script>
 </body>

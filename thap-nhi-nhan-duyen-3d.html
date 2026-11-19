@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Thập Nhị Nhân Duyên 3D - Three.js</title>
   <style>
     * {
@@ -10,59 +10,82 @@
       padding: 0;
       box-sizing: border-box;
     }
+    :root {
+      --gold: #f6c959;
+      --cyan: #5ce1e6;
+      --panel: rgba(18, 15, 28, 0.86);
+      --text: #f4f1ea;
+      --muted: rgba(244, 241, 234, 0.72);
+    }
+    html, body {
+      height: 100%;
+    }
     body {
       overflow: hidden;
       background-color: #07060d;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: #f4f1ea;
+      color: var(--text);
       user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
     }
     #canvas-container {
-      width: 100vw;
-      height: 100vh;
-      display: block;
+      position: fixed;
+      inset: 0;
       cursor: grab;
     }
     #canvas-container:active {
       cursor: grabbing;
     }
+    #canvas-container canvas {
+      display: block;
+    }
 
     /* Tiêu đề góc trên trái */
     .hud-top {
       position: fixed;
-      top: 22px;
-      left: 24px;
+      top: 18px;
+      left: 20px;
       z-index: 10;
       pointer-events: none;
+      max-width: calc(100vw - 40px);
     }
     .hud-top h1 {
       font-size: 20px;
       font-weight: 700;
       letter-spacing: 1px;
-      color: #f6c959;
+      color: var(--gold);
       text-shadow: 0 0 16px rgba(246, 201, 89, 0.45);
     }
     .hud-top p {
       font-size: 13px;
-      color: rgba(244, 241, 234, 0.72);
+      color: var(--muted);
       margin-top: 4px;
     }
 
-    /* Thẻ thông tin chi tiết bên phải */
+    /* Thẻ thông tin chi tiết */
     .info-card {
       position: fixed;
-      top: 22px;
+      top: 18px;
       right: 24px;
       width: 330px;
       max-width: calc(100vw - 48px);
-      background: rgba(18, 15, 28, 0.82);
+      max-height: calc(100vh - 170px);
+      overflow-y: auto;
+      background: var(--panel);
       backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(246, 201, 89, 0.28);
       border-radius: 16px;
       padding: 18px 20px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
       z-index: 10;
-      transition: transform 0.25s ease, opacity 0.25s ease;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      scrollbar-width: thin;
+    }
+    .info-card.swap {
+      opacity: 0;
+      transform: translateY(6px);
     }
     .info-badge {
       display: inline-block;
@@ -73,7 +96,7 @@
       padding: 3px 10px;
       border-radius: 999px;
       background: rgba(246, 201, 89, 0.16);
-      color: #f6c959;
+      color: var(--gold);
       margin-bottom: 8px;
     }
     .info-card h2 {
@@ -101,31 +124,67 @@
       color: #7ee8fa;
     }
 
-    /* Thanh nút điều khiển bên dưới */
+    /* Dãy mắt xích để bàn phím và trình đọc màn hình truy cập */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .link-nav {
+      position: fixed;
+      left: 20px;
+      top: 92px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: calc(100vh - 220px);
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .link-nav button {
+      text-align: left;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    /* Thanh điều khiển dưới cùng */
     .control-bar {
       position: fixed;
-      bottom: 22px;
+      bottom: 18px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
+      align-items: center;
       gap: 8px;
-      background: rgba(18, 15, 28, 0.82);
+      background: var(--panel);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       padding: 9px 14px;
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.14);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
       z-index: 10;
-      max-width: 95vw;
+      max-width: calc(100vw - 24px);
     }
     button {
       background: rgba(255, 255, 255, 0.06);
       color: rgba(244, 241, 234, 0.88);
       border: 1px solid rgba(255, 255, 255, 0.14);
-      padding: 6px 14px;
+      padding: 7px 14px;
+      min-height: 36px;
       border-radius: 999px;
+      font-family: inherit;
       font-size: 12.5px;
       font-weight: 500;
       cursor: pointer;
@@ -136,18 +195,70 @@
       border-color: rgba(246, 201, 89, 0.55);
       color: #ffffff;
     }
+    button:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
     button.active {
-      background: #f6c959;
+      background: var(--gold);
       color: #120f1c;
-      border-color: #f6c959;
+      border-color: var(--gold);
       font-weight: 700;
       box-shadow: 0 0 14px rgba(246, 201, 89, 0.45);
     }
-    button.nirvana.active {
-      background: #5ce1e6;
+    /* Công tắc hai trạng thái thay cho hai nút riêng */
+    #btn-direction[aria-pressed="true"] {
+      background: var(--cyan);
       color: #071921;
-      border-color: #5ce1e6;
+      border-color: var(--cyan);
+      font-weight: 700;
       box-shadow: 0 0 14px rgba(92, 225, 230, 0.45);
+    }
+
+    /* Responsive: màn hình hẹp */
+    @media (max-width: 760px) {
+      .hud-top h1 {
+        font-size: 16px;
+      }
+      .hud-top p {
+        font-size: 12px;
+      }
+      .link-nav {
+        display: none;
+      }
+      .info-card {
+        top: auto;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-width: none;
+        bottom: 74px;
+        max-height: 38vh;
+        padding: 14px 16px;
+        border-radius: 14px;
+      }
+      .info-card h2 {
+        font-size: 17px;
+      }
+      .info-desc {
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      .control-bar {
+        bottom: 10px;
+        border-radius: 18px;
+        padding: 8px 10px;
+        width: calc(100vw - 20px);
+      }
+      button {
+        padding: 6px 11px;
+        font-size: 12px;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .info-card, button {
+        transition: none;
+      }
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -155,11 +266,14 @@
 <body>
   <div class="hud-top">
     <h1>THẬP NHỊ NHÂN DUYÊN 3D</h1>
-    <p>Nhấp vào từng mắt xích để xem ý nghĩa • Kéo chuột: xoay • Cuộn: zoom</p>
+    <p>Chạm hoặc nhấp vào từng mắt xích để xem ý nghĩa • Kéo: xoay • Cuộn hoặc chụm: zoom • ← →: chuyển mắt xích</p>
   </div>
 
+  <!-- Danh sách mắt xích cho bàn phím và trình đọc màn hình -->
+  <nav class="link-nav" id="link-nav" aria-label="Danh sách mắt xích"></nav>
+
   <!-- Thẻ giải nghĩa chi tiết -->
-  <div class="info-card" id="info-card">
+  <section class="info-card" id="info-card" aria-live="polite" aria-atomic="true">
     <span class="info-badge" id="info-badge">Mắt xích 1 / 12 • Nhân quá khứ</span>
     <h2 id="info-title">1. Vô Minh</h2>
     <div class="info-pali" id="info-pali">Pāli: Avijjā • Biểu tượng: Người mù chống gậy</div>
@@ -170,17 +284,16 @@
       • Chiều lưu chuyển: Vô minh duyên Hành.<br/>
       • Chiều hoàn diệt: Vô minh diệt thì Hành diệt.
     </div>
-  </div>
+  </section>
 
-  <div id="canvas-container"></div>
+  <div id="canvas-container" role="img" aria-label="Bánh xe Thập Nhị Nhân Duyên 3D"></div>
 
   <!-- Thanh điều khiển -->
-  <div class="control-bar">
-    <button id="btn-samsara" class="active">Chiều Lưu Chuyển (Luân Hồi)</button>
-    <button id="btn-nirvana" class="nirvana">Chiều Hoàn Diệt (Giải Thoát)</button>
-    <button id="btn-prev">◀ Trước</button>
-    <button id="btn-next">Tiếp ▶</button>
-    <button id="btn-pause">Tạm Dừng</button>
+  <div class="control-bar" role="toolbar" aria-label="Điều khiển bánh xe">
+    <button id="btn-direction" aria-pressed="false" aria-label="Đổi chiều lưu chuyển">Chiều: Luân Hồi</button>
+    <button id="btn-prev" aria-label="Mắt xích trước">◀ Trước</button>
+    <button id="btn-next" aria-label="Mắt xích tiếp theo">Tiếp ▶</button>
+    <button id="btn-pause" aria-pressed="false">Tạm Dừng</button>
   </div>
 
   <script>
@@ -308,20 +421,25 @@
       }
     ];
 
+    const IS_NARROW = window.matchMedia('(max-width: 760px)').matches;
+    const IS_LOW_END = (navigator.hardwareConcurrency || 4) <= 4 || IS_NARROW;
+
     // 1. Khởi tạo Scene, Camera, Renderer
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x07060d, 0.0065);
 
     const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: !IS_LOW_END,
+      powerPreference: IS_LOW_END ? 'default' : 'high-performance'
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_LOW_END ? 1.5 : 2));
     container.appendChild(renderer.domElement);
 
     // 2. Ánh sáng
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
-    scene.add(ambientLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
 
     const centerLight = new THREE.PointLight(0xf6c959, 2.5, 120);
     centerLight.position.set(0, 8, 0);
@@ -335,29 +453,43 @@
     rimLight2.position.set(-35, -20, -35);
     scene.add(rimLight2);
 
-    // 3. Tạo Texture chữ trên mặt phẳng (Sprite Label)
+    // 3. Tạo texture nhãn (có dự phòng khi roundRect không được hỗ trợ)
+    function drawRoundedRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(x, y, w, h, r);
+      } else {
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+    }
+
     function createLabelSprite(text, subText, accentHex) {
       const canvas = document.createElement('canvas');
       canvas.width = 512;
       canvas.height = 160;
       const ctx = canvas.getContext('2d');
 
-      // Khung nền bo góc
       ctx.fillStyle = 'rgba(16, 13, 26, 0.85)';
       ctx.strokeStyle = accentHex;
       ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.roundRect(16, 16, 480, 128, 28);
+      drawRoundedRect(ctx, 16, 16, 480, 128, 28);
       ctx.fill();
       ctx.stroke();
 
-      // Tiêu đề chính
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(text, 256, 74);
 
-      // Phụ đề Pāli
       ctx.fillStyle = accentHex;
       ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillText(subText, 256, 116);
@@ -365,7 +497,7 @@
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
       const sprite = new THREE.Sprite(spriteMat);
-      sprite.scale.set(9.2, 2.9, 1);
+      sprite.scale.set(IS_NARROW ? 7.5 : 9.2, IS_NARROW ? 2.4 : 2.9, 1);
       return sprite;
     }
 
@@ -375,111 +507,99 @@
 
     const WHEEL_RADIUS = 24;
 
-    // Vòng xuyến chính nối 12 mắt xích
-    const mainRingGeo = new THREE.TorusGeometry(WHEEL_RADIUS, 0.22, 16, 128);
-    const mainRingMat = new THREE.MeshStandardMaterial({
-      color: 0xf6c959,
-      roughness: 0.3,
-      metalness: 0.8
-    });
-    const mainRing = new THREE.Mesh(mainRingGeo, mainRingMat);
+    const mainRing = new THREE.Mesh(
+      new THREE.TorusGeometry(WHEEL_RADIUS, 0.22, 16, 128),
+      new THREE.MeshStandardMaterial({ color: 0xf6c959, roughness: 0.3, metalness: 0.8 })
+    );
     mainRing.rotation.x = Math.PI / 2;
     wheelGroup.add(mainRing);
+    const mainRingMat = mainRing.material;
 
-    // Vòng hào quang phụ bên trong
-    const innerRingGeo = new THREE.TorusGeometry(7.5, 0.14, 16, 96);
-    const innerRingMat = new THREE.MeshStandardMaterial({
-      color: 0x8b7aa8,
-      roughness: 0.4,
-      metalness: 0.6
-    });
-    const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+    const innerRing = new THREE.Mesh(
+      new THREE.TorusGeometry(7.5, 0.14, 16, 96),
+      new THREE.MeshStandardMaterial({ color: 0x8b7aa8, roughness: 0.4, metalness: 0.6 })
+    );
     innerRing.rotation.x = Math.PI / 2;
     wheelGroup.add(innerRing);
 
-    // Tâm bánh xe: Biểu tượng Tam Độc (3 khối xoắn quyện vào nhau ở trung tâm)
+    // Tâm bánh xe: Tam Độc (Sân, Tham, Si)
     const coreGroup = new THREE.Group();
     wheelGroup.add(coreGroup);
 
-    const poisonColors = [0xff4d6d, 0x38d9a9, 0xf6c959]; // Sân, Tham, Si
+    const poisonColors = [0xff4d6d, 0x38d9a9, 0xf6c959];
     for (let i = 0; i < 3; i++) {
       const a = (i * Math.PI * 2) / 3;
-      const orbGeo = new THREE.OctahedronGeometry(1.6, 1);
-      const orbMat = new THREE.MeshStandardMaterial({
-        color: poisonColors[i],
-        emissive: poisonColors[i],
-        emissiveIntensity: 0.35,
-        roughness: 0.2,
-        metalness: 0.7
-      });
-      const orb = new THREE.Mesh(orbGeo, orbMat);
+      const orb = new THREE.Mesh(
+        new THREE.OctahedronGeometry(1.6, 1),
+        new THREE.MeshStandardMaterial({
+          color: poisonColors[i],
+          emissive: poisonColors[i],
+          emissiveIntensity: 0.35,
+          roughness: 0.2,
+          metalness: 0.7
+        })
+      );
       orb.position.set(Math.cos(a) * 2.1, 0, Math.sin(a) * 2.1);
       coreGroup.add(orb);
     }
 
-    // 12 Node mắt xích + Nan hoa + Nhãn chữ
+    // 12 Node + Nan hoa + Nhãn
     const nodeMeshes = [];
     const nodeHalos = [];
+    const labelSprites = [];
+    const nodeDirs = [];
 
     LINKS_DATA.forEach((item, idx) => {
-      // Sắp xếp theo chiều kim đồng hồ từ đỉnh trên (góc -PI/2)
       const angle = -Math.PI / 2 + (idx / 12) * Math.PI * 2;
       const x = Math.cos(angle) * WHEEL_RADIUS;
       const z = Math.sin(angle) * WHEEL_RADIUS;
+      nodeDirs.push(new THREE.Vector3(x, 0, z).normalize());
 
-      // Khối cầu mắt xích
-      const sphereGeo = new THREE.SphereGeometry(1.65, 32, 32);
-      const sphereMat = new THREE.MeshStandardMaterial({
-        color: item.color,
-        emissive: item.color,
-        emissiveIntensity: 0.25,
-        roughness: 0.22,
-        metalness: 0.75
-      });
-      const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+      const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(1.65, 32, 32),
+        new THREE.MeshStandardMaterial({
+          color: item.color,
+          emissive: item.color,
+          emissiveIntensity: 0.25,
+          roughness: 0.22,
+          metalness: 0.75
+        })
+      );
       sphere.position.set(x, 0, z);
       sphere.userData = { index: idx };
       wheelGroup.add(sphere);
       nodeMeshes.push(sphere);
 
-      // Vòng hào quang bao quanh từng mắt xích
-      const haloGeo = new THREE.TorusGeometry(2.35, 0.08, 12, 48);
-      const haloMat = new THREE.MeshBasicMaterial({
-        color: item.color,
-        transparent: true,
-        opacity: 0.45
-      });
-      const halo = new THREE.Mesh(haloGeo, haloMat);
+      const halo = new THREE.Mesh(
+        new THREE.TorusGeometry(2.35, 0.08, 12, 48),
+        new THREE.MeshBasicMaterial({ color: item.color, transparent: true, opacity: 0.45 })
+      );
       halo.position.set(x, 0, z);
       halo.rotation.x = Math.PI / 2;
       wheelGroup.add(halo);
       nodeHalos.push(halo);
 
-      // Nan hoa nối từ tâm ra mắt xích
       const spokeLen = WHEEL_RADIUS - 7.5;
-      const spokeGeo = new THREE.CylinderGeometry(0.06, 0.06, spokeLen, 8);
-      const spokeMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.16
-      });
-      const spoke = new THREE.Mesh(spokeGeo, spokeMat);
+      const spoke = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.06, spokeLen, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16 })
+      );
       const midR = 7.5 + spokeLen / 2;
       spoke.position.set(Math.cos(angle) * midR, 0, Math.sin(angle) * midR);
       spoke.rotation.z = Math.PI / 2;
       spoke.rotation.y = -angle;
       wheelGroup.add(spoke);
 
-      // Nhãn tên mắt xích phía trên
       const hexStr = '#' + item.color.toString(16).padStart(6, '0');
       const paliShort = item.pali.split('•')[0].trim();
       const label = createLabelSprite(item.name, paliShort, hexStr);
       label.position.set(x * 1.16, 3.4, z * 1.16);
       wheelGroup.add(label);
+      labelSprites.push(label);
     });
 
-    // 5. Dòng hạt năng lượng luân chuyển dọc theo vòng tròn 12 duyên
-    const FLOW_COUNT = 240;
+    // 5. Hạt năng lượng luân chuyển
+    const FLOW_COUNT = IS_LOW_END ? 120 : 240;
     const flowGeo = new THREE.BufferGeometry();
     const flowPositions = new Float32Array(FLOW_COUNT * 3);
     const flowAngles = new Float32Array(FLOW_COUNT);
@@ -492,49 +612,74 @@
     }
     flowGeo.setAttribute('position', new THREE.BufferAttribute(flowPositions, 3));
 
-    const flowMat = new THREE.PointsMaterial({
-      color: 0xf6c959,
-      size: 0.65,
-      transparent: true,
-      opacity: 0.9
-    });
+    const flowMat = new THREE.PointsMaterial({ color: 0xf6c959, size: 0.65, transparent: true, opacity: 0.9 });
     const flowParticles = new THREE.Points(flowGeo, flowMat);
     wheelGroup.add(flowParticles);
 
-    // 6. Không gian sao nền
-    const starGeo = new THREE.BufferGeometry();
-    const starCount = 1400;
+    // 6. Sao nền
+    const starCount = IS_LOW_END ? 700 : 1400;
     const starPos = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount * 3; i++) {
       starPos[i] = (Math.random() - 0.5) * 280;
     }
+    const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0.55 });
-    const stars = new THREE.Points(starGeo, starMat);
+    const stars = new THREE.Points(
+      starGeo,
+      new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0.55 })
+    );
     scene.add(stars);
 
-    // 7. Cập nhật bảng thông tin & trạng thái chọn
+    // 7. Trạng thái và thẻ thông tin
     let selectedIndex = 0;
-    let flowDirection = 1; // 1: Lưu chuyển (thuận), -1: Hoàn diệt (nghịch)
+    let flowDirection = 1; // 1: Lưu chuyển, -1: Hoàn diệt
     let isPaused = false;
 
+    const infoCard = document.getElementById('info-card');
     const infoBadge = document.getElementById('info-badge');
     const infoTitle = document.getElementById('info-title');
     const infoPali = document.getElementById('info-pali');
     const infoDesc = document.getElementById('info-desc');
     const infoRelation = document.getElementById('info-relation');
+    const linkNav = document.getElementById('link-nav');
+    const navButtons = [];
 
-    function selectLink(index) {
-      selectedIndex = (index + 12) % 12;
-      const data = LINKS_DATA[selectedIndex];
+    // Tạo danh sách điều hướng bằng bàn phím
+    LINKS_DATA.forEach((item, idx) => {
+      const b = document.createElement('button');
+      b.textContent = item.name;
+      b.setAttribute('aria-label', `Mắt xích ${item.name}`);
+      b.addEventListener('click', () => selectLink(idx));
+      linkNav.appendChild(b);
+      navButtons.push(b);
+    });
 
+    let swapTimer = null;
+    function renderInfo(data) {
       infoBadge.textContent = `Mắt xích ${data.id} / 12 • ${data.phase}`;
       infoTitle.textContent = data.name;
       infoPali.textContent = `Pāli: ${data.pali}`;
       infoDesc.textContent = data.desc;
       infoRelation.innerHTML = `• <strong>Chiều lưu chuyển:</strong> ${data.forward}<br/>• <strong>Chiều hoàn diệt:</strong> ${data.reverse}`;
+    }
 
-      // Làm nổi bật mắt xích đang chọn
+    function selectLink(index) {
+      selectedIndex = (index + 12) % 12;
+      const data = LINKS_DATA[selectedIndex];
+
+      // Hiệu ứng mờ nhẹ khi đổi nội dung thẻ
+      infoCard.classList.add('swap');
+      clearTimeout(swapTimer);
+      swapTimer = setTimeout(() => {
+        renderInfo(data);
+        infoCard.classList.remove('swap');
+      }, 120);
+
+      navButtons.forEach((b, i) => {
+        b.classList.toggle('active', i === selectedIndex);
+        b.setAttribute('aria-current', i === selectedIndex ? 'true' : 'false');
+      });
+
       nodeMeshes.forEach((mesh, i) => {
         const isSelected = i === selectedIndex;
         mesh.scale.setScalar(isSelected ? 1.45 : 1.0);
@@ -542,63 +687,85 @@
       });
     }
 
+    renderInfo(LINKS_DATA[0]);
     selectLink(0);
 
-    // 8. Nút điều khiển giao diện
-    const btnSamsara = document.getElementById('btn-samsara');
-    const btnNirvana = document.getElementById('btn-nirvana');
+    // 8. Nút điều khiển
+    const btnDirection = document.getElementById('btn-direction');
     const btnPrev = document.getElementById('btn-prev');
     const btnNext = document.getElementById('btn-next');
     const btnPause = document.getElementById('btn-pause');
 
-    btnSamsara.addEventListener('click', () => {
-      flowDirection = 1;
-      btnSamsara.classList.add('active');
-      btnNirvana.classList.remove('active');
-      flowMat.color.setHex(0xf6c959);
-      mainRingMat.color.setHex(0xf6c959);
-    });
+    function setDirection(dir) {
+      flowDirection = dir;
+      const reverse = dir === -1;
+      btnDirection.setAttribute('aria-pressed', String(reverse));
+      btnDirection.textContent = reverse ? 'Chiều: Giải Thoát' : 'Chiều: Luân Hồi';
+      const color = reverse ? 0x5ce1e6 : 0xf6c959;
+      flowMat.color.setHex(color);
+      mainRingMat.color.setHex(color);
+    }
 
-    btnNirvana.addEventListener('click', () => {
-      flowDirection = -1;
-      btnNirvana.classList.add('active');
-      btnSamsara.classList.remove('active');
-      flowMat.color.setHex(0x5ce1e6);
-      mainRingMat.color.setHex(0x5ce1e6);
-    });
-
+    btnDirection.addEventListener('click', () => setDirection(flowDirection === 1 ? -1 : 1));
     btnPrev.addEventListener('click', () => selectLink(selectedIndex - 1));
     btnNext.addEventListener('click', () => selectLink(selectedIndex + 1));
 
     btnPause.addEventListener('click', () => {
       isPaused = !isPaused;
       btnPause.textContent = isPaused ? 'Tiếp Tục' : 'Tạm Dừng';
+      btnPause.setAttribute('aria-pressed', String(isPaused));
       btnPause.classList.toggle('active', isPaused);
     });
 
-    // 9. Điều khiển Camera (Xoay chuột + Zoom + Click Raycaster)
+    // 9. Điều khiển camera: chuột và cảm ứng bằng Pointer Events
     let isDragging = false;
     let dragDistance = 0;
     let prevX = 0;
     let prevY = 0;
     let targetRotY = 0;
     let targetRotX = 0.62;
-    let currentRotY = 0;
     let currentRotX = 0.62;
-    let targetZoom = 68;
-    let currentZoom = 68;
+    let currentRotY = 0;
+    let targetZoom = IS_NARROW ? 85 : 68;
+    let currentZoom = targetZoom;
+
+    const pointers = new Map();
+    let pinchStartDist = 0;
+    let pinchStartZoom = targetZoom;
 
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    container.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      dragDistance = 0;
-      prevX = e.clientX;
-      prevY = e.clientY;
+    function pinchDistance() {
+      const pts = [...pointers.values()];
+      return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    }
+
+    container.addEventListener('pointerdown', (e) => {
+      container.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 1) {
+        isDragging = true;
+        dragDistance = 0;
+        prevX = e.clientX;
+        prevY = e.clientY;
+      } else if (pointers.size === 2) {
+        pinchStartDist = pinchDistance();
+        pinchStartZoom = targetZoom;
+      }
     });
 
-    window.addEventListener('mousemove', (e) => {
+    container.addEventListener('pointermove', (e) => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 2 && pinchStartDist > 0) {
+        const ratio = pinchStartDist / Math.max(pinchDistance(), 1);
+        targetZoom = Math.max(28, Math.min(130, pinchStartZoom * ratio));
+        dragDistance = 999; // chụm không tính là nhấp
+        return;
+      }
+
       if (!isDragging) return;
       const dx = e.clientX - prevX;
       const dy = e.clientY - prevY;
@@ -611,19 +778,34 @@
       targetRotX = Math.max(0.15, Math.min(Math.PI / 2.1, targetRotX));
     });
 
-    window.addEventListener('mouseup', (e) => {
-      if (isDragging && dragDistance < 6) {
-        // Xử lý nhấp chọn mắt xích 3D
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(nodeMeshes);
-        if (intersects.length > 0) {
-          selectLink(intersects[0].object.userData.index);
+    function endPointer(e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.delete(e.pointerId);
+
+      if (pointers.size === 0) {
+        if (isDragging && dragDistance < 6) {
+          rect = container.getBoundingClientRect();
+          mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+          raycaster.setFromCamera(mouse, camera);
+          const hits = raycaster.intersectObjects(nodeMeshes);
+          if (hits.length > 0) {
+            selectLink(hits[0].object.userData.index);
+          }
         }
+        isDragging = false;
+      } else if (pointers.size === 1) {
+        // Còn một ngón: tiếp tục xoay từ vị trí hiện tại
+        const remaining = [...pointers.values()][0];
+        prevX = remaining.x;
+        prevY = remaining.y;
+        isDragging = true;
+        dragDistance = 999;
       }
-      isDragging = false;
-    });
+    }
+    let rect = null;
+    container.addEventListener('pointerup', endPointer);
+    container.addEventListener('pointercancel', endPointer);
 
     container.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -631,10 +813,15 @@
       targetZoom = Math.max(28, Math.min(130, targetZoom));
     }, { passive: false });
 
-    // Phím tắt mũi tên trái/phải
+    // Phím tắt
     window.addEventListener('keydown', (e) => {
+      if (e.target.closest && e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return;
       if (e.key === 'ArrowRight') selectLink(selectedIndex + 1);
       if (e.key === 'ArrowLeft') selectLink(selectedIndex - 1);
+      if (e.key === ' ' && e.target === document.body) {
+        e.preventDefault();
+        btnPause.click();
+      }
     });
 
     window.addEventListener('resize', () => {
@@ -643,14 +830,16 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // 10. Vòng lặp Animation
+    // 10. Vòng lặp animation
     let animTime = 0;
     let lastTime = performance.now();
+    const camDir = new THREE.Vector3();
+    const tmpPos = new THREE.Vector3();
 
     function animate(now) {
       requestAnimationFrame(animate);
 
-      const dt = (now - lastTime) * 0.001;
+      const dt = Math.min((now - lastTime) * 0.001, 0.05);
       lastTime = now;
 
       if (!isPaused) {
@@ -659,7 +848,6 @@
           targetRotY += dt * 0.14 * flowDirection;
         }
 
-        // Cập nhật dòng hạt năng lượng chạy theo chiều thuận/nghịch
         const posAttr = flowGeo.attributes.position;
         for (let i = 0; i < FLOW_COUNT; i++) {
           flowAngles[i] += dt * 0.55 * flowDirection;
@@ -669,16 +857,12 @@
           posAttr.array[i * 3 + 2] = Math.sin(a) * WHEEL_RADIUS;
         }
         posAttr.needsUpdate = true;
+        coreGroup.rotation.y = animTime * 0.9 * flowDirection;
       }
 
-      // Xoay tâm Tam Độc
-      coreGroup.rotation.y = animTime * 0.9 * flowDirection;
-
-      // Hiệu ứng nhịp thở cho vòng hào quang mắt xích đang chọn
       nodeHalos.forEach((halo, idx) => {
         if (idx === selectedIndex) {
-          const pulse = 1.35 + Math.sin(animTime * 4) * 0.2;
-          halo.scale.setScalar(pulse);
+          halo.scale.setScalar(1.35 + Math.sin(animTime * 4) * 0.2);
           halo.material.opacity = 0.85;
         } else {
           halo.scale.setScalar(1.0);
@@ -694,6 +878,16 @@
       camera.position.y = currentZoom * Math.sin(currentRotX);
       camera.position.z = currentZoom * Math.cos(currentRotY) * Math.cos(currentRotX);
       camera.lookAt(0, 0, 0);
+
+      // Ẩn nhãn nằm phía sau bánh xe để tránh chồng lên nhau
+      camDir.copy(camera.position).normalize();
+      labelSprites.forEach((label, i) => {
+        wheelGroup.localToWorld(tmpPos.copy(label.position));
+        const facing = tmpPos.clone().normalize().dot(camDir);
+        const visible = facing > -0.35;
+        label.visible = visible;
+        label.material.opacity = visible ? Math.min(1, (facing + 0.35) * 2) : 0;
+      });
 
       stars.rotation.y = animTime * 0.015;
       renderer.render(scene, camera);

@@ -11,126 +11,148 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --bg: #070a12;
-    --surface: rgba(18, 24, 44, .78);
-    --surface-solid: #111729;
+    --surface: rgba(18, 24, 44, .82);
     --line: rgba(255, 255, 255, .08);
-    --line-strong: rgba(255, 255, 255, .16);
+    --line-strong: rgba(255, 255, 255, .18);
     --text: #ece8dc;
-    --muted: #8b93a7;
+    --muted: #97a0b5;
     --faint: #4b5470;
     --gold: #f5b942;
     --gold-soft: #ffe08a;
-    --hd-bg: rgba(245, 185, 66, .14);
-    --hac-bg: rgba(148, 163, 184, .10);
     --radius: 14px;
     --ease: cubic-bezier(.2, .7, .2, 1);
   }
   html, body { background: var(--bg); }
   body {
     font-family: 'Be Vietnam Pro', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    color: var(--text);
-    min-height: 100vh;
-    background:
-      radial-gradient(1000px 500px at 50% -15%, rgba(245, 185, 66, .14), transparent 60%),
-      var(--bg);
-    padding: 24px 16px 48px;
+    color: var(--text); min-height: 100vh; padding: 24px 16px 48px;
+    background: radial-gradient(1000px 500px at 50% -15%, rgba(245, 185, 66, .14), transparent 60%), var(--bg);
     -webkit-font-smoothing: antialiased;
   }
-  button, input, select { font: inherit; }
+  button, input, select { font: inherit; color: inherit; }
   .wrap { max-width: 1240px; margin: 0 auto; }
+  [hidden] { display: none !important; }
 
   /* ---------- Header ---------- */
-  .top {
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    flex-wrap: wrap; margin-bottom: 18px;
-  }
-  .brand h1 {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 1.85rem; font-weight: 700; letter-spacing: .3px;
-  }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .brand h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.85rem; font-weight: 700; }
   .brand h1 span { color: var(--gold); }
   .brand p { color: var(--muted); font-size: .9rem; margin-top: 2px; }
 
-  .seg {
-    display: inline-flex; padding: 4px; gap: 4px;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  .view-toggle {
+    display: inline-flex; padding: 4px; gap: 4px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 12px;
   }
-  .seg button {
-    background: transparent; color: var(--muted); border: 0; border-radius: 9px;
-    padding: 7px 14px; font-weight: 600; font-size: .88rem; cursor: pointer;
+  .view-toggle button {
+    background: transparent; border: 0; border-radius: 9px; padding: 8px 14px;
+    color: var(--muted); font-weight: 600; font-size: .9rem; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
     transition: background .2s var(--ease), color .2s var(--ease);
   }
-  .seg button:hover:not(:disabled) { color: var(--text); }
-  .seg button.active { background: linear-gradient(135deg, var(--gold-soft), var(--gold)); color: #111; }
-  .seg button:disabled { opacity: .35; cursor: not-allowed; }
+  .view-toggle button:hover:not(:disabled) { color: var(--text); }
+  .view-toggle button[aria-pressed="true"] { background: linear-gradient(135deg, var(--gold-soft), var(--gold)); color: #111; }
+  .view-toggle button:disabled { opacity: .35; cursor: not-allowed; }
 
-  /* ---------- Toolbar ---------- */
-  .bar {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px;
-    backdrop-filter: blur(8px);
+  /* ---------- Thanh điều hướng ---------- */
+  .cal-nav {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px;
   }
-  .nav { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
-  .title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 1.25rem; font-weight: 700; color: var(--gold-soft);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    padding: 0 6px; flex: 1; text-align: center; min-width: 0;
+  .month-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+  .month-row .right { justify-self: end; }
+  .month-row .left { justify-self: start; }
+  .month-title { text-align: center; min-width: 0; }
+  .month-title .m {
+    font-family: 'Playfair Display', Georgia, serif; font-size: 1.6rem; font-weight: 700; color: var(--gold-soft); line-height: 1.1;
   }
-  .ctrl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .field { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--muted); }
+  .month-title .y { font-size: .85rem; color: var(--muted); margin-top: 2px; }
+
+  .btn {
+    border: 1px solid var(--line-strong); background: transparent; color: var(--text);
+    border-radius: 10px; padding: 9px 14px; font-weight: 600; font-size: .9rem; cursor: pointer;
+    transition: border-color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
+    white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { border-color: var(--gold); color: var(--gold-soft); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--gold-soft), var(--gold)); color: #111; border: 0; font-weight: 700;
+  }
+  .btn.primary:hover { color: #111; filter: brightness(1.06); }
+  .btn.nav { font-size: 1rem; padding: 8px 14px; }
+
+  .jump-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 12px; }
+  .jump-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .jump-group .label { font-size: .8rem; color: var(--muted); }
+  .jump-group.dates { }
+  .divider { width: 1px; align-self: stretch; background: var(--line); }
 
   input, select {
-    background: rgba(8, 11, 24, .85); color: var(--text);
-    border: 1px solid var(--line); border-radius: 9px;
-    padding: 7px 10px; font-size: .9rem; outline: none;
-    transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+    background: rgba(8, 11, 24, .9); border: 1px solid var(--line); border-radius: 9px;
+    padding: 8px 10px; font-size: .9rem; outline: none;
   }
-  input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245, 185, 66, .18); }
-  input[type=number] { width: 88px; }
+  input:focus, select:focus, button:focus-visible { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245, 185, 66, .2); outline: none; }
+  input[type=number] { width: 92px; }
   input[type=date] { color-scheme: dark; }
-  select { cursor: pointer; }
 
-  button.btn {
-    color: #111; background: linear-gradient(135deg, var(--gold-soft), var(--gold));
-    border: 0; border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: .88rem;
-    cursor: pointer; transition: transform .15s var(--ease), filter .2s var(--ease);
-  }
-  button.btn:hover { filter: brightness(1.06); }
-  button.btn:active { transform: translateY(1px); }
-  button.btn.ghost {
-    background: transparent; color: var(--text); border: 1px solid var(--line-strong);
-  }
-  button.btn.ghost:hover { border-color: var(--gold); color: var(--gold-soft); }
-  button.icon {
-    width: 38px; height: 38px; display: grid; place-items: center; padding: 0;
-    font-size: 1.2rem; line-height: 1;
-  }
-  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-
-  .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
-
-  /* ---------- Layout ---------- */
-  .layout {
-    display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 14px; align-items: start;
-  }
+  /* ---------- Bố cục chính ---------- */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 14px; align-items: start; }
   @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
 
   .stage-card {
     background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
     padding: 12px; box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .7);
   }
-  .weekdays {
-    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
-    margin-bottom: 6px; padding: 0 2px;
-  }
-  .weekdays div {
-    text-align: center; font-size: .72rem; font-weight: 600; letter-spacing: .4px;
-    text-transform: uppercase; color: var(--muted); padding: 4px 0;
-  }
-  .weekdays div.we { color: var(--gold); }
 
+  /* ---------- Lưới 2D ---------- */
+  #grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .wd {
+    text-align: center; font-size: .75rem; font-weight: 700; letter-spacing: .4px;
+    text-transform: uppercase; color: var(--muted); padding: 4px 0 6px;
+  }
+  .wd.we { color: var(--gold); }
+  .gc {
+    position: relative; min-height: 96px; border-radius: 10px; padding: 7px 8px;
+    background: linear-gradient(180deg, #1b2236, #121828); border: 1px solid var(--line);
+    cursor: pointer; display: flex; flex-direction: column; gap: 4px; text-align: left;
+    transition: transform .15s var(--ease), border-color .15s var(--ease), background .2s;
+  }
+  .gc:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+  .gc.hd { background: linear-gradient(180deg, #5c4818, #2a2110); }
+  .gc.hac { background: linear-gradient(180deg, #2a2d38, #15171f); }
+  .gc.out { opacity: .42; }
+  .gc.today { border: 2px solid var(--gold); padding: 6px 7px; }
+  .gc.sel { box-shadow: 0 0 0 2px #fff; border-color: #fff; }
+  .gc-flag {
+    position: absolute; top: -9px; left: 6px; font-size: .6rem; font-weight: 800; letter-spacing: .5px;
+    background: var(--gold); color: #111; padding: 1px 6px; border-radius: 6px;
+  }
+  .gc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; }
+  .gc-sol { font-family: 'Playfair Display', Georgia, serif; font-size: 1.35rem; font-weight: 700; line-height: 1; }
+  .gc.out .gc-sol { color: var(--faint); }
+  .gc-lun { font-size: .7rem; color: var(--gold-soft); opacity: .9; white-space: nowrap; }
+  .gc.out .gc-lun { color: var(--faint); }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
+    font-size: .7rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; white-space: nowrap;
+  }
+  .tag.hd { background: rgba(245, 185, 66, .22); color: var(--gold-soft); }
+  .tag.hac { background: rgba(148, 163, 184, .16); color: #cbd5e1; }
+  .tag .short { display: none; }
+  .gc-truc { font-size: .72rem; color: var(--muted); margin-top: auto; }
+  .gc.out .gc-truc { color: var(--faint); }
+
+  /* ---------- Chú thích ---------- */
+  .legend { display: flex; gap: 8px 16px; flex-wrap: wrap; font-size: .82rem; color: var(--muted); margin-top: 12px; padding: 0 4px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .legend .swatch.hd { background: #8a6a24; }
+  .legend .swatch.hac { background: #3a3d4a; }
+  .legend .swatch.thuong { background: #1d2438; }
+  .legend .swatch.today { border: 2px solid var(--gold); background: transparent; }
+  .legend .swatch.sel { box-shadow: 0 0 0 2px #fff; background: transparent; }
+
+  /* ---------- 3D ---------- */
   #stage {
     position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden;
     background: #070a12; cursor: grab; touch-action: none;
@@ -139,94 +161,37 @@
   #stage canvas { display: block; width: 100%; height: 100%; }
   .stage-hint {
     position: absolute; left: 12px; bottom: 10px; font-size: .75rem; color: var(--muted);
-    pointer-events: none; background: rgba(7, 10, 18, .7); padding: 4px 9px; border-radius: 999px;
+    pointer-events: none; background: rgba(7, 10, 18, .75); padding: 4px 10px; border-radius: 999px;
   }
 
-  /* ---------- 2D grid ---------- */
-  #grid {
-    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
-  }
-  .gc {
-    position: relative; min-height: 86px; border-radius: 10px; padding: 7px 8px 6px;
-    background: linear-gradient(180deg, #1b2236, #121828);
-    border: 1px solid var(--line); cursor: pointer; overflow: hidden;
-    transition: transform .15s var(--ease), border-color .15s var(--ease), background .2s;
-    display: flex; flex-direction: column; gap: 2px; text-align: left; color: inherit;
-  }
-  .gc:hover { border-color: var(--line-strong); transform: translateY(-1px); }
-  .gc.hd { background: linear-gradient(180deg, #5c4818, #2a2110); }
-  .gc.hac { background: linear-gradient(180deg, #2a2d38, #15171f); }
-  .gc.out { background: #0b0e1a; opacity: .55; }
-  .gc.today { box-shadow: inset 0 0 0 1.5px var(--gold); }
-  .gc.sel { border-color: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, .85); }
-  .gc-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .gc-sol {
-    font-family: 'Playfair Display', Georgia, serif; font-size: 1.35rem; font-weight: 700; line-height: 1;
-  }
-  .gc.out .gc-sol { color: var(--faint); }
-  .gc-lun { font-size: .7rem; color: var(--gold-soft); opacity: .85; }
-  .gc.out .gc-lun { color: var(--faint); }
-  .gc-truc { font-size: .72rem; color: var(--muted); margin-top: auto; }
-  .gc.hd .gc-truc { color: var(--gold-soft); }
-  .gc-dot {
-    position: absolute; right: 8px; bottom: 8px; width: 6px; height: 6px; border-radius: 50%;
-    background: var(--gold);
-  }
-  .gc.hac .gc-dot { background: #64748b; }
-
-  /* ---------- Legend ---------- */
-  .legend {
-    display: flex; gap: 8px 16px; flex-wrap: wrap; font-size: .8rem; color: var(--muted);
-    margin-top: 12px; padding: 0 4px;
-  }
-  .legend span { display: inline-flex; align-items: center; gap: 7px; }
-  .legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
-
-  /* ---------- Detail ---------- */
+  /* ---------- Chi tiết ---------- */
   .side {
     background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
     padding: 20px; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: var(--faint) transparent;
   }
-  @media (max-width: 1000px) { .side { position: static; max-height: none; } }
-
-  .d-head { display: flex; gap: 14px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-  .d-big {
-    font-family: 'Playfair Display', Georgia, serif; font-size: 3.4rem; font-weight: 700; line-height: 1;
-    color: var(--text); min-width: 80px; text-align: center;
-  }
+  @media (max-width: 1000px) { .side { position: static; max-height: none; overflow: visible; } }
+  .sel-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; font-weight: 700; }
+  .d-head { display: flex; gap: 14px; align-items: center; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-top: 6px; }
+  .d-big { font-family: 'Playfair Display', Georgia, serif; font-size: 3.4rem; font-weight: 700; line-height: 1; min-width: 80px; text-align: center; }
   .d-big small { display: block; font-family: 'Be Vietnam Pro', sans-serif; font-size: .75rem; color: var(--muted); font-weight: 500; margin-top: 4px; }
-  .d-meta h2 { font-size: 1.1rem; font-weight: 700; }
+  .d-meta h2 { font-size: 1.05rem; font-weight: 700; }
   .d-meta .lunar { color: var(--gold-soft); font-size: .92rem; margin-top: 3px; }
   .d-meta .sub { color: var(--muted); font-size: .82rem; margin-top: 2px; }
-
   .badge {
-    display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px;
-    font-weight: 600; font-size: .8rem; margin-top: 12px;
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+    font-weight: 700; font-size: .85rem; margin-top: 12px;
   }
-  .badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-  .badge.hd { background: var(--hd-bg); color: var(--gold-soft); border: 1px solid rgba(245, 185, 66, .4); }
-  .badge.hac { background: var(--hac-bg); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, .3); }
-
-  .side h3 {
-    font-size: .7rem; color: var(--gold); text-transform: uppercase; letter-spacing: .8px;
-    margin: 18px 0 8px; font-weight: 700;
-  }
+  .badge.hd { background: rgba(245, 185, 66, .14); color: var(--gold-soft); border: 1px solid rgba(245, 185, 66, .45); }
+  .badge.hac { background: rgba(148, 163, 184, .1); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, .3); }
+  .side h3 { font-size: .7rem; color: var(--gold); text-transform: uppercase; letter-spacing: .8px; margin: 18px 0 8px; font-weight: 700; }
   .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .fact {
-    background: rgba(8, 11, 24, .6); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px;
-  }
+  .fact { background: rgba(8, 11, 24, .6); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; }
   .fact .k { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
   .fact .v { font-size: .92rem; font-weight: 600; margin-top: 3px; }
   .truc-line { font-size: .92rem; color: var(--muted); }
   .truc-line b { color: var(--text); }
-
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip {
-    font-size: .78rem; padding: 4px 9px; border-radius: 8px;
-    background: var(--hd-bg); color: var(--gold-soft); border: 1px solid rgba(245, 185, 66, .3);
-  }
-
+  .chip { font-size: .78rem; padding: 4px 9px; border-radius: 8px; background: rgba(245, 185, 66, .14); color: var(--gold-soft); border: 1px solid rgba(245, 185, 66, .3); }
   table { width: 100%; border-collapse: collapse; font-size: .84rem; }
   th, td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: left; }
   th { color: var(--muted); font-weight: 600; font-size: .68rem; text-transform: uppercase; letter-spacing: .4px; }
@@ -235,8 +200,6 @@
   tr.hd td:last-child { font-weight: 700; }
   tr.now td { background: rgba(255, 255, 255, .05); }
   tr.now td:first-child::before { content: '● '; color: var(--gold); }
-  td.loai { white-space: nowrap; }
-
   .note { font-size: .76rem; color: var(--muted); line-height: 1.6; margin-top: 14px; }
 
   .sources {
@@ -245,23 +208,39 @@
   }
   .sources b { color: var(--text); font-weight: 600; }
   .sources a { color: var(--gold-soft); text-decoration: none; border-bottom: 1px dotted rgba(255, 224, 138, .4); }
-  .sources a:hover { border-bottom-style: solid; }
 
-  @media (max-width: 600px) {
-    body { padding: 16px 10px 36px; }
+  /* ---------- Mobile ---------- */
+  @media (max-width: 640px) {
+    body { padding: 14px 10px 32px; }
     .brand h1 { font-size: 1.5rem; }
     .top { justify-content: center; text-align: center; }
     .brand { width: 100%; }
-    .bar { padding: 10px; gap: 10px; }
-    .nav { width: 100%; }
-    .ctrl, .find { width: 100%; justify-content: space-between; }
-    .sep { display: none; }
-    input[type=number] { width: 80px; }
-    #stage { height: 380px; }
-    .gc { min-height: 60px; padding: 5px 5px 4px; }
-    .gc-sol { font-size: 1.05rem; }
-    .gc-lun { font-size: .6rem; }
+    .view-toggle { width: 100%; }
+    .view-toggle button { flex: 1; justify-content: center; }
+    .cal-nav { padding: 10px; }
+    .month-title .m { font-size: 1.3rem; }
+    .btn.nav .long { display: none; }
+    .btn.nav .short { display: inline; }
+    .jump-row { flex-direction: column; align-items: stretch; }
+    .jump-row .btn.primary { width: 100%; justify-content: center; padding: 11px; }
+    .jump-group { justify-content: space-between; }
+    .divider { display: none; }
+    .jump-group.dates { justify-content: space-between; }
+    input[type=number] { width: 84px; }
+    .jump-group input[type=date] { flex: 1; min-width: 0; }
+    #grid { gap: 4px; }
+    .wd { font-size: .65rem; letter-spacing: 0; }
+    .gc { min-height: 60px; padding: 4px 4px 4px; gap: 2px; }
+    .gc.today { padding: 3px 3px; }
+    .gc-sol { font-size: 1.02rem; }
+    .gc-lun { display: none; }
     .gc-truc { display: none; }
+    .gc-flag { font-size: .5rem; top: -7px; left: 3px; padding: 0 4px; }
+    .tag { font-size: .62rem; padding: 1px 4px; }
+    .tag .long { display: none; }
+    .tag .short { display: inline; }
+    .legend { font-size: .75rem; gap: 6px 12px; }
+    #stage { height: 380px; }
     .facts { grid-template-columns: repeat(2, 1fr); }
     .d-big { font-size: 2.6rem; min-width: 64px; }
   }
@@ -281,58 +260,71 @@
       <h1>Lịch <span>vạn niên</span></h1>
       <p>Dương lịch · âm lịch · can chi · trực · ngày và giờ hoàng đạo</p>
     </div>
-    <div class="seg" role="tablist" aria-label="Chế độ xem">
-      <button type="button" data-view="3d" role="tab">3D</button>
-      <button type="button" data-view="2d" role="tab">Lưới</button>
+    <div class="view-toggle" role="group" aria-label="Kiểu hiển thị">
+      <button type="button" data-view="2d" aria-pressed="false">▦ Lưới</button>
+      <button type="button" data-view="3d" aria-pressed="false">◐ Xem 3D</button>
     </div>
   </header>
 
-  <section class="bar">
-    <div class="nav">
-      <button type="button" class="btn ghost icon" id="btnPrev" aria-label="Tháng trước">‹</button>
-      <div class="title" id="title" aria-live="polite"></div>
-      <button type="button" class="btn ghost icon" id="btnNext" aria-label="Tháng sau">›</button>
+  <section class="cal-nav" aria-label="Điều hướng lịch">
+    <div class="month-row">
+      <div class="left">
+        <button type="button" class="btn nav" id="btnPrev" aria-label="Tháng trước">
+          <span class="long">‹ Tháng trước</span><span class="short">‹</span>
+        </button>
+      </div>
+      <div class="month-title" aria-live="polite">
+        <div class="m" id="mName">Tháng</div>
+        <div class="y" id="yName"></div>
+      </div>
+      <div class="right">
+        <button type="button" class="btn nav" id="btnNext" aria-label="Tháng sau">
+          <span class="long">Tháng sau ›</span><span class="short">›</span>
+        </button>
+      </div>
     </div>
 
-    <div class="ctrl">
-      <label class="field">Tháng
+    <div class="jump-row">
+      <div class="jump-group">
+        <label class="label" for="mSel">Đi tới tháng</label>
         <select id="mSel" aria-label="Chọn tháng">
-          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
-          <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
-          <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+          <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+          <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+          <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+          <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
         </select>
-      </label>
-      <label class="field">Năm <input type="number" id="yInp" min="1900" max="2100" aria-label="Chọn năm"></label>
-      <button type="button" class="btn ghost" id="btnGo">Xem</button>
-      <button type="button" class="btn" id="btnToday">Hôm nay</button>
-    </div>
+        <label class="label" for="yInp">Năm</label>
+        <input type="number" id="yInp" min="1900" max="2100" aria-label="Chọn năm">
+        <button type="button" class="btn" id="btnGo">Xem</button>
+      </div>
 
-    <div class="sep"></div>
+      <div class="divider" aria-hidden="true"></div>
 
-    <div class="ctrl find">
-      <label class="field">Tra cứu <input type="date" id="dInp" aria-label="Tra cứu ngày"></label>
-      <button type="button" class="btn ghost" id="btnFind">Tìm</button>
+      <div class="jump-group dates">
+        <label class="label" for="dInp">Tra cứu ngày</label>
+        <input type="date" id="dInp" aria-label="Tra cứu ngày">
+        <button type="button" class="btn" id="btnFind">Tìm</button>
+      </div>
+
+      <button type="button" class="btn primary" id="btnToday">📍 Về hôm nay</button>
     </div>
   </section>
 
   <div class="layout">
     <div>
       <div class="stage-card">
-        <div class="weekdays" aria-hidden="true">
-          <div>Th 2</div><div>Th 3</div><div>Th 4</div><div>Th 5</div><div>Th 6</div>
-          <div class="we">Th 7</div><div class="we">CN</div>
-        </div>
-        <div id="stage">
+        <div id="grid" role="grid" aria-label="Lưới các ngày trong tháng"></div>
+        <div id="stage" hidden>
           <div class="stage-hint">Kéo để xoay · Bấm ô để chọn</div>
         </div>
-        <div id="grid" hidden></div>
       </div>
 
-      <div class="legend">
-        <span><i style="background:#8a6a24"></i>Hoàng đạo</span>
-        <span><i style="background:#3a3d4a"></i>Hắc đạo</span>
-        <span><i style="background:#1d2438"></i>Thường</span>
-        <span><i style="background:#0b0e1a"></i>Ngoài tháng</span>
+      <div class="legend" aria-label="Chú thích">
+        <span><i class="swatch hd"></i>★ Hoàng đạo</span>
+        <span><i class="swatch hac"></i>✕ Hắc đạo</span>
+        <span><i class="swatch thuong"></i>Ngoài tháng (mờ)</span>
+        <span><i class="swatch today"></i>Hôm nay</span>
+        <span><i class="swatch sel"></i>Đang chọn</span>
       </div>
     </div>
 
@@ -361,6 +353,7 @@
   const TRUC_HD = { 'Kiến':1, 'Mãn':1, 'Bình':1, 'Định':1, 'Thành':1, 'Khai':1 };
   const TZ = 7;
   const WEEK = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
+  const WD = ['T2','T3','T4','T5','T6','T7','CN'];
   const COLS = 7, ROWS = 6;
 
   // ---------- Dương lịch -> Julian Day ----------
@@ -463,16 +456,17 @@
   const today = new Date();
   const TODAY = { d: today.getDate(), m: today.getMonth() + 1, y: today.getFullYear() };
   let curY, curM, selSol = null, cells = [], selIdx = -1;
-  let view = '3d';
+  let view = '2d';
 
   function isSameDay(a, b) { return !!a && !!b && a.d === b.d && a.m === b.m && a.y === b.y; }
 
-  // ---------- Three.js (tùy chọn) ----------
+  // ---------- DOM ----------
   const stage = $('stage');
   const grid = $('grid');
   const btn3d = document.querySelector('[data-view="3d"]');
   const btn2d = document.querySelector('[data-view="2d"]');
 
+  // ---------- Three.js (tùy chọn) ----------
   let renderer = null, scene, camera, rig, tiles = [];
   let yaw = 0, tilt = 0;
 
@@ -506,14 +500,9 @@
         tiles.push(mesh);
       }
     }
-    const frame = new THREE.Mesh(new THREE.TorusGeometry(9.2, 0.02, 8, 120),
-      new THREE.MeshBasicMaterial({ color: 0xf5b942, transparent: true, opacity: 0.25 }));
-    frame.rotation.x = Math.PI / 2;
-    frame.position.set(0, -2.9, -9);
-    rig.add(frame);
   } catch (e) {
     renderer = null;
-    stage.innerHTML = '<div class="stage-hint" style="position:static;margin:16px">Trình duyệt không hỗ trợ WebGL — dùng chế độ Lưới.</div>';
+    stage.innerHTML = '<div class="stage-hint" style="position:static;margin:16px">Trình duyệt không hỗ trợ WebGL — hãy dùng chế độ Lưới.</div>';
     btn3d.disabled = true;
   }
 
@@ -524,9 +513,7 @@
     const grd = g.createLinearGradient(0, 0, 0, 190);
     if (!cell.inMonth) { grd.addColorStop(0, '#0c1020'); grd.addColorStop(1, '#080b16'); }
     else if (cell.info.hd) { grd.addColorStop(0, '#6b5520'); grd.addColorStop(1, '#2b2410'); }
-    else if (!cell.info.hd && cell.info.truc !== 'Kiến' && cell.info.truc !== 'Mãn') {
-      grd.addColorStop(0, '#2a2c36'); grd.addColorStop(1, '#15171f');
-    } else { grd.addColorStop(0, '#1d2438'); grd.addColorStop(1, '#10141f'); }
+    else { grd.addColorStop(0, '#2a2c36'); grd.addColorStop(1, '#15171f'); }
     g.fillStyle = grd;
     g.fillRect(0, 0, 320, 190);
 
@@ -539,12 +526,12 @@
     g.font = '600 25px Segoe UI, Arial';
     g.textAlign = 'right';
     g.fillStyle = cell.inMonth ? '#e8c77a' : '#4b5470';
-    g.fillText(L.day + '/' + L.month + (L.leap ? ' nhuận' : ''), 306, 14);
+    g.fillText('ÂL ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : ''), 306, 14);
 
     g.font = '600 19px Segoe UI, Arial';
     g.textAlign = 'left';
     g.fillStyle = cell.info.hd ? '#ffe08a' : '#9aa3b8';
-    g.fillText(cell.info.truc + (cell.info.hd ? ' · Hoàng đạo' : ' · Hắc đạo'), 14, 140);
+    g.fillText((cell.info.hd ? '★ Hoàng đạo' : '✕ Hắc đạo') + ' · ' + cell.info.truc, 14, 140);
 
     g.fillStyle = cell.inMonth ? '#9aa3b8' : '#3b4360';
     g.font = '16px Segoe UI, Arial';
@@ -571,22 +558,35 @@
 
   // ---------- Lưới 2D ----------
   function renderGrid() {
-    const frag = cells.map((cell, i) => {
+    const header = WD.map((w, i) =>
+      '<div class="wd' + (i >= 5 ? ' we' : '') + '" aria-hidden="true">' + w + '</div>').join('');
+
+    const body = cells.map((cell, i) => {
       const I = cell.info, L = I.lun;
       const cls = ['gc',
         cell.inMonth ? '' : 'out',
-        cell.inMonth && I.hd ? 'hd' : (cell.inMonth ? 'hac' : ''),
+        I.hd ? 'hd' : 'hac',
         cell.isToday ? 'today' : '',
         i === selIdx ? 'sel' : ''].filter(Boolean).join(' ');
-      const label = cell.sol.d + '/' + cell.sol.m + ' · ÂL ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') +
-        ' · ' + I.truc + (I.hd ? ' hoàng đạo' : ' hắc đạo');
-      return '<button type="button" class="' + cls + '" data-i="' + i + '" aria-label="' + label + '">' +
-        '<div class="gc-top"><span class="gc-sol">' + cell.sol.d + '</span><span class="gc-lun">' + L.day + '/' + L.month + (L.leap ? 'N' : '') + '</span></div>' +
-        '<div class="gc-truc">' + I.truc + '</div>' +
-        (cell.inMonth ? '<span class="gc-dot"></span>' : '') +
+      const status = I.hd ? 'Hoàng đạo' : 'Hắc đạo';
+      const label = cell.sol.d + '/' + cell.sol.m + '/' + cell.sol.y +
+        ' · Âm lịch ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') +
+        ' · ' + I.truc + ' · ' + status +
+        (cell.isToday ? ' · Hôm nay' : '') + (i === selIdx ? ' · Đang chọn' : '');
+      return '<button type="button" class="' + cls + '" data-i="' + i + '" aria-label="' + label + '"' +
+        (i === selIdx ? ' aria-current="date"' : '') + '>' +
+          (cell.isToday ? '<span class="gc-flag">HÔM NAY</span>' : '') +
+          '<span class="gc-head"><span class="gc-sol">' + cell.sol.d + '</span>' +
+          '<span class="gc-lun">' + L.day + '/' + L.month + (L.leap ? 'N' : '') + '</span></span>' +
+          '<span class="tag ' + (I.hd ? 'hd' : 'hac') + '">' +
+            '<span class="short">' + (I.hd ? '★' : '✕') + '</span>' +
+            '<span class="long">' + (I.hd ? '★ Hoàng đạo' : '✕ Hắc đạo') + '</span>' +
+          '</span>' +
+          '<span class="gc-truc">' + I.truc + '</span>' +
         '</button>';
     }).join('');
-    grid.innerHTML = frag;
+
+    grid.innerHTML = header + body;
   }
 
   grid.addEventListener('click', e => {
@@ -612,11 +612,6 @@
     }
   }
 
-  function monthTitle() {
-    const mid = dayInfo(15, curM, curY);
-    return 'Tháng ' + curM + ' · ' + curY + '  —  ' + CAN[mid.yearCan] + ' ' + CHI[mid.yearChi];
-  }
-
   function refreshViews() {
     if (view === '3d') refreshTextures();
     else renderGrid();
@@ -631,7 +626,9 @@
       selIdx = cells.findIndex(c => c.isToday && c.inMonth);
       if (selIdx < 0) selIdx = cells.findIndex(c => c.inMonth);
     }
-    $('title').textContent = monthTitle();
+    const mid = dayInfo(15, curM, curY);
+    $('mName').textContent = 'Tháng ' + curM;
+    $('yName').textContent = 'Năm ' + curY + ' · ' + CAN[mid.yearCan] + ' ' + CHI[mid.yearChi];
     $('mSel').value = curM;
     $('yInp').value = curY;
     refreshViews();
@@ -679,19 +676,20 @@
       const isHD = I.hourHD.indexOf(b) >= 0;
       const cls = [isHD ? 'hd' : '', b === nowIdx ? 'now' : ''].filter(Boolean).join(' ');
       return '<tr class="' + cls + '"><td>' + name + '</td><td>' + HOURS[b] + '</td>' +
-        '<td>' + CAN[hc] + ' ' + name + '</td><td class="loai">' + (isHD ? 'Hoàng đạo' : 'Hắc đạo') + '</td></tr>';
+        '<td>' + CAN[hc] + ' ' + name + '</td><td>' + (isHD ? '★ Hoàng đạo' : 'Hắc đạo') + '</td></tr>';
     }).join('');
 
     $('detail').innerHTML =
+      '<div class="sel-label">' + (isToday ? 'Hôm nay' : 'Ngày đang chọn') + '</div>' +
       '<div class="d-head">' +
         '<div class="d-big">' + s.d + '<small>tháng ' + s.m + '</small></div>' +
         '<div class="d-meta">' +
-          '<h2>' + wd + ', ' + s.d + '/' + s.m + '/' + s.y + (isToday ? ' · Hôm nay' : '') + '</h2>' +
+          '<h2>' + wd + ', ' + s.d + '/' + s.m + '/' + s.y + '</h2>' +
           '<div class="lunar">Âm lịch ' + L.day + '/' + L.month + (L.leap ? ' nhuận' : '') + ' · ' + L.year + '</div>' +
           '<div class="sub">' + CAN[I.yearCan] + ' ' + CHI[I.yearChi] + ' năm</div>' +
         '</div>' +
       '</div>' +
-      '<span class="badge ' + (I.hd ? 'hd' : 'hac') + '">' + (I.hd ? 'Ngày hoàng đạo' : 'Ngày hắc đạo') + '</span>' +
+      '<span class="badge ' + (I.hd ? 'hd' : 'hac') + '">' + (I.hd ? '★ Ngày hoàng đạo' : '✕ Ngày hắc đạo') + '</span>' +
 
       '<h3>Can chi</h3>' +
       '<div class="facts">' +
@@ -719,15 +717,13 @@
     view = v;
     stage.hidden = v !== '3d';
     grid.hidden = v !== '2d';
-    btn3d.classList.toggle('active', v === '3d');
-    btn2d.classList.toggle('active', v === '2d');
-    btn3d.setAttribute('aria-selected', v === '3d');
-    btn2d.setAttribute('aria-selected', v === '2d');
+    btn3d.setAttribute('aria-pressed', v === '3d');
+    btn2d.setAttribute('aria-pressed', v === '2d');
     refreshViews();
     if (v === '3d') resize();
   }
 
-  document.querySelector('.seg').addEventListener('click', e => {
+  document.querySelector('.view-toggle').addEventListener('click', e => {
     const b = e.target.closest('[data-view]');
     if (b && !b.disabled) setView(b.dataset.view);
   });
@@ -802,6 +798,7 @@
   });
   $('dInp').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnFind').click(); });
 
+  // Phím tắt: mũi tên di chuyển ngày, PageUp/PageDown đổi tháng, Home về hôm nay
   window.addEventListener('keydown', e => {
     const tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'TEXTAREA') return;
@@ -838,12 +835,13 @@
   $('dInp').value = curY + '-' + String(curM).padStart(2, '0') + '-' + String(TODAY.d).padStart(2, '0');
   $('yInp').value = curY;
 
-  view = (window.innerWidth < 720 || !renderer) ? '2d' : '3d';
+  // Mặc định là Lưới 2D; Xem 3D chỉ khi người dùng bấm chọn
+  view = '2d';
   if (!renderer) btn3d.disabled = true;
-  stage.hidden = view !== '3d';
-  grid.hidden = view !== '2d';
-  btn3d.classList.toggle('active', view === '3d');
-  btn2d.classList.toggle('active', view === '2d');
+  stage.hidden = true;
+  grid.hidden = false;
+  btn2d.setAttribute('aria-pressed', 'true');
+  btn3d.setAttribute('aria-pressed', 'false');
 
   resize();
   renderMonth();
