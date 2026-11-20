@@ -7,7 +7,7 @@
 <style>
 html,body{margin:0;height:100%;height:100dvh;overflow:hidden;background:#0f1218;font-family:system-ui,-apple-system,sans-serif;color:#e8ecf2;-webkit-text-size-adjust:100%}
 canvas{display:block;touch-action:none}
-#info{position:absolute;top:16px;left:16px;width:300px;max-height:calc(100% - 32px);overflow:auto;-webkit-overflow-scrolling:touch;background:rgba(20,24,32,.88);border:1px solid #2a3140;border-radius:12px;padding:16px;box-sizing:border-box;backdrop-filter:blur(6px)}
+#info{position:absolute;top:16px;left:16px;width:300px;max-height:calc(100% - 32px);overflow:auto;-webkit-overflow-scrolling:touch;background:rgba(20,24,32,.88);border:1px solid #2a3140;border-radius:12px;padding:16px;box-sizing:border-box;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .hdr{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .hdr button{margin:0;padding:2px 10px;font-size:14px}
 #info.collapsed{max-height:none}
@@ -30,8 +30,9 @@ td{padding:3px 2px;border-bottom:1px solid #222a38}
 td.r{text-align:right;color:#9fb0c8;white-space:nowrap}
 #tip{position:absolute;pointer-events:none;background:rgba(0,0,0,.8);padding:6px 8px;border-radius:6px;font-size:12px;display:none;transform:translate(-50%,-130%);white-space:nowrap}
 </style>
-<script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+<script nomodule>
+  // Trình duyệt quá cũ, không chạy được ES module
+  document.body.innerHTML = '<p style="padding:20px;font-family:system-ui;color:#e8ecf2">Vui lòng cập nhật iOS / Safari để xem biểu đồ 3D.</p>';
 </script>
 </head>
 <body>
@@ -45,8 +46,10 @@ td.r{text-align:right;color:#9fb0c8;white-space:nowrap}
 <div id="tip"></div>
 
 <script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+// Dùng đường dẫn đầy đủ thay vì import map (Safari < 16.4 không hỗ trợ import map).
+// Bản r150 có build ES module cho cả three.js lẫn OrbitControls, khớp phiên bản với nhau.
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js';
+// Không dùng OrbitControls: bản addon vẫn import 'three' dạng rút gọn nên lỗi trên Safari cũ.
 
 // ---------- DỮ LIỆU ----------
 // [tên bài, sets, reps (giữa khoảng), hệ số (2 = unilateral ×2 bên)]
@@ -194,7 +197,15 @@ function exVol(e, w){
 function volume(s, w){ return SESSIONS[s].ex.reduce((a, e) => a + exVol(e, w), 0); }
 
 // ---------- SCENE ----------
-const renderer = new THREE.WebGLRenderer({ antialias:true });
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias:true });
+} catch (err) {
+  // Thiết bị/trình duyệt không bật được WebGL
+  document.getElementById('info').classList.remove('collapsed');
+  document.getElementById('detail').textContent = 'Thiết bị hoặc trình duyệt này không hỗ trợ WebGL nên không vẽ được biểu đồ 3D.';
+  throw err;
+}
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -207,22 +218,81 @@ scene.fog = new THREE.Fog(0x0f1218, 35, 80);
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
 const HOME = new THREE.Vector3(15, 13, 17);
+// Trạng thái camera quanh tâm biểu đồ (tọa độ cầu)
+const orbit = {
+  theta: Math.atan2(HOME.x, HOME.z),
+  phi: Math.acos(HOME.y / HOME.length()),
+  radius: HOME.length(),
+  zoomK: 1,
+  autoRotate: true,
+  dragging: false,
+  moved: false,
+  target: new THREE.Vector3(0, 2, 0),
+};
 // Màn hình dọc (điện thoại) thì lùi camera ra xa để không bị cắt biểu đồ
 function fitCamera(){
   const a = innerWidth / innerHeight;
   camera.aspect = a;
   const k = a < 1 ? Math.min(2.2, 1.2 / a) : 1;
-  camera.position.copy(HOME).multiplyScalar(k);
+  orbit.zoomK = k;
   camera.updateProjectionMatrix();
 }
 fitCamera();
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 2, 0);
-controls.enableDamping = true;
-controls.autoRotate = true;
-controls.autoRotateSpeed = 0.5;
-controls.maxPolarAngle = Math.PI / 2 - 0.05;
+// Điều khiển: kéo để xoay, cuộn/chụm để zoom (Pointer Events: iOS 13 trở lên)
+const el = renderer.domElement;
+const pts = new Map();
+let pinchDist = 0;
+const MIN_R = 6, MAX_R = 60;
+function pinchDistance(){
+  const v = [...pts.values()];
+  return Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y);
+}
+el.addEventListener('pointerdown', e => {
+  pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  orbit.moved = false;
+  orbit.dragging = true;
+  if (pts.size === 2) pinchDist = pinchDistance();
+});
+el.addEventListener('pointermove', e => {
+  if (!pts.has(e.pointerId)) return;
+  const p = pts.get(e.pointerId);
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  if (pts.size === 1){
+    if (Math.abs(dx) + Math.abs(dy) > 3) orbit.moved = true;
+    orbit.theta -= dx * 0.006;
+    orbit.phi = Math.min(Math.PI / 2 - 0.05, Math.max(0.15, orbit.phi - dy * 0.006));
+  } else if (pts.size === 2){
+    orbit.moved = true;
+    const d = pinchDistance();
+    if (pinchDist > 0 && d > 0) orbit.radius = Math.min(MAX_R, Math.max(MIN_R, orbit.radius * pinchDist / d));
+    pinchDist = d;
+  }
+});
+const endPtr = e => {
+  pts.delete(e.pointerId);
+  if (pts.size === 0) orbit.dragging = false;
+};
+el.addEventListener('pointerup', endPtr);
+el.addEventListener('pointercancel', endPtr);
+el.addEventListener('wheel', e => {
+  e.preventDefault();
+  orbit.radius = Math.min(MAX_R, Math.max(MIN_R, orbit.radius * Math.exp(e.deltaY * 0.001)));
+}, { passive: false });
+
+function updateOrbit(){
+  if (orbit.autoRotate && !orbit.dragging) orbit.theta += 0.003;
+  const r = orbit.radius * orbit.zoomK;
+  const sp = Math.sin(orbit.phi);
+  const t = orbit.target;
+  camera.position.set(
+    t.x + r * sp * Math.sin(orbit.theta),
+    t.y + r * Math.cos(orbit.phi),
+    t.z + r * sp * Math.cos(orbit.theta)
+  );
+  camera.lookAt(t);
+}
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x334155, 1.0));
 const dir = new THREE.DirectionalLight(0xffffff, 1.3);
@@ -254,7 +324,7 @@ function makeLabel(text, color = '#e8ecf2', size = 48, w = 5, h = 1.25){
   g.fillStyle = color;
   g.fillText(text, 256, 64);
   const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
+  if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace; // r150 chưa có colorSpace, bỏ qua an toàn
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false }));
   sp.scale.set(w, h, 1);
   return sp;
@@ -337,6 +407,7 @@ canvas.addEventListener('pointermove', e => {
 });
 canvas.addEventListener('pointerleave', () => tip.style.display = 'none');
 canvas.addEventListener('click', e => {
+  if (orbit.moved) return; // vừa kéo xoay thì không chọn cột
   const o = pick(e);
   if (o) select(o);
 });
@@ -393,12 +464,14 @@ const wk = document.getElementById('weeks');
 
 const rotBtn = document.getElementById('rot');
 rotBtn.onclick = () => {
-  controls.autoRotate = !controls.autoRotate;
-  rotBtn.classList.toggle('on', controls.autoRotate);
+  orbit.autoRotate = !orbit.autoRotate;
+  rotBtn.classList.toggle('on', orbit.autoRotate);
 };
 document.getElementById('reset').onclick = () => {
+  orbit.theta = Math.atan2(HOME.x, HOME.z);
+  orbit.phi = Math.acos(HOME.y / HOME.length());
+  orbit.radius = HOME.length();
   fitCamera();
-  controls.target.set(0, 2, 0);
 };
 
 // ---------- VÒNG LẶP ----------
@@ -412,7 +485,7 @@ function animate(){
     m.scale.y = Math.max(0.01, m.userData.targetH * ease);
     m.userData.label.position.y = m.scale.y + 0.9;
   }
-  controls.update();
+  updateOrbit();
   renderer.render(scene, camera);
 }
 animate();
