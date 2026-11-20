@@ -20,7 +20,7 @@ button{background:#202938;color:var(--text);border:1px solid #354258;border-radi
 button.on{background:#2563eb;border-color:#3b82f6}
 button:focus-visible{outline:2px solid #93c5fd;outline-offset:2px}
 .chart-scroll{overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;border-radius:8px}
-canvas{display:block;width:100%;height:340px;touch-action:pan-y}
+canvas{display:block;width:100%;height:340px;touch-action:pan-y; -webkit-tap-highlight-color:transparent}
 .hint{font-size:12px;color:var(--muted);margin:8px 2px 0}
 #detail{line-height:1.55;font-size:14px}
 #detail:empty{display:none}
@@ -56,7 +56,7 @@ td.r{text-align:right;color:#cbd5e1;white-space:nowrap}
    <button id="reset" type="button">Hiện tất cả</button>
   </div>
   <div class="chart-scroll" id="chartScroll">
-   <canvas id="chart" role="img" aria-label="Biểu đồ khối lượng tập theo tuần và buổi"></canvas>
+   <canvas id="chart" tabindex="0" role="img" aria-label="Biểu đồ khối lượng tập theo tuần và buổi"></canvas>
   </div>
   <p class="hint">Trên điện thoại, vuốt ngang biểu đồ nếu cần. Chạm vào một cột để xem chi tiết.</p>
  </section>
@@ -235,7 +235,23 @@ function setupCanvas(){
  drawChart();
 }
 function roundRect(c,x,y,w,h,r){
- c.beginPath(); c.roundRect(x,y,w,h,r);
+ // CanvasRenderingContext2D.roundRect chưa có trên một số phiên bản Safari/iOS cũ.
+ c.beginPath();
+ if (typeof c.roundRect === 'function') {
+  c.roundRect(x,y,w,h,r);
+ } else {
+  const radius = Math.max(0, Math.min(r, w/2, h/2));
+  c.moveTo(x+radius,y);
+  c.lineTo(x+w-radius,y);
+  c.quadraticCurveTo(x+w,y,x+w,y+radius);
+  c.lineTo(x+w,y+h-radius);
+  c.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
+  c.lineTo(x+radius,y+h);
+  c.quadraticCurveTo(x,y+h,x,y+h-radius);
+  c.lineTo(x,y+radius);
+  c.quadraticCurveTo(x,y,x+radius,y);
+  c.closePath();
+ }
 }
 function drawChart(){
  if(!ctx) return;
