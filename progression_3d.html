@@ -5,8 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Progression 3D - Upper / Lower</title>
 <style>
-html,body{margin:0;height:100%;overflow:hidden;background:#0f1218;font-family:system-ui,-apple-system,sans-serif;color:#e8ecf2}
-#info{position:absolute;top:16px;left:16px;width:300px;max-height:calc(100% - 32px);overflow:auto;background:rgba(20,24,32,.88);border:1px solid #2a3140;border-radius:12px;padding:16px;box-sizing:border-box;backdrop-filter:blur(6px)}
+html,body{margin:0;height:100%;height:100dvh;overflow:hidden;background:#0f1218;font-family:system-ui,-apple-system,sans-serif;color:#e8ecf2;-webkit-text-size-adjust:100%}
+canvas{display:block;touch-action:none}
+#info{position:absolute;top:16px;left:16px;width:300px;max-height:calc(100% - 32px);overflow:auto;-webkit-overflow-scrolling:touch;background:rgba(20,24,32,.88);border:1px solid #2a3140;border-radius:12px;padding:16px;box-sizing:border-box;backdrop-filter:blur(6px)}
+.hdr{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hdr button{margin:0;padding:2px 10px;font-size:14px}
+#info.collapsed{max-height:none}
+#info.collapsed > *:not(.hdr){display:none}
+@media (max-width:640px){
+  #info{top:auto;bottom:0;left:0;right:0;width:auto;max-height:50vh;max-height:50dvh;border-radius:14px 14px 0 0;padding:12px 14px;border-bottom:none}
+  #info p.sub{display:none}
+  #info h1{font-size:15px}
+  #info button{padding:8px 10px}
+  #tip{display:none!important}
+}
 h1{font-size:17px;margin:0 0 6px}
 p.sub{margin:0 0 12px;font-size:12px;color:#8b95a7;line-height:1.4}
 button{background:#1d2431;color:#e8ecf2;border:1px solid #2f3848;border-radius:8px;padding:6px 10px;margin:2px;cursor:pointer;font-size:12px}
@@ -24,7 +36,7 @@ td.r{text-align:right;color:#9fb0c8;white-space:nowrap}
 </head>
 <body>
 <div id="info">
-  <h1>Progression 3D — Upper / Lower</h1>
+  <div class="hdr"><h1>Progression 3D — Upper / Lower</h1><button id="toggle" title="Thu gọn / mở rộng">▾</button></div>
   <p class="sub">Tổng khối lượng tập (sets × reps) theo buổi và tuần. Chiều cao cột = khối lượng. Nhấp vào cột để xem bài tập.</p>
   <div id="weeks"></div>
   <div style="margin-top:6px"><button id="rot" class="on">Tự xoay</button><button id="reset">Reset góc nhìn</button></div>
@@ -187,6 +199,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
+renderer.domElement.style.touchAction = 'none';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0f1218);
@@ -194,7 +207,15 @@ scene.fog = new THREE.Fog(0x0f1218, 35, 80);
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
 const HOME = new THREE.Vector3(15, 13, 17);
-camera.position.copy(HOME);
+// Màn hình dọc (điện thoại) thì lùi camera ra xa để không bị cắt biểu đồ
+function fitCamera(){
+  const a = innerWidth / innerHeight;
+  camera.aspect = a;
+  const k = a < 1 ? Math.min(2.2, 1.2 / a) : 1;
+  camera.position.copy(HOME).multiplyScalar(k);
+  camera.updateProjectionMatrix();
+}
+fitCamera();
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 2, 0);
@@ -301,6 +322,7 @@ function pick(e){
 
 const canvas = renderer.domElement;
 canvas.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch') return; // trên cảm ứng chỉ dùng chạm để chọn
   const o = pick(e);
   canvas.style.cursor = o ? 'pointer' : 'default';
   if (o){
@@ -320,6 +342,9 @@ canvas.addEventListener('click', e => {
 });
 
 function select(m){
+  const info = document.getElementById('info');
+  info.classList.remove('collapsed');
+  document.getElementById('toggle').textContent = '▾';
   if (selected) selected.material.emissive.setHex(0x000000);
   selected = m;
   m.material.emissive.setHex(0x333333);
@@ -372,7 +397,7 @@ rotBtn.onclick = () => {
   rotBtn.classList.toggle('on', controls.autoRotate);
 };
 document.getElementById('reset').onclick = () => {
-  camera.position.copy(HOME);
+  fitCamera();
   controls.target.set(0, 2, 0);
 };
 
@@ -393,10 +418,20 @@ function animate(){
 animate();
 
 addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
+  fitCamera();
   renderer.setSize(innerWidth, innerHeight);
 });
+
+// Nút thu gọn / mở bảng thông tin (quan trọng trên điện thoại)
+document.getElementById('toggle').onclick = e => {
+  const info = document.getElementById('info');
+  info.classList.toggle('collapsed');
+  e.currentTarget.textContent = info.classList.contains('collapsed') ? '▴' : '▾';
+};
+if (innerWidth < 640){
+  document.getElementById('info').classList.add('collapsed');
+  document.getElementById('toggle').textContent = '▴';
+}
 </script>
 </body>
 </html>
