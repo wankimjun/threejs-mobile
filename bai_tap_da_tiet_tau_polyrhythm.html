@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Đa tiết tấu 3D - Three.js</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #101820;
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #c {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+  }
+  #msg {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 40%;
+    text-align: center;
+    color: #ffffff;
+    font-size: 16px;
+    padding: 20px;
+    display: none;
+  }
+  #top {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    padding: 12px 14px;
+    text-align: center;
+    color: #ffffff;
+    pointer-events: none;
+  }
+  #title { font-size: 18px; font-weight: bold; }
+  #info { font-size: 15px; margin-top: 4px; color: #cfe8ff; }
+  #hitText { font-size: 15px; margin-top: 6px; color: #ffd27a; min-height: 18px; }
+  #chant { font-size: 13px; margin-top: 4px; color: rgba(255,255,255,0.7); min-height: 16px; }
+  #bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 6px 6px 10px 6px;
+    text-align: center;
+    background: rgba(10,16,24,0.78);
+  }
+  .row { margin: 4px 0; }
+  .btn {
+    display: inline-block;
+    margin: 3px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: #ffffff;
+    background: #24323f;
+    border: 1px solid #3d5566;
+    border-radius: 8px;
+    -webkit-appearance: none;
+  }
+  .btn.active { background: #1e7fb8; border-color: #5ab8f0; }
+  .legend { display: inline-block; margin: 3px 6px; font-size: 13px; color: #ffffff; }
+  .sw {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  #bpm { display: inline-block; min-width: 110px; color: #ffffff; font-size: 14px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="msg"></div>
+
+<div id="top">
+  <div id="title">Đa tiết tấu - Polyrhythm &amp; 4 chi</div>
+  <div id="info">Phách 1/12 · Kéo để xoay</div>
+  <div id="hitText">Chọn bài tập và bấm Chạy</div>
+  <div id="chant"></div>
+</div>
+
+<div id="bottom">
+  <div class="row" id="exRow"></div>
+  <div class="row">
+    <button class="btn" id="btnPlay">Chạy</button>
+    <button class="btn" id="btnReset">Về đầu</button>
+    <button class="btn" id="btnBpmDown">−</button>
+    <span id="bpm"></span>
+    <button class="btn" id="btnBpmUp">+</button>
+  </div>
+  <div class="row">
+    <button class="btn active" id="btnSound">Âm: Bật</button>
+    <button class="btn" id="btnSwap">Đổi tay/chân</button>
+  </div>
+  <div class="row" id="legend"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  var msg = document.getElementById('msg');
+
+  function showError(text) {
+    msg.innerHTML = text;
+    msg.style.display = 'block';
+  }
+
+  if (typeof THREE === 'undefined') {
+    showError('Không tải được thư viện Three.js. Kiểm tra kết nối mạng rồi tải lại trang.');
+    return;
+  }
+
+  // ---------- Dữ liệu bài tập lấy từ tài liệu .md ----------
+  // LH = tay trái, RH = tay phải, RF = chân phải, LF = chân trái
+  var LIMBS = {
+    LH: { name: 'Tay trái',   color: 0x33ccff, radius: 2.2, freq: 330 },
+    RH: { name: 'Tay phải',   color: 0xff9933, radius: 3.2, freq: 494 },
+    RF: { name: 'Chân phải',  color: 0x66ff66, radius: 4.2, freq: 165 },
+    LF: { name: 'Chân trái',  color: 0xcc66ff, radius: 5.2, freq: 880 }
+  };
+
+  var SWAP_MAP = { LH: 'RH', RH: 'LH', RF: 'LF', LF: 'RF' };
+
+  var EX = [
+    {
+      name: '1. Nhịp 3:2',
+      steps: 6,
+      chant: 'Bánh - mì - pa - tê  (CÙNG - TRÁI - PHẢI - TRÁI)',
+      tracks: [
+        ['LH', [0, 2, 4]],
+        ['RH', [0, 3]]
+      ]
+    },
+    {
+      name: '2. Nhịp 4:3',
+      steps: 12,
+      chant: 'Bánh - mì - pa - tê - trứng - ốp',
+      tracks: [
+        ['LH', [0, 3, 6, 9]],
+        ['RH', [0, 4, 8]]
+      ]
+    },
+    {
+      name: '3. 4:3 + chân 2',
+      steps: 12,
+      chant: 'BÁNH - mì - pa - TÊ - trứng - ốp  (chân dậm ở BÁNH và TÊ)',
+      tracks: [
+        ['LH', [0, 3, 6, 9]],
+        ['RH', [0, 4, 8]],
+        ['RF', [0, 6]]
+      ]
+    },
+    {
+      name: '4. 4 chi - Cấp 1',
+      steps: 12,
+      chant: 'Chân trái giữ nhịp 4 đều (hi-hat)',
+      tracks: [
+        ['LH', [0, 3, 6, 9]],
+        ['RH', [0, 4, 8]],
+        ['RF', [0, 6]],
+        ['LF', [0, 3, 6, 9]]
+      ]
+    },
+    {
+      name: '5. 4 chi - Cấp 2',
+      steps: 12,
+      chant: 'Chân trái dậm nghịch vào phách 3, 6, 9, 12',
+      tracks: [
+        ['LH', [0, 3, 6, 9]],
+        ['RH', [0, 4, 8]],
+        ['RF', [0, 6]],
+        ['LF', [2, 5, 8, 11]]
+      ]
+    }
+  ];
+
+  // ---------- Trạng thái ----------
+  var current = 0;
+  var tracks = [];
+  var playing = false;
+  var elapsed = 0;       // giây đã chạy
+  var lastStep = -1;
+  var bpm = 100;         // phách/phút
+  var soundOn = true;
+  var swapOn = false;
+  var centerFlash = 0;
+  var lastNow = Date.now();
+
+  // ---------- Âm thanh (Web Audio, cần chạm để mở trên iOS) ----------
+  var AC = window.AudioContext || window.webkitAudioContext;
+  var ctx = null;
+
+  function ensureAudio() {
+    if (!ctx && AC) {
+      try { ctx = new AC(); } catch (e) { ctx = null; }
+    }
+    if (ctx && ctx.state === 'suspended' && ctx.resume) {
+      try { ctx.resume(); } catch (e) {}
+    }
+  }
+
+  function clickSound(freq) {
+    if (!ctx || !soundOn) return;
+    try {
+      var osc = ctx.createOscillator();
+      var g = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.connect(g);
+      g.connect(ctx.destination);
+      var t = ctx.currentTime;
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.start(t);
+      osc.stop(t + 0.09);
+    } catch (e) {}
+  }
+
+  // ---------- Three.js ----------
+  var canvas = document.getElementById('c');
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false });
+  } catch (e) {
+    showError('Trình duyệt hoặc thiết bị này không hỗ trợ WebGL.');
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x101820, 1);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+
+  var root = new THREE.Group();
+  scene.add(root);
+
+  var tracksGroup = new THREE.Group();
+  root.add(tracksGroup);
+
+  // Kim chạy (playhead) quay quanh tâm
+  var playPivot = new THREE.Group();
+  var playBar = new THREE.Mesh(
+    new THREE.BoxGeometry(5.6, 0.02, 0.05),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
+  );
+  playBar.position.x = 2.8;
+  playPivot.add(playBar);
+  root.add(playPivot);
+
+  // Tâm: nháy ở phách 1
+  var centerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  var centerMesh = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 12), centerMat);
+  root.add(centerMesh);
+
+  var hitGeo = new THREE.SphereGeometry(0.2, 12, 8);
+  var dotGeo = new THREE.SphereGeometry(0.07, 8, 6);
+  var ringCache = {};
+  var WHITE = new THREE.Color(0xffffff);
+
+  function getRingGeo(r) {
+    if (!ringCache[r]) {
+      ringCache[r] = new THREE.RingGeometry(r - 0.015, r + 0.015, 96);
+    }
+    return ringCache[r];
+  }
+
+  function angleOf(s, n) {
+    return -Math.PI / 2 + (s / n) * Math.PI * 2;
+  }
+
+  function hexStr(n) {
+    var s = n.toString(16);
+    while (s.length < 6) s = '0' + s;
+    return '#' + s;
+  }
+
+  function buildExercise(idx) {
+    while (tracksGroup.children.length) {
+      tracksGroup.remove(tracksGroup.children[0]);
+    }
+    current = idx;
+    var ex = EX[idx];
+    tracks = [];
+
+    for (var t = 0; t < ex.tracks.length; t++) {
+      var key = ex.tracks[t][0];
+      var hits = ex.tracks[t][1];
+      if (swapOn) key = SWAP_MAP[key];
+      var L = LIMBS[key];
+
+      // Vòng tròn của bộ phận
+      var ring = new THREE.Mesh(
+        getRingGeo(L.radius),
+        new THREE.MeshBasicMaterial({ color: L.color, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      tracksGroup.add(ring);
+
+      var hitSet = {};
+      for (var h = 0; h < hits.length; h++) hitSet[hits[h]] = true;
+
+      var dimCol = new THREE.Color(L.color).multiplyScalar(0.35);
+      var items = [];
+      for (var s = 0; s < ex.steps; s++) {
+        var a = angleOf(s, ex.steps);
+        var isHit = !!hitSet[s];
+        var mat = new THREE.MeshBasicMaterial({ color: isHit ? L.color : dimCol });
+        var mesh = new THREE.Mesh(isHit ? hitGeo : dotGeo, mat);
+        mesh.position.set(Math.cos(a) * L.radius, 0, Math.sin(a) * L.radius);
+        tracksGroup.add(mesh);
+        items.push({
+          mesh: mesh,
+          mat: mat,
+          isHit: isHit,
+          flash: 0,
+          base: new THREE.Color(L.color)
+        });
+      }
+
+      tracks.push({ label: L.name, freq: L.freq, color: L.color, items: items });
+    }
+
+    updateLegend();
+    document.getElementById('chant').innerHTML = ex.chant;
+  }
+
+  function updateLegend() {
+    var html = '';
+    for (var i = 0; i < tracks.length; i++) {
+      html += '<span class="legend"><span class="sw" style="background:' +
+        hexStr(tracks[i].color) + '"></span>' + tracks[i].label + '</span>';
+    }
+    document.getElementById('legend').innerHTML = html;
+  }
+
+  function onStep(s) {
+    var names = [];
+    for (var i = 0; i < tracks.length; i++) {
+      var it = tracks[i].items[s];
+      if (it.isHit) {
+        it.flash = 1;
+        clickSound(tracks[i].freq);
+        names.push(tracks[i].label);
+      }
+    }
+    if (s === 0) centerFlash = 1;
+    document.getElementById('hitText').innerHTML =
+      names.length ? 'Đang gõ: ' + names.join(' + ') : 'Nghỉ';
+    document.getElementById('info').innerHTML =
+      'Phách ' + (s + 1) + '/' + EX[current].steps + ' · Kéo để xoay';
+  }
+
+  // ---------- Điều khiển ----------
+  var exRow = document.getElementById('exRow');
+  var exButtons = [];
+
+  function selectEx(i) {
+    for (var k = 0; k < exButtons.length; k++) {
+      exButtons[k].className = (k === i) ? 'btn active' : 'btn';
+    }
+    elapsed = 0;
+    lastStep = -1;
+    buildExercise(i);
+  }
+
+  for (var e = 0; e < EX.length; e++) {
+    var b = document.createElement('button');
+    b.className = 'btn';
+    b.innerHTML = EX[e].name;
+    exRow.appendChild(b);
+    exButtons.push(b);
+    (function (i) {
+      b.addEventListener('click', function () { selectEx(i); }, false);
+    })(e);
+  }
+
+  var btnPlay = document.getElementById('btnPlay');
+  btnPlay.addEventListener('click', function () {
+    playing = !playing;
+    if (playing) ensureAudio();
+    btnPlay.innerHTML = playing ? 'Dừng' : 'Chạy';
+    btnPlay.className = playing ? 'btn active' : 'btn';
+  }, false);
+
+  document.getElementById('btnReset').addEventListener('click', function () {
+    elapsed = 0;
+    lastStep = -1;
+  }, false);
+
+  var bpmText = document.getElementById('bpm');
+  function updateBpm() {
+    bpmText.innerHTML = 'Tốc độ: ' + bpm + ' phách/phút';
+  }
+  updateBpm();
+
+  document.getElementById('btnBpmDown').addEventListener('click', function () {
+    bpm = Math.max(40, bpm - 10);
+    updateBpm();
+  }, false);
+
+  document.getElementById('btnBpmUp').addEventListener('click', function () {
+    bpm = Math.min(240, bpm + 10);
+    updateBpm();
+  }, false);
+
+  var btnSound = document.getElementById('btnSound');
+  btnSound.addEventListener('click', function () {
+    soundOn = !soundOn;
+    if (soundOn) ensureAudio();
+    btnSound.innerHTML = soundOn ? 'Âm: Bật' : 'Âm: Tắt';
+    btnSound.className = soundOn ? 'btn active' : 'btn';
+  }, false);
+
+  var btnSwap = document.getElementById('btnSwap');
+  btnSwap.addEventListener('click', function () {
+    swapOn = !swapOn;
+    btnSwap.className = swapOn ? 'btn active' : 'btn';
+    buildExercise(current);
+  }, false);
+
+  // ---------- Xoay bằng chạm/kéo ----------
+  var dragging = false;
+  var lastX = 0, lastY = 0;
+  var velX = 0, velY = 0;
+  var rotX = 0, rotY = 0;
+
+  function startDrag(x, y) {
+    dragging = true;
+    lastX = x;
+    lastY = y;
+    velX = 0;
+    velY = 0;
+  }
+
+  function moveDrag(x, y) {
+    if (!dragging) return;
+    var dx = x - lastX;
+    var dy = y - lastY;
+    velY = dx * 0.008;
+    velX = dy * 0.008;
+    rotY += velY;
+    rotX += velX;
+    lastX = x;
+    lastY = y;
+  }
+
+  function endDrag() {
+    dragging = false;
+  }
+
+  canvas.addEventListener('mousedown', function (e) {
+    startDrag(e.clientX, e.clientY);
+  }, false);
+
+  window.addEventListener('mousemove', function (e) {
+    moveDrag(e.clientX, e.clientY);
+  }, false);
+
+  window.addEventListener('mouseup', endDrag, false);
+
+  canvas.addEventListener('touchstart', function (e) {
+    if (e.touches && e.touches.length > 0) {
+      startDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, false);
+
+  canvas.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    if (e.touches && e.touches.length > 0) {
+      moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, false);
+
+  canvas.addEventListener('touchend', endDrag, false);
+  canvas.addEventListener('touchcancel', endDrag, false);
+
+  // ---------- Kích thước ----------
+  function resize() {
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    var aspect = w / h;
+    camera.aspect = aspect;
+    // Màn hình dọc: lùi camera ra xa để vòng tròn vừa khung
+    var f = Math.min(1, aspect);
+    camera.position.set(0, 12 / f, 7 / f);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+  }
+
+  resize();
+  window.addEventListener('resize', resize, false);
+  window.addEventListener('orientationchange', function () {
+    setTimeout(resize, 300);
+  }, false);
+
+  // ---------- Vòng lặp ----------
+  function animate() {
+    requestAnimationFrame(animate);
+
+    var now = Date.now();
+    var dt = Math.min(0.1, (now - lastNow) / 1000);
+    lastNow = now;
+
+    var n = EX[current].steps;
+    var stepDur = 60 / bpm;
+
+    if (playing) {
+      elapsed += dt;
+      var cur = Math.floor(elapsed / stepDur) % n;
+      if (cur !== lastStep) {
+        lastStep = cur;
+        onStep(cur);
+      }
+    }
+
+    // Vị trí kim chạy
+    var pos = (elapsed / stepDur) % n;
+    var theta = -Math.PI / 2 + (pos / n) * Math.PI * 2;
+    playPivot.rotation.y = -theta;
+
+    // Hiệu ứng nháy của các nốt
+    for (var i = 0; i < tracks.length; i++) {
+      var items = tracks[i].items;
+      for (var j = 0; j < items.length; j++) {
+        var it = items[j];
+        if (!it.isHit) continue;
+        if (it.flash > 0) it.flash = Math.max(0, it.flash - dt * 3);
+        it.mat.color.copy(it.base).lerp(WHITE, it.flash * 0.85);
+        it.mesh.scale.setScalar(1 + it.flash * 0.7);
+      }
+    }
+
+    if (centerFlash > 0) centerFlash = Math.max(0, centerFlash - dt * 3);
+    centerMesh.scale.setScalar(0.8 + centerFlash * 0.8);
+
+    // Quán tính khi xoay
+    if (!dragging) {
+      velX *= 0.95;
+      velY *= 0.95;
+      rotX += velX;
+      rotY += velY;
+    }
+    if (rotX > 1.2) rotX = 1.2;
+    if (rotX < -1.2) rotX = -1.2;
+    root.rotation.x = rotX;
+    root.rotation.y = rotY;
+
+    renderer.render(scene, camera);
+  }
+
+  buildExercise(0);
+  animate();
+})();
+</script>
+</body>
+</html>
